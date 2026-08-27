@@ -1,0 +1,49 @@
+# Gerbang integrasi SIGAP — tahap awal alur 04-TRD §8.2.
+#
+# Yang sudah ditegakkan di sini: verifikasi dokumen, lint (termasuk batas modul
+# ADR-01 dan larangan egress ADR-03), pemeriksaan tipe, uji unit, dan validasi
+# skema Prisma.
+#
+# Yang BELUM ada dan harus menyusul sebelum produksi, sesuai §8.2:
+#   - uji integrasi terhadap PostgreSQL sementara
+#   - pemindaian keamanan kode & ketergantungan
+#   - bangun dan pindai citra kontainer
+#   - ambang cakupan: 70% keseluruhan, 90% untuk otorisasi, gerbang LLM, dan
+#     jejak audit
+# Daftar ini sengaja ditulis agar ketiadaannya terlihat, bukan terlupakan.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  docs:
+    name: Verifikasi dokumen
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # Dokumen adalah sumber kebenaran (CLAUDE.md). Keterlacakan ID yang putus
+      # menggagalkan build, bukan sekadar memberi peringatan.
+      - run: python3 .claude/skills/verify-docs/scripts/verify.py docs
+
+  code:
+    name: Lint, tipe, uji
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test

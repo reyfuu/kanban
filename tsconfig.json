@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    // Berkas yang dicakup tsconfig ini hanya dijalankan Vitest, yang memaketnya
+    // sendiri. Bundler resolution membuat `import.meta` dan impor .mjs bekerja
+    // tanpa perlu menandai seluruh akar workspace sebagai ESM — penandaan yang
+    // akan merembet ke apps/api yang justru CommonJS.
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
+    "noEmit": true,
+    "resolveJsonModule": true
+  },
+  "include": ["test/**/*.ts", "vitest.config.ts"]
+}

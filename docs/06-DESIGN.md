@@ -74,7 +74,7 @@ Identitas Trimegah diterapkan pada **chrome**, bukan pada area data.
 
 **Alasannya bukan estetika, melainkan keselamatan operasional.** Prinsip [§1.1](#11-aplikasi-ini-sengaja-tidak-menyenangkan) menyatakan warna dicadangkan untuk makna. Bila navy merek muncul di dalam tabel, ia bersaing dengan lencana status dan penanda risiko, dan reviewer yang menelaah 400 item kehilangan isyarat visual yang justru paling ia butuhkan. Merek terasa di kerangka layar; makna tetap berkuasa di dalam data.
 
-Kabar baiknya, netral yang sudah dipakai (`--sg-neutral-900: #0f172a`) adalah abu-abu kebiruan gelap, sehingga navy korporat umumnya menyatu tanpa perlu mengubah palet netral.
+Kabar baiknya, netral yang sudah dipakai (`--color-sg-neutral-900: #0f172a`) adalah abu-abu kebiruan gelap, sehingga navy korporat umumnya menyatu tanpa perlu mengubah palet netral.
 
 #### Aturan yang mengikat
 
@@ -94,53 +94,59 @@ Bila berkasnya belum lengkap, minimal ini yang dibutuhkan sebelum §2.0 dapat di
 - Aturan zona aman dan ukuran minimum logo
 - Larangan penggunaan logo
 
+Saat nilainya masuk, token warna merek dipindahkan ke `@theme` sebagai `--color-tri-*` mengikuti §2.1. Sampai itu terjadi, keduanya sengaja **tidak** berada di `@theme`: entri `@theme` tanpa nilai membangkitkan kelas utilitas rusak yang merender warna kosong tanpa memberi tanda apa pun.
+
 ### 2.1 Warna dasar
 
 Netral abu-abu kebiruan dipilih karena tidak bersaing dengan warna semantik dan nyaman untuk penggunaan berjam-jam.
 
+> **Awalan `--color-` bukan hiasan.** Tailwind v4 hanya membangkitkan kelas utilitas dari namespace yang dikenalinya, dan warna harus berada di `@theme` dengan awalan `--color-`. Dengan penamaan ini satu definisi melayani dua pemakaian — `bg-sg-danger-500` maupun `var(--color-sg-danger-500)` — tanpa lapisan pemetaan yang bisa lupa diperbarui. Token non-warna pada §2.5 sampai §2.7 tetap memakai nama `--sg-*` dan dipakai lewat `var()`.
+>
+> Nilai-nilai ini hidup di `apps/web/src/styles/tokens.css`. Bila berbeda, dokumen ini yang menang.
+
 ```css
-:root {
+@theme {
   /* Netral */
-  --sg-neutral-0:   #ffffff;
-  --sg-neutral-50:  #f8fafc;
-  --sg-neutral-100: #f1f5f9;
-  --sg-neutral-200: #e2e8f0;
-  --sg-neutral-300: #cbd5e1;
-  --sg-neutral-400: #94a3b8;
-  --sg-neutral-500: #64748b;
-  --sg-neutral-600: #475569;
-  --sg-neutral-700: #334155;
-  --sg-neutral-800: #1e293b;
-  --sg-neutral-900: #0f172a;
+  --color-sg-neutral-0:   #ffffff;
+  --color-sg-neutral-50:  #f8fafc;
+  --color-sg-neutral-100: #f1f5f9;
+  --color-sg-neutral-200: #e2e8f0;
+  --color-sg-neutral-300: #cbd5e1;
+  --color-sg-neutral-400: #94a3b8;
+  --color-sg-neutral-500: #64748b;
+  --color-sg-neutral-600: #475569;
+  --color-sg-neutral-700: #334155;
+  --color-sg-neutral-800: #1e293b;
+  --color-sg-neutral-900: #0f172a;
 
   /* Aksen — tautan, fokus, tindakan utama */
-  --sg-accent-50:   #eff6ff;
-  --sg-accent-100:  #dbeafe;
-  --sg-accent-500:  #3b82f6;
-  --sg-accent-600:  #2563eb;
-  --sg-accent-700:  #1d4ed8;
+  --color-sg-accent-50:   #eff6ff;
+  --color-sg-accent-100:  #dbeafe;
+  --color-sg-accent-500:  #3b82f6;
+  --color-sg-accent-600:  #2563eb;
+  --color-sg-accent-700:  #1d4ed8;
 
   /* Semantik */
-  --sg-success-50:  #f0fdf4;
-  --sg-success-500: #22c55e;
-  --sg-success-700: #15803d;
+  --color-sg-success-50:  #f0fdf4;
+  --color-sg-success-500: #22c55e;
+  --color-sg-success-700: #15803d;
 
-  --sg-warning-50:  #fffbeb;
-  --sg-warning-500: #f59e0b;
-  --sg-warning-700: #b45309;
+  --color-sg-warning-50:  #fffbeb;
+  --color-sg-warning-500: #f59e0b;
+  --color-sg-warning-700: #b45309;
 
-  --sg-danger-50:   #fef2f2;
-  --sg-danger-500:  #ef4444;
-  --sg-danger-700:  #b91c1c;
+  --color-sg-danger-50:   #fef2f2;
+  --color-sg-danger-500:  #ef4444;
+  --color-sg-danger-700:  #b91c1c;
 
-  --sg-info-50:     #f0f9ff;
-  --sg-info-500:    #0ea5e9;
-  --sg-info-700:    #0369a1;
+  --color-sg-info-50:     #f0f9ff;
+  --color-sg-info-500:    #0ea5e9;
+  --color-sg-info-700:    #0369a1;
 
   /* Ungu — dicadangkan khusus untuk penanda "dibangkitkan sistem" */
-  --sg-system-50:   #faf5ff;
-  --sg-system-500:  #a855f7;
-  --sg-system-700:  #7e22ce;
+  --color-sg-system-50:   #faf5ff;
+  --color-sg-system-500:  #a855f7;
+  --color-sg-system-700:  #7e22ce;
 }
 ```
 
@@ -165,10 +171,10 @@ Berbeda dari status, tingkat risiko memakai skala tersendiri agar tidak tertukar
 
 | Tingkat | Latar | Teks | Penanda |
 |---|---|---|---|
-| Kritis | `--sg-danger-50` | `--sg-danger-700` | Garis kiri tebal 3px |
+| Kritis | `--color-sg-danger-50` | `--color-sg-danger-700` | Garis kiri tebal 3px |
 | Tinggi | `#fff7ed` | `#c2410c` | Garis kiri tebal 3px |
-| Sedang | `--sg-warning-50` | `--sg-warning-700` | Garis kiri 2px |
-| Rendah | `--sg-neutral-100` | `--sg-neutral-600` | Tanpa garis |
+| Sedang | `--color-sg-warning-50` | `--color-sg-warning-700` | Garis kiri 2px |
+| Rendah | `--color-sg-neutral-100` | `--color-sg-neutral-600` | Tanpa garis |
 
 ### 2.4 Warna klasifikasi informasi
 
@@ -176,10 +182,10 @@ Klasifikasi selalu ditampilkan sebagai lencana dengan garis tepi, bukan latar pe
 
 | Klasifikasi | Garis tepi | Teks | Ikon |
 |---|---|---|---|
-| Publik | `--sg-neutral-300` | `--sg-neutral-600` | 🌐 |
-| Internal | `--sg-accent-500` | `--sg-accent-700` | 🏢 |
-| Terbatas | `--sg-warning-500` | `--sg-warning-700` | 🔒 |
-| Rahasia | `--sg-danger-500` | `--sg-danger-700` | 🔐 |
+| Publik | `--color-sg-neutral-300` | `--color-sg-neutral-600` | 🌐 |
+| Internal | `--color-sg-accent-500` | `--color-sg-accent-700` | 🏢 |
+| Terbatas | `--color-sg-warning-500` | `--color-sg-warning-700` | 🔒 |
+| Rahasia | `--color-sg-danger-500` | `--color-sg-danger-700` | 🔐 |
 
 ### 2.5 Tipografi
 
@@ -263,15 +269,15 @@ Tersedia sebagai pilihan pengguna, bukan bawaan. Netral dibalik; warna semantik 
 
 ```css
 [data-theme="dark"] {
-  --sg-neutral-0:   #0f172a;
-  --sg-neutral-50:  #1e293b;
-  --sg-neutral-100: #334155;
-  --sg-neutral-900: #f8fafc;
+  --color-sg-neutral-0:   #0f172a;
+  --color-sg-neutral-50:  #1e293b;
+  --color-sg-neutral-100: #334155;
+  --color-sg-neutral-900: #f8fafc;
 
-  --sg-success-500: #4ade80;
-  --sg-warning-500: #fbbf24;
-  --sg-danger-500:  #f87171;
-  --sg-accent-500:  #60a5fa;
+  --color-sg-success-500: #4ade80;
+  --color-sg-warning-500: #fbbf24;
+  --color-sg-danger-500:  #f87171;
+  --color-sg-accent-500:  #60a5fa;
 }
 ```
 

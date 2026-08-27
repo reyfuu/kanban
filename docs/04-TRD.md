@@ -283,14 +283,24 @@ interface EmbeddingProvider {
 **Lapis 3 — Rantai sidik jari pada jejak audit.**
 
 ```
-hash(n) = SHA256( hash(n-1) ‖ waktu ‖ aktor ‖ aksi ‖ objek ‖ nilai_sebelum ‖ nilai_sesudah )
+hash(n) = SHA256( hash(n-1) ⋮ waktu ⋮ aktor ⋮ aksi ⋮ jenis_objek ⋮ pengenal_objek
+                  ⋮ nilai_sebelum ⋮ nilai_sesudah )
+
+⋮  = U+001E, pemisah antar-komponen
+NULL dikodekan sebagai penanda tersendiri, bukan sebagai string kosong
 ```
 
-Setiap catatan memuat sidik jari catatan sebelumnya. Penghapusan atau penyisipan di tengah rantai memutus keterkaitan dan terdeteksi oleh fungsi verifikasi.
+**Pemisah itu bagian dari kontrol, bukan tata tulis.** Tanpa pemisah, komponen yang berbeda dapat menghasilkan gabungan yang sama. Yang paling berbahaya: `nilai_sebelum` kosong dengan `nilai_sesudah` berisi — pemberian hak `SYS_ADMIN` — menghasilkan sidik jari identik dengan kebalikannya, yaitu pencabutan hak yang sama. Pihak yang mampu menulis dapat menukar kedua kolom itu tanpa menghitung ulang satu pun sidik jari di hilirnya, dan verifikasi tetap melaporkan rantai sah. Mendeteksi perubahan oleh pihak yang sudah punya akses tulis adalah satu-satunya alasan rantai ini ada.
+
+Setiap catatan memuat sidik jari catatan sebelumnya. Penghapusan atau penyisipan di tengah rantai memutus keterkaitan dan terdeteksi oleh fungsi verifikasi. **Pemotongan di ujung terbaru tidak terdeteksi oleh fungsi verifikasi sendirian** — itulah sebabnya sidik jari kepala rantai wajib disalin ke luar basis data, lihat butir ketiga di bawah.
+
+**Rumus ini tidak dapat diubah setelah ada satu baris produksi.** Mengubahnya menuntut penghitungan ulang seluruh sidik jari sebelumnya, sementara `audit_log` memang dirancang tidak dapat diperbarui.
 
 **Penegakan tambahan pada basis data.**
-- Tabel `audit_log` diberi aturan penolakan operasi `UPDATE` dan `DELETE` melalui pemicu basis data.
-- Akun basis data yang digunakan aplikasi **tidak memiliki** hak `UPDATE` maupun `DELETE` pada tabel tersebut.
+- Tabel `audit_log` diberi aturan penolakan operasi `UPDATE`, `DELETE`, dan `TRUNCATE` melalui pemicu basis data. `TRUNCATE` disebut terpisah karena ia tidak tersirat oleh `DELETE` dan tidak menyalakan pemicu tingkat baris.
+- Akun basis data yang digunakan aplikasi **tidak memiliki** hak `UPDATE`, `DELETE`, maupun `TRUNCATE` pada tabel tersebut.
+- **Tabel dimiliki peran `NOLOGIN` tersendiri, bukan oleh akun aplikasi.** Pemilik objek di PostgreSQL memegang seluruh *grant option* atas objeknya secara permanen; bila akun aplikasi menjadi pemilik, pencabutan hak di atas dapat dibatalkannya sendiri dalam satu pernyataan. Konsekuensi langsungnya: migrasi wajib dijalankan oleh peran yang berbeda dari peran runtime.
+- Seluruh fungsi jejak audit mematok `search_path` dan merujuk skema secara eksplisit, sehingga tabel sementara tidak dapat membayangi `audit_log` saat verifikasi dijalankan.
 - Sidik jari kepala rantai dicatat ke berkas log sistem yang dialirkan ke penyimpanan log terpisah, sehingga tersedia salinan pembanding di luar basis data.
 
 **Konsekuensi.**

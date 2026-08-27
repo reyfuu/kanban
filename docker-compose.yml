@@ -1,0 +1,97 @@
+# Lingkungan pengembangan lokal SIGAP.
+#
+# Bukan konfigurasi produksi. Penempatan produksi mengikuti 04-TRD §8.1 dan
+# zonasi jaringan §5.1 — khususnya peladen aplikasi TIDAK memiliki rute keluar
+# langsung ke internet (ADR-03 K3).
+
+name: sigap
+
+services:
+  postgres:
+    # PostgreSQL 16 sesuai 04-TRD §1.2. Citra pgvector membawa ekstensi vektor;
+    # pg_trgm, pgcrypto, dan btree_gin sudah termasuk dalam distribusi baku.
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sigap}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sigap_dev_only}
+      POSTGRES_DB: ${POSTGRES_DB:-sigap}
+      # Kolasi Indonesia agar pengurutan nama sesuai harapan pengguna.
+      POSTGRES_INITDB_ARGS: '--locale=id_ID.UTF-8 --encoding=UTF8'
+      LANG: id_ID.utf8
+    ports:
+      # 5433 di host, bukan 5432. Banyak mesin pengembang sudah menjalankan
+      # PostgreSQL sistem di 5432, dan tabrakan porta itu gagalnya senyap:
+      # kontainer menolak mengikat, lalu DATABASE_URL diam-diam menunjuk ke
+      # basis data sistem — migrasi berjalan di tempat yang salah tanpa satu
+      # pesan galat pun.
+      - '${POSTGRES_PORT:-5433}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-sigap} -d ${POSTGRES_DB:-sigap}']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    # Redis 7 — antrean BullMQ (ADR-08) dan cache sesi.
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    # Penyimpanan objek. ADR-04 lapis 2 menuntut object lock mode kepatuhan,
+    # dan object lock HANYA dapat diaktifkan saat bucket dibuat — tidak dapat
+    # ditambahkan belakangan. Lihat skrip inisialisasi minio-init di bawah.
+    image: minio/minio:latest
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-sigap}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-sigap_dev_only}
+    ports:
+      - '${MINIO_PORT:-9000}:9000'
+      - '${MINIO_CONSOLE_PORT:-9001}:9001'
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio-init:
+    # Membuat bucket dengan object lock aktif sejak awal. Dijalankan sekali lalu
+    # keluar. Bucket yang terlanjur dibuat tanpa --with-lock harus dibuang dan
+    # dibuat ulang; tidak ada jalan mengaktifkannya setelah itu.
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-sigap} ${MINIO_ROOT_PASSWORD:-sigap_dev_only} &&
+      mc mb --ignore-existing --with-lock local/sigap-evidence &&
+      mc mb --ignore-existing --with-lock local/sigap-documents &&
+      mc mb --ignore-existing local/sigap-exports &&
+      mc version enable local/sigap-evidence &&
+      mc version enable local/sigap-documents &&
+      echo 'Bucket siap.'
+      "
+
+  # ClamAV menyusul bersama jalur unggah berkas (FR-X-013): citranya ~1 GB dan
+  # perlu dua menit untuk siap, jadi tidak perlu dibebankan ke setiap
+  # pengembang sebelum ada yang mengunggah apa pun. Bucket MinIO di atas beda
+  # perkaranya — object lock hanya dapat diaktifkan saat bucket dibuat.
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:

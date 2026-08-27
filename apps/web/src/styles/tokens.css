@@ -1,0 +1,97 @@
+/*
+ * Token desain SIGAP — salinan tunggal dari 06-DESIGN §2.
+ *
+ * Berkas ini adalah SATU-SATUNYA tempat nilai warna boleh ditulis. Aturan kode
+ * #6: warna semantik hanya lewat token, tidak pernah heksadesimal langsung.
+ * Lint menolak heksadesimal di berkas TS/TSX mana pun di bawah apps/web.
+ *
+ * Bila nilai di sini berbeda dari 06-DESIGN, dokumennya yang menang.
+ *
+ * Warna hidup di dalam `@theme` dengan awalan `--color-`. Itu bukan selera
+ * penamaan: Tailwind v4 hanya membangkitkan kelas utilitas dari namespace yang
+ * dikenalinya. Dengan cara ini satu definisi melayani dua pemakaian —
+ * `bg-sg-danger-500` dan `var(--color-sg-danger-500)` — tanpa lapisan pemetaan
+ * yang bisa lupa diperbarui.
+ */
+
+@theme {
+  /* --- Netral (06-DESIGN §2.1) ---
+   * Abu-abu kebiruan, dipilih agar tidak bersaing dengan warna semantik. */
+  --color-sg-neutral-0: #ffffff;
+  --color-sg-neutral-50: #f8fafc;
+  --color-sg-neutral-100: #f1f5f9;
+  --color-sg-neutral-200: #e2e8f0;
+  --color-sg-neutral-300: #cbd5e1;
+  --color-sg-neutral-400: #94a3b8;
+  --color-sg-neutral-500: #64748b;
+  --color-sg-neutral-600: #475569;
+  --color-sg-neutral-700: #334155;
+  --color-sg-neutral-800: #1e293b;
+  --color-sg-neutral-900: #0f172a;
+
+  /* --- Aksen: tautan, fokus, tindakan utama --- */
+  --color-sg-accent-50: #eff6ff;
+  --color-sg-accent-100: #dbeafe;
+  --color-sg-accent-500: #3b82f6;
+  --color-sg-accent-600: #2563eb;
+  --color-sg-accent-700: #1d4ed8;
+
+  /* --- Semantik ---
+   * 06-DESIGN §2.2: satu makna, satu warna, di seluruh sistem. Kuning berarti
+   * "perlu perhatian" di ketiga modul — jangan memakainya untuk hal netral
+   * seperti "informasi tambahan" di salah satu modul saja. */
+  --color-sg-success-50: #f0fdf4;
+  --color-sg-success-500: #22c55e;
+  --color-sg-success-700: #15803d;
+
+  --color-sg-warning-50: #fffbeb;
+  --color-sg-warning-500: #f59e0b;
+  --color-sg-warning-700: #b45309;
+
+  --color-sg-danger-50: #fef2f2;
+  --color-sg-danger-500: #ef4444;
+  --color-sg-danger-700: #b91c1c;
+
+  --color-sg-info-50: #f0f9ff;
+  --color-sg-info-500: #0ea5e9;
+  --color-sg-info-700: #0369a1;
+
+  /* Ungu dicadangkan khusus untuk penanda "dibangkitkan sistem". Jangan
+   * memakainya untuk keperluan lain. */
+  --color-sg-system-50: #faf5ff;
+  --color-sg-system-500: #a855f7;
+  --color-sg-system-700: #7e22ce;
+}
+
+/*
+ * Token non-warna (tipografi §3, jarak §4) tetap memakai nama `--sg-*` seperti
+ * tertulis di dokumen dan dipakai lewat `var()`.
+ *
+ * Catatan untuk yang membaca nanti: `--sg-space-1..12` dan `--sg-radius-*`
+ * ternyata bernilai sama persis dengan skala bawaan Tailwind (`p-3`, `p-4`,
+ * `rounded-md`, dst.). Keduanya dapat dihapus dari dokumen tanpa kehilangan
+ * apa pun — tapi itu keputusan atas dokumen, bukan atas berkas ini.
+ */
+
+/*
+ * --- Lapisan merek Trimegah (06-DESIGN §2.0) ---
+ *
+ * STATUS: MENUNGGU BRAND GUIDELINE. Nilainya sengaja dikosongkan, dan sengaja
+ * BELUM dimasukkan ke `@theme` — entri `@theme` tanpa nilai membangkitkan kelas
+ * utilitas rusak yang diam-diam merender warna kosong. Pindahkan ke `@theme`
+ * sebagai `--color-tri-*` saat nilainya sudah ada.
+ *
+ * Jangan menebak nilai warna merek dari tangkapan layar situs. Kesalahan warna
+ * merek pada dokumen resmi lebih mahal daripada penundaan.
+ *
+ * Aturan penerapannya sudah lengkap dan tidak menunggu apa pun: merek hanya
+ * boleh muncul pada chrome — bilah atas, bilah sisi, layar masuk, kop laporan,
+ * portal auditor eksternal. TIDAK PERNAH pada baris tabel, lencana status,
+ * penanda risiko, atau kendali keputusan review. Alasannya bukan estetika:
+ * navy merek di dalam tabel bersaing dengan lencana status, dan reviewer yang
+ * menelaah 400 item kehilangan isyarat visual yang paling ia butuhkan.
+ *
+ * Saat mengisi: periksa kontras setiap pasangan terhadap 4,5:1. Bila warna
+ * resmi tidak memenuhi, pakai varian gelapnya sebagai latar teks dan catat
+ * penyimpangannya di dokumen — jangan menurunkan ambang.
+ */

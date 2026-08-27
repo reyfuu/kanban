@@ -279,7 +279,7 @@ Dokumen ini disusun dengan asumsi yang dinyatakan terbuka. Sebelum dibawa ke pen
 | 13 | Siapa yang berwenang mengaktifkan dan menonaktifkan tiap agent | Kepatuhan | [AGENT QA-03](08-AGENT-SPEC.md) |
 | 14 | Apakah penanda asal draf AG-5 perlu muncul pada laporan audit final | SKAI & Kepatuhan | [AGENT QA-04](08-AGENT-SPEC.md) |
 | 15 | Masa simpan catatan eksekusi agent | Kepatuhan | [AGENT QA-05](08-AGENT-SPEC.md) |
-| 16 | **Apakah anak usaha ikut memakai SIGAP** — memengaruhi arsitektur secara mendasar | Direksi & TI | [PRD Q-08](02-PRD.md), [BRD ASM-01](01-BRD.md) |
+| 16 | Apakah anak usaha ikut memakai SIGAP — memengaruhi arsitektur secara mendasar. **Tidak lagi memblokir Fase 1:** rancangan mengikuti keputusan tertulis satu badan hukum ([TRD §10](04-TRD.md) butir 6). Konfirmasi Direksi tetap ditunggu, dan makin lama makin mahal untuk dibalik | Direksi & TI | [PRD Q-08](02-PRD.md), [BRD ASM-01](01-BRD.md) |
 | 17 | Brand guideline Trimegah: nilai warna, tipografi, berkas logo, aturan zona aman | Tim Brand | [DESIGN §2.0](06-DESIGN.md) |
 | 18 | Pemenuhan tujuh syarat kepatuhan Gemini G1–G7 sebelum AG-1 diaktifkan | Kepatuhan & TI | [ADR-03](04-TRD.md) |
 | 19 | Ruang lingkup aplikasi awal: Trima+, back office, kustodian, atau fixed income | IT Security | [PRD Q-09](02-PRD.md) |
