@@ -1,0 +1,47 @@
+# Dependensi
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+build/
+.next/
+out/
+
+# Lingkungan & rahasia
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Basis data & penyimpanan lokal
+*.sqlite
+*.db
+/data/
+/minio-data/
+
+# Log & sementara
+*.log
+.tmp/
+coverage/
+playwright-report/
+test-results/
+.vitest/
+
+# Hasil eval — berisi keluaran model atas data yang disamarkan
+/eval/runs/
+/eval/datasets/*.jsonl
+!/eval/datasets/.gitkeep
+
+# Berkas hasil ekspor laporan
+/exports/
+
+# Perkakas
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Claude Code — setelan lokal per pengembang
+.claude/settings.local.json
