@@ -1,10 +1,12 @@
 # BRD — Business Requirements Document
 ## SIGAP: Sistem Integrasi Governance, Akses, dan Prosedur
+### PT Trimegah Sekuritas Indonesia Tbk
 
 | | |
 |---|---|
 | **Dokumen** | Business Requirements Document (BRD) |
 | **Produk** | SIGAP v1.0 |
+| **Perusahaan** | PT Trimegah Sekuritas Indonesia Tbk (TRIM) |
 | **Versi dokumen** | 1.0 |
 | **Tanggal** | 27 Agustus 2026 |
 | **Penyusun** | Tim Arsitektur & Solusi TI |
@@ -38,7 +40,11 @@ Nilai utama SIGAP bukan pada tiga modul itu berdiri sendiri — produk komersial
 
 ### 2.1 Kewajiban kelembagaan
 
-Sebagai Perusahaan Efek yang menjalankan kegiatan Perantara Pedagang Efek (PPE) dan/atau Penjamin Emisi Efek (PEE), perusahaan wajib memiliki fungsi kepatuhan, fungsi manajemen risiko, fungsi audit internal, dan fungsi pengelolaan teknologi informasi yang andal. Ketiga fungsi pengendalian ini menghasilkan permintaan bukti yang berulang dan bertumpuk sepanjang tahun.
+PT Trimegah Sekuritas Indonesia Tbk adalah Perusahaan Efek berizin OJK dan Anggota Bursa Efek Indonesia, dengan lini usaha meliputi perdagangan ekuitas, surat utang (*fixed income*), *investment banking*, distribusi reksa dana, pembiayaan transaksi, dan platform perdagangan daring Trima+.
+
+Sebagai Perusahaan Efek yang menjalankan kegiatan Perantara Pedagang Efek (PPE) dan Penjamin Emisi Efek (PEE), perusahaan wajib memiliki fungsi kepatuhan, fungsi manajemen risiko, fungsi audit internal, dan fungsi pengelolaan teknologi informasi yang andal. Ketiga fungsi pengendalian ini menghasilkan permintaan bukti yang berulang dan bertumpuk sepanjang tahun.
+
+Keragaman lini usaha memperbesar beban tersebut: setiap lini memiliki aplikasi, prosedur, dan profil risiko sendiri, sehingga cakupan bukti audit dan cakupan review hak akses lebih luas daripada perusahaan efek yang hanya menjalankan satu lini.
 
 ### 2.2 Sumber permintaan bukti dalam satu tahun buku
 
@@ -306,7 +312,7 @@ R = Responsible, A = Accountable, C = Consulted, I = Informed
 
 | Kode | Asumsi | Dampak bila keliru |
 |---|---|---|
-| ASM-01 | Jumlah karyawan 300–1.000 orang, satu badan hukum | Bila menjadi grup multi-entitas, dibutuhkan pemisahan data antar-entitas yang mengubah arsitektur |
+| ASM-01 | Jumlah karyawan 300–1.000 orang, **satu badan hukum: PT Trimegah Sekuritas Indonesia Tbk saja** | **Perlu konfirmasi.** Trimegah memiliki anak usaha, di antaranya PT Trimegah Asset Management. Bila anak usaha ikut memakai SIGAP, dibutuhkan pemisahan data antar-entitas dan konsolidasi laporan di tingkat grup — perubahan arsitektur yang tidak tercakup rancangan ini. Lihat pertanyaan terbuka Q-08 pada [02-PRD §8](02-PRD.md) |
 | ASM-02 | Jumlah aplikasi dalam ruang lingkup 20–50 | Bila jauh lebih banyak, upaya integrasi meningkat proporsional |
 | ASM-03 | Active Directory adalah sumber identitas utama dan dapat diandalkan | Bila data AD kotor, rekonsiliasi menghasilkan banyak positif palsu |
 | ASM-04 | Perusahaan memiliki DC dan DRC sendiri dengan kapasitas memadai | Perlu pengadaan infrastruktur tambahan |

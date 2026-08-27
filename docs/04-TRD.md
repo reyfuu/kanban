@@ -221,6 +221,26 @@ sequenceDiagram
 | K9 | Kemandirian penyedia | Antarmuka `LlmProvider` dengan implementasi penyedia eksternal dan model lokal |
 | K10 | Rujukan wajib | Jawaban tanpa rujukan yang dapat diverifikasi dibuang, tidak ditampilkan |
 
+**Penyedia yang dipilih: Google Gemini.**
+
+Penyedia ditetapkan setelah mempertimbangkan ketersediaan wilayah pemrosesan Asia Tenggara, dukungan Bahasa Indonesia, dan kemampuan keluaran terikat skema. Penetapan ini **hanya berlaku untuk AG-1 dan AG-6** — dua agent yang bekerja pada materi berklasifikasi Publik dan Internal. AG-2, AG-3, AG-4, dan AG-5 tetap wajib model lokal karena menyentuh data akses, data pribadi, dan isi bukti ([08-AGENT-SPEC §2.3](08-AGENT-SPEC.md)).
+
+Syarat yang **wajib terpenuhi sebelum pengaktifan**, diverifikasi Divisi Kepatuhan dan dicatat sebagai bukti pada Modul A:
+
+| Kode | Syarat | Bukti pemenuhan |
+|---|---|---|
+| G1 | Wilayah pemrosesan ditetapkan ke Asia Tenggara, bukan global | Konfigurasi endpoint regional; diuji dengan pemeriksaan alamat tujuan pada proxy |
+| G2 | Perjanjian tertulis: tanpa retensi data dan tanpa pemakaian untuk pelatihan model | Dokumen kontrak atau ketentuan layanan tingkat perusahaan |
+| G3 | Kredensial hanya hidup di penyimpanan rahasia | Tidak ada kunci pada repositori, variabel lingkungan proses, maupun citra kontainer |
+| G4 | Rotasi kredensial terjadwal 180 hari | Pengingat otomatis; prosedur rotasi terdokumentasi |
+| G5 | Domain penyedia terdaftar pada daftar izin proxy egress | Konfigurasi proxy; percobaan ke tujuan lain gagal (TC-SEC-27) |
+| G6 | Batas anggaran bulanan ditetapkan | Konfigurasi gerbang; pada 100% AG-1 dan AG-6 nonaktif otomatis |
+| G7 | Perjanjian ditinjau ulang setiap perubahan ketentuan layanan penyedia | Jadwal tinjauan pada Modul C |
+
+**Kredensial tidak pernah muncul dalam dokumen ini maupun dalam repositori.** Kunci yang pernah terekspos dalam bentuk teks biasa — termasuk melalui surel, percakapan, atau tiket — dianggap bocor dan wajib dicabut, terlepas dari siapa yang melihatnya.
+
+Penetapan penyedia **tidak mengubah ADR ini secara substansi**. Antarmuka `LlmProvider` tetap menjadi batasnya, dan perpindahan penyedia dilakukan lewat konfigurasi tanpa perubahan kode aplikasi.
+
 **Definisi antarmuka.**
 
 ```typescript

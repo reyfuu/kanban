@@ -5,6 +5,7 @@
 |---|---|
 | **Dokumen** | Design System & UI Guideline |
 | **Produk** | SIGAP v1.0 |
+| **Perusahaan** | PT Trimegah Sekuritas Indonesia Tbk (TRIM) |
 | **Versi dokumen** | 1.0 |
 | **Tanggal** | 27 Agustus 2026 |
 | **Audiens** | UI/UX Designer, Frontend Developer |
@@ -31,7 +32,7 @@ SIGAP adalah perkakas kerja untuk orang yang mengambil keputusan dengan konsekue
 |---|---|
 | Bayangan tebal dan gradien | Menambah kebisingan visual pada layar yang sudah padat informasi |
 | Ilustrasi pada keadaan kosong | Membuang ruang vertikal yang berharga; teks penjelas lebih berguna |
-| Warna merek yang dominan | Warna harus dicadangkan untuk makna |
+| Warna merek yang dominan **di area data** | Warna harus dicadangkan untuk makna. Merek diterapkan pada chrome — lihat [§2.0](#20-lapisan-brand-trimegah) |
 | Ikon tanpa label | Ikon yang ambigu menimbulkan keraguan pada keputusan berkonsekuensi |
 | Sudut sangat membulat | Membuat tabel terasa longgar dan menyulitkan penyejajaran |
 | Mode gelap sebagai bawaan | Sebagian besar pengguna bekerja di kantor dengan pencahayaan terang; mode gelap tersedia sebagai pilihan |
@@ -39,6 +40,59 @@ SIGAP adalah perkakas kerja untuk orang yang mengambil keputusan dengan konsekue
 ---
 
 ## 2. Token Desain
+
+### 2.0 Lapisan brand Trimegah
+
+> **Status: menunggu brand guideline.** Nilai `--tri-*` di bawah adalah penampung, bukan warna resmi. Isi setelah menerima panduan merek dari tim brand Trimegah, lalu hapus catatan ini. Jangan menebak nilainya dari tangkapan layar situs — kesalahan warna merek pada dokumen resmi lebih mahal daripada penundaan.
+
+Identitas Trimegah diterapkan pada **chrome**, bukan pada area data.
+
+```css
+:root {
+  /* Merek — WAJIB diisi dari brand guideline resmi */
+  --tri-primary:      /* navy korporat */;
+  --tri-primary-dark: /* untuk keadaan tekan & mode gelap */;
+  --tri-primary-tint: /* latar sangat muda untuk area terpilih */;
+  --tri-accent:       /* aksen sekunder, bila ada */;
+  --tri-on-primary:   /* teks di atas primary — wajib kontras ≥4,5:1 */;
+
+  --tri-font-display: /* tipografi judul sesuai panduan */;
+  --tri-font-body:    /* tipografi isi; boleh sama dengan --sg-font-sans */;
+}
+```
+
+#### Batas penerapan
+
+| Boleh memakai warna merek | Tidak boleh memakai warna merek |
+|---|---|
+| Bilah atas dan bilah sisi | Baris dan sel tabel |
+| Layar masuk dan halaman kesalahan | Lencana status |
+| Logo dan kop laporan cetak | Penanda tingkat risiko |
+| Tombol tindakan utama | Kendali keputusan review |
+| Keadaan terpilih pada navigasi | Pita peringatan dan galat |
+| Halaman muka paket bukti | Diagram dan bagan |
+
+**Alasannya bukan estetika, melainkan keselamatan operasional.** Prinsip [§1.1](#11-aplikasi-ini-sengaja-tidak-menyenangkan) menyatakan warna dicadangkan untuk makna. Bila navy merek muncul di dalam tabel, ia bersaing dengan lencana status dan penanda risiko, dan reviewer yang menelaah 400 item kehilangan isyarat visual yang justru paling ia butuhkan. Merek terasa di kerangka layar; makna tetap berkuasa di dalam data.
+
+Kabar baiknya, netral yang sudah dipakai (`--sg-neutral-900: #0f172a`) adalah abu-abu kebiruan gelap, sehingga navy korporat umumnya menyatu tanpa perlu mengubah palet netral.
+
+#### Aturan yang mengikat
+
+1. **Kontras diperiksa, bukan diasumsikan.** Setiap pasangan `--tri-primary` dengan teks di atasnya wajib memenuhi 4,5:1. Bila warna merek resmi tidak memenuhi, gunakan varian gelapnya untuk latar teks dan catat penyimpangan itu pada dokumen — jangan menurunkan ambang kontras.
+2. **Warna merek tidak boleh menjadi satu-satunya pembeda** untuk keadaan apa pun, sama seperti warna semantik.
+3. **Mode gelap memakai `--tri-primary-dark`**, bukan mencerahkan `--tri-primary`. Navy yang dicerahkan cenderung bergeser ke ungu.
+4. **Logo tidak diregangkan, diwarnai ulang, atau ditempatkan di atas latar yang tidak diizinkan** panduan merek. Aturan zona aman logo diikuti apa adanya.
+5. **Portal auditor eksternal memakai kop merek penuh.** Di sanalah identitas perusahaan paling relevan — auditor perlu tahu dengan pasti sistem siapa yang ia akses.
+
+#### Yang perlu ada di brand guideline
+
+Bila berkasnya belum lengkap, minimal ini yang dibutuhkan sebelum §2.0 dapat difinalkan:
+
+- Nilai heksadesimal warna primer, sekunder, dan aksen
+- Nama tipografi judul dan isi, beserta bobot yang tersedia
+- Berkas logo dalam SVG, versi terang dan gelap
+- Aturan zona aman dan ukuran minimum logo
+- Larangan penggunaan logo
 
 ### 2.1 Warna dasar
 

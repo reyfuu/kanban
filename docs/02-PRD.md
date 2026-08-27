@@ -654,6 +654,8 @@ Hal-hal berikut secara sadar **bukan** tujuan produk, dinyatakan agar tidak meny
 | Q-05 | Aplikasi mana saja yang masuk 5 besar percontohan kampanye UAR? | IT Security | Fase 3 dimulai |
 | Q-06 | Siapa yang berwenang menyetujui pengecualian konflik pemisahan tugas? | Direksi | Fase 3 dimulai |
 | Q-07 | Apakah portal auditor eksternal boleh diakses dari luar jaringan perusahaan, atau hanya dari jaringan internal/VPN? | IT Security | Fase 2 dimulai |
+| Q-08 | Apakah anak usaha — di antaranya PT Trimegah Asset Management — ikut memakai SIGAP? Bila ya, arsitektur perlu pemisahan data antar-entitas dan konsolidasi laporan tingkat grup | Direksi & TI | **Fase 1 dimulai** |
+| Q-09 | Aplikasi mana yang menjadi ruang lingkup awal: Trima+, sistem back office, kustodian, atau sistem fixed income? Kekritisan dan cara pengambilan data akses berbeda-beda | IT Security & Pemilik Aplikasi | Fase 3 dimulai |
 
 ---
 

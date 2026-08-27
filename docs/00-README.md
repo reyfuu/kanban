@@ -1,7 +1,8 @@
 # SIGAP — Dokumentasi Produk
 ## Sistem Integrasi Governance, Akses, dan Prosedur
+### PT Trimegah Sekuritas Indonesia Tbk
 
-Platform tata kelola internal untuk perusahaan efek, terdiri atas tiga modul yang berbagi satu penyimpanan bukti bersama:
+Platform tata kelola internal untuk Trimegah Sekuritas, terdiri atas tiga modul yang berbagi satu penyimpanan bukti bersama:
 
 | Modul | Nama | Menjawab pertanyaan |
 |---|---|---|
@@ -61,6 +62,8 @@ Platform tata kelola internal untuk perusahaan efek, terdiri atas tiga modul yan
 | Otonomi agent AI | **Hanya menyarankan.** Tidak ada agent yang menulis ke data produksi | [AGENT §1.1](08-AGENT-SPEC.md) |
 | Rute model agent | Hibrida per klasifikasi. AG-2, AG-3, AG-5 wajib model lokal | [AGENT §2.3](08-AGENT-SPEC.md) |
 | Hak akses agent | Mewarisi hak akses pemohon; tanpa akun layanan istimewa | [GR-0.2](09-GUARDRAILS.md) |
+| Penyedia LLM eksternal | **Google Gemini**, hanya untuk AG-1 dan AG-6, dengan 7 syarat kepatuhan G1–G7 | [ADR-03](04-TRD.md) |
+| Identitas visual | Merek Trimegah pada chrome; warna semantik utuh di area data | [DESIGN §2.0](06-DESIGN.md) |
 
 ### Ketegangan yang dicatat secara terbuka
 
@@ -276,6 +279,10 @@ Dokumen ini disusun dengan asumsi yang dinyatakan terbuka. Sebelum dibawa ke pen
 | 13 | Siapa yang berwenang mengaktifkan dan menonaktifkan tiap agent | Kepatuhan | [AGENT QA-03](08-AGENT-SPEC.md) |
 | 14 | Apakah penanda asal draf AG-5 perlu muncul pada laporan audit final | SKAI & Kepatuhan | [AGENT QA-04](08-AGENT-SPEC.md) |
 | 15 | Masa simpan catatan eksekusi agent | Kepatuhan | [AGENT QA-05](08-AGENT-SPEC.md) |
+| 16 | **Apakah anak usaha ikut memakai SIGAP** — memengaruhi arsitektur secara mendasar | Direksi & TI | [PRD Q-08](02-PRD.md), [BRD ASM-01](01-BRD.md) |
+| 17 | Brand guideline Trimegah: nilai warna, tipografi, berkas logo, aturan zona aman | Tim Brand | [DESIGN §2.0](06-DESIGN.md) |
+| 18 | Pemenuhan tujuh syarat kepatuhan Gemini G1–G7 sebelum AG-1 diaktifkan | Kepatuhan & TI | [ADR-03](04-TRD.md) |
+| 19 | Ruang lingkup aplikasi awal: Trima+, back office, kustodian, atau fixed income | IT Security | [PRD Q-09](02-PRD.md) |
 
 ---
 

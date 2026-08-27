@@ -19,7 +19,7 @@
 ### 1.1 Alamat dasar
 
 ```
-https://sigap.internal.example.co.id/api/v1
+https://sigap.internal.trimegah.com/api/v1
 ```
 
 Lingkungan pengembangan dan pra-produksi memakai nama host berbeda dengan jalur yang sama.
@@ -90,7 +90,7 @@ Mengikuti RFC 7807 dengan jenis konten `application/problem+json`.
 
 ```json
 {
-  "type": "https://sigap.internal.example.co.id/errors/validation-failed",
+  "type": "https://sigap.internal.trimegah.com/errors/validation-failed",
   "title": "Validasi gagal",
   "status": 422,
   "detail": "Terdapat 2 bidang yang tidak memenuhi ketentuan.",
@@ -234,7 +234,7 @@ Content-Type: application/json
       "id": "0192f8a1-3c4d-7e8f-9012-3456789abcde",
       "employee_number": "EMP-00142",
       "full_name": "Bayu Pratama",
-      "email": "bayu.pratama@example.co.id",
+      "email": "bayu.pratama@trimegah.com",
       "job_title": "Senior Auditor",
       "org_unit": { "id": "...", "code": "SKAI", "name": "Satuan Kerja Audit Internal" },
       "roles": ["AUDITOR_INT"],
@@ -341,7 +341,7 @@ GET /api/v1/employees/{id}/subordinates
     "id": "0192f8d4-...",
     "employee_number": "EMP-00287",
     "full_name": "Sari Wulandari",
-    "email": "sari.wulandari@example.co.id",
+    "email": "sari.wulandari@trimegah.com",
     "job_title": "Kepala Bagian Operasional",
     "org_unit": { "id": "...", "code": "OPS", "name": "Divisi Operasional" },
     "manager": { "id": "...", "full_name": "Hendra Wijaya" },
@@ -2364,9 +2364,9 @@ info:
     Antarmuka pemrograman SIGAP — Sistem Integrasi Governance, Akses, dan Prosedur.
     Seluruh tanggapan kesalahan mengikuti RFC 7807.
 servers:
-  - url: https://sigap.internal.example.co.id/api/v1
+  - url: https://sigap.internal.trimegah.com/api/v1
     description: Produksi
-  - url: https://sigap-staging.internal.example.co.id/api/v1
+  - url: https://sigap-staging.internal.trimegah.com/api/v1
     description: Pra-produksi
 
 security:
