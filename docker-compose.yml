@@ -15,16 +15,20 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-sigap}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sigap_dev_only}
       POSTGRES_DB: ${POSTGRES_DB:-sigap}
-      # Kolasi Indonesia agar pengurutan nama sesuai harapan pengguna.
-      POSTGRES_INITDB_ARGS: '--locale=id_ID.UTF-8 --encoding=UTF8'
-      LANG: id_ID.utf8
+      # Kolasi Indonesia lewat ICU, bukan locale sistem. Citra Postgres tidak
+      # membangkitkan locale id_ID.UTF-8, sehingga `--locale=id_ID.UTF-8`
+      # menggagalkan initdb. ICU dibawa oleh PostgreSQL sendiri, jadi kolasinya
+      # sama di mesin pengembang mana pun dan di produksi — bukan bergantung
+      # pada locale yang kebetulan terpasang di host.
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale-provider=icu --icu-locale=id-ID --lc-collate=C.UTF-8 --lc-ctype=C.UTF-8'
     ports:
-      # 5433 di host, bukan 5432. Banyak mesin pengembang sudah menjalankan
-      # PostgreSQL sistem di 5432, dan tabrakan porta itu gagalnya senyap:
-      # kontainer menolak mengikat, lalu DATABASE_URL diam-diam menunjuk ke
-      # basis data sistem — migrasi berjalan di tempat yang salah tanpa satu
-      # pesan galat pun.
-      - '${POSTGRES_PORT:-5433}:5432'
+      # Porta host sengaja jauh dari nilai bawaan. Mesin pengembang biasanya
+      # sudah menjalankan PostgreSQL sistem di 5432 dan kontainer lain di
+      # 5433-5434, dan tabrakan porta gagalnya senyap: kontainer menolak
+      # mengikat, lalu DATABASE_URL diam-diam menunjuk ke basis data yang
+      # salah — migrasi berjalan di tempat yang keliru tanpa satu pesan galat.
+      # Semua layanan di berkas ini memakai blok porta yang sama alasannya.
+      - '${POSTGRES_PORT:-5442}:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -38,7 +42,7 @@ services:
     image: redis:7-alpine
     command: ['redis-server', '--appendonly', 'yes']
     ports:
-      - '${REDIS_PORT:-6379}:6379'
+      - '${REDIS_PORT:-6389}:6379'
     volumes:
       - redis-data:/data
     healthcheck:
@@ -57,8 +61,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-sigap}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-sigap_dev_only}
     ports:
-      - '${MINIO_PORT:-9000}:9000'
-      - '${MINIO_CONSOLE_PORT:-9001}:9001'
+      - '${MINIO_PORT:-9010}:9000'
+      - '${MINIO_CONSOLE_PORT:-9011}:9001'
     volumes:
       - minio-data:/data
     healthcheck:

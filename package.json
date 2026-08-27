@@ -2,7 +2,7 @@
   "name": "sigap",
   "version": "0.1.0",
   "private": true,
-  "description": "SIGAP — Sistem Integrasi Governance, Akses, dan Prosedur",
+  "description": "SIGAP \u2014 Sistem Integrasi Governance, Akses, dan Prosedur",
   "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=22.0.0"
@@ -15,9 +15,13 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.json && pnpm -r typecheck",
     "test": "vitest run",
-    "db:generate": "pnpm --filter @sigap/db generate",
-    "db:migrate": "pnpm --filter @sigap/db migrate:dev",
-    "verify:docs": "python3 .claude/skills/verify-docs/scripts/verify.py docs"
+    "db:generate": "prisma generate --schema packages/db/prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema packages/db/prisma/schema.prisma",
+    "verify:docs": "python3 .claude/skills/verify-docs/scripts/verify.py docs",
+    "db:deploy": "prisma migrate deploy --schema packages/db/prisma/schema.prisma",
+    "db:validate": "prisma validate --schema packages/db/prisma/schema.prisma",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -34,6 +38,7 @@
     "eslint": "^9.39.0",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import": "^2.32.0",
+    "prisma": "^6.19.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.0",
     "vitest": "^3.2.4"

@@ -13,8 +13,8 @@ pnpm install
 # Dua peran, dua URL. Bedanya adalah kontrol K-7, bukan kerapian.
 #   DATABASE_URL          -> peran runtime: sigap_app (INSERT+SELECT di audit_log)
 #   MIGRATE_DATABASE_URL  -> peran migrasi: sigap_migrator (punya hak DDL)
-export DATABASE_URL="postgresql://sigap_app:<password>@localhost:5433/sigap?schema=public"
-export MIGRATE_DATABASE_URL="postgresql://sigap_migrator:<password>@localhost:5433/sigap?schema=public"
+export DATABASE_URL="postgresql://sigap_app:<password>@localhost:5442/sigap?schema=public"
+export MIGRATE_DATABASE_URL="postgresql://sigap_migrator:<password>@localhost:5442/sigap?schema=public"
 
 # Terapkan migrasi ke basis data pengembangan
 pnpm --filter @sigap/db migrate:dev

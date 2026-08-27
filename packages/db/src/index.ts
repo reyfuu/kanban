@@ -5,7 +5,10 @@ import { PrismaClient } from '@prisma/client';
 // the standard Prisma pattern for long-running Node processes with module
 // reloading; in a normal production start it just runs once.
 declare global {
-  // eslint-disable-next-line no-var -- required for the hot-reload singleton pattern
+  // `var` is required here: `declare global` does not accept let/const for
+  // this pattern. The rule that would flag it (no-var) is not enabled, so no
+  // disable directive is needed -- adding one back would only be reported as
+  // unused.
   var __sigapPrisma: PrismaClient | undefined;
 }
 

@@ -39,6 +39,9 @@ export default tseslint.config(
       // gerbangnya sendiri (verify.py) dan tidak tunduk pada aturan arsitektur
       // yang mengikat aplikasi.
       '.claude/**',
+      // Dibangkitkan Next.js pada setiap build dan bertuliskan "do not edit".
+      // Melintnya berarti melaporkan galat pada berkas yang tidak boleh diperbaiki.
+      'apps/web/next-env.d.ts',
     ],
   },
 

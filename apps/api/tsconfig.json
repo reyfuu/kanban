@@ -1,6 +1,9 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    // Akar menetapkan noEmit untuk berkas uji; paket ini benar-benar
+    // dibangun, jadi warisannya harus dibatalkan di sini.
+    "noEmit": false,
     "module": "CommonJS",
     "moduleResolution": "Node",
     "target": "ES2023",
