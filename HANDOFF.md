@@ -1,6 +1,6 @@
 # HANDOFF — SIGAP
 
-Status per **28 Agustus 2026**. Untuk orang berikutnya yang melanjutkan, termasuk Anda sendiri beberapa minggu lagi.
+Status per **28 Agustus 2026**, commit `bf60ff9`. Untuk orang berikutnya yang melanjutkan, termasuk Anda sendiri beberapa minggu lagi.
 
 ---
 
