@@ -33,6 +33,23 @@ SCREENS = verify_ui.SCREENS
 
 LAPTOP = (1366, 768)
 
+# 1366x768 is the reported complaint, so it stays the primary target. 1280x800
+# is checked too because it is the other common office-laptop size and it is
+# NARROWER: a fix that only holds at 1366 can still leave a table header
+# wrapping or shrinking one step down.
+VIEWPORTS = [(1366, 768), (1280, 800)]
+
+# Routes SCREENS does not reach. The sign-in page is the first thing anyone
+# sees and is rendered outside the authenticated layout, so a type regression
+# there is both the most visible and the least likely to be caught by a check
+# that only walks the app shell. The detail and compare pages carry the densest
+# text in the product -- document bodies, version diffs -- which is exactly
+# where an 11px body would hurt most.
+EXTRA_ROUTES: list[tuple[str, str | None]] = [
+    ("/masuk", None),
+    ("/kampanye/baru", "rina.kusuma"),
+]
+
 # 12px adalah lantai praktis untuk teks yang harus dibaca berulang di layar
 # kerja. 06-DESIGN memang mendefinisikan langkah 11px ("2xs"), tetapi itu untuk
 # eyebrow dan badge -- label pendek yang dipindai, bukan dibaca. Ambang ini
@@ -73,28 +90,85 @@ MEASURE = r"""
 """
 
 
+def resolve_detail_routes() -> list[tuple[str, str | None]]:
+    """Detail pages, addressed by ids that actually exist right now.
+
+    Fetched from the API rather than hard-coded so a reseed cannot turn this
+    into a check that measures a 404 page while reporting the route name it
+    was asked about -- a false pass that reads exactly like a real one.
+    """
+    import json
+    import urllib.request
+
+    out: list[tuple[str, str | None]] = []
+    try:
+        token = login("hendra.wijaya")
+        req = urllib.request.Request(
+            # "kebijakan" rather than a narrower term: the query has to return
+            # something on a freshly seeded database, and a query that happens
+            # to match nothing makes this route silently drop out of coverage.
+            f"{verify_ui.API}/documents/search?q=kebijakan",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as r:
+            hits = json.load(r)["data"]["results"]
+        if hits:
+            doc = hits[0]["document_id"]
+            out.append((f"/kebijakan/{doc}", "hendra.wijaya"))
+            out.append((f"/kebijakan/{doc}/bandingkan", "hendra.wijaya"))
+    except Exception as error:  # noqa: BLE001 - reported, not swallowed
+        print(f"  CATATAN: rute detail kebijakan dilewati ({error})")
+
+    try:
+        token = login("rina.kusuma")
+        req = urllib.request.Request(
+            f"{verify_ui.API}/campaigns", headers={"Authorization": f"Bearer {token}"}
+        )
+        with urllib.request.urlopen(req, timeout=10) as r:
+            rows = json.load(r)["data"]
+        if rows:
+            out.append((f"/kampanye/{rows[0]['id']}", "rina.kusuma"))
+    except Exception as error:  # noqa: BLE001 - reported, not swallowed
+        print(f"  CATATAN: rute detail kampanye dilewati ({error})")
+
+    return out
+
+
 def main() -> int:
     browser = Browser()
     sizes = Counter()
     offenders: list[tuple[str, float, str, str]] = []
     overflow: list[tuple[str, int, int]] = []
 
+    # Detail routes need a real id, resolved at run time: a hard-coded UUID
+    # would 404 after any reseed and the check would silently measure an error
+    # page instead of the screen it names.
+    routes: list[tuple[str, str | None]] = [(p, u) for p, u in SCREENS]
+    routes += EXTRA_ROUTES
+    detail = resolve_detail_routes()
+    routes += detail
+
     try:
-        browser.viewport(*LAPTOP)
-        for path, username in SCREENS:
-            browser.set_cookie(login(username))
-            browser.goto(path)
-            m = browser.js(MEASURE)
+        for width, height in VIEWPORTS:
+            browser.viewport(width, height)
+            for path, username in routes:
+                if username:
+                    browser.set_cookie(login(username))
+                browser.goto(path)
+                m = browser.js(MEASURE)
 
-            for n in m["nodes"]:
-                px = round(n["px"], 1)
-                sizes[px] += 1
-                if px < MIN_BODY_PX:
-                    offenders.append((path, px, n["text"], n["cls"]))
+                for n in m["nodes"]:
+                    px = round(n["px"], 1)
+                    sizes[px] += 1
+                    if px < MIN_BODY_PX:
+                        offenders.append((f"{path}@{width}", px, n["text"], n["cls"]))
 
-            overflow.append((path, m["docHeight"], m["viewport"]))
+                if (width, height) == LAPTOP:
+                    overflow.append((path, m["docHeight"], m["viewport"]))
     finally:
         browser.close()
+
+    print(f"Rute diperiksa: {len(routes)} x {len(VIEWPORTS)} ukuran layar")
 
     print(f"Ukuran font yang benar-benar dirender pada {LAPTOP[0]}x{LAPTOP[1]}:")
     for px in sorted(sizes):
