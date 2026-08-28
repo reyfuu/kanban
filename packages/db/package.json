@@ -18,13 +18,15 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "generate": "prisma generate --schema prisma/schema.prisma"
+    "generate": "prisma generate --schema prisma/schema.prisma",
+    "seed": "tsx --env-file=../../.env seed/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3"
   },
   "devDependencies": {
     "prisma": "^6.19.3",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   }
 }

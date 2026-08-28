@@ -1,4 +1,8 @@
 import 'reflect-metadata'
+import { loadWorkspaceEnv } from './load-env.js'
+
+// Before any import that reads process.env at module scope.
+loadWorkspaceEnv()
 import { NestFactory } from '@nestjs/core'
 import { Logger } from '@nestjs/common'
 import { WorkerModule } from './worker.module.js'
