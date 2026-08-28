@@ -26,6 +26,14 @@ export {
   SCOPE_APPLICATIONS,
   SCOPE_ORG_UNITS,
 } from './authz/scope.js'
+export { NotificationService, type NotifyInput } from './notification/notification.service.js'
+export {
+  NOTIFICATION_MATRIX,
+  specFor,
+  sendsEmail,
+  sendsInApp,
+  type NotificationSpec,
+} from './notification/notification-matrix.js'
 export { Public } from './http/public.decorator.js'
 export { AuthGuard } from './http/auth.guard.js'
 export { StepUpGuard } from './http/step-up.guard.js'

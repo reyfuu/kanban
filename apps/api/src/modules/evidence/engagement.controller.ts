@@ -14,6 +14,7 @@ import type { Response } from 'express'
 import type { EngagementStatus, EngagementType } from '@prisma/client'
 import { hasPermission, RequiresStepUp, type SigapRequest } from '../shared/index.js'
 import { EngagementService } from './engagement.service.js'
+import { EscalationService } from './escalation.service.js'
 import { RequestItemService } from './request-item.service.js'
 import { FindingService } from './finding.service.js'
 import {
@@ -45,6 +46,7 @@ export class EngagementController {
     private readonly engagements: EngagementService,
     private readonly requestItems: RequestItemService,
     private readonly findings: FindingService,
+    private readonly escalation: EscalationService,
   ) {}
 
   // --- Engagements (FR-A-004, FR-A-005) ---
@@ -284,6 +286,20 @@ export class EngagementController {
     this.require(req, 'control:write')
     await this.findings.verifyRemediation(req.principal!, id)
     return { data: { id, verified: true } }
+  }
+
+  /**
+   * FR-A-008 · permintaan bukti yang sudah lewat tenggat 7 hari atau lebih.
+   *
+   * Dihitung dari tanggal tenggat setiap kali dibaca, bukan dari kolom penanda.
+   * Penanda tersimpan harus dibersihkan saat permintaannya akhirnya dipenuhi,
+   * dan hari ketika seseorang lupa membersihkannya adalah hari ketika dasbor
+   * eksekutif mulai berbohong.
+   */
+  @Get('request-items/kritis')
+  async critical(@Req() req: SigapRequest) {
+    this.require(req, 'control:read')
+    return { data: await this.escalation.criticalItems() }
   }
 
   private require(req: SigapRequest, permission: string): void {

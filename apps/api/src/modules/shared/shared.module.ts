@@ -11,6 +11,8 @@ import { StepUpService } from './identity/step-up.service.js'
 import { AuthService } from './identity/auth.service.js'
 import { AuthController } from './identity/auth.controller.js'
 import { ContextMiddleware } from './http/context.middleware.js'
+import { NotificationService } from './notification/notification.service.js'
+import { NotificationController } from './notification/notification.controller.js'
 
 /**
  * Cross-cutting foundation -- FR-X-001 s.d. FR-X-018.
@@ -22,11 +24,13 @@ import { ContextMiddleware } from './http/context.middleware.js'
  * Built: audit/ (FR-X-008, ADR-04, K-7) · identity/ (FR-X-001..004, ADR-06) ·
  * authz/ (FR-X-005..007) · http/ (07-API-CONTRACT Sec 1)
  *
- * Still to build: notification/ (FR-X-010, FR-X-011) · files/ (FR-X-013)
+ * notification/ (FR-X-010, FR-X-011)
+ *
+ * Still to build: files/ (FR-X-013)
  */
 @Global()
 @Module({
-  controllers: [AuthController, AuditController],
+  controllers: [AuthController, AuditController, NotificationController],
   providers: [
     PrismaService,
     UnitOfWork,
@@ -35,6 +39,7 @@ import { ContextMiddleware } from './http/context.middleware.js'
     SessionService,
     StepUpService,
     AuthService,
+    NotificationService,
     {
       // ADR-06: which implementation is a configuration choice, and the rest of
       // the system never learns which one it got.
@@ -55,6 +60,7 @@ import { ContextMiddleware } from './http/context.middleware.js'
     SessionService,
     StepUpService,
     AuthService,
+    NotificationService,
   ],
 })
 export class SharedModule implements NestModule {
