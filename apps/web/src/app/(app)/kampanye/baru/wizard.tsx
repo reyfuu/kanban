@@ -109,7 +109,8 @@ export function CampaignWizard(props: { applications: ApplicationRow[]; reviewer
 
   return (
     <div>
-      <h1 className="text-xl font-semibold text-sg-neutral-900">Susun Kampanye Review</h1>
+      <h1 className="text-xl font-semibold tracking-tight text-sg-neutral-900">Susun Kampanye Review</h1>
+      <span className="mt-2 block h-0.5 w-8 rounded-full bg-tri-navy" aria-hidden />
 
       <ol className="mt-4 flex flex-wrap gap-2" aria-label="Langkah penyusunan">
         {STEPS.map((label, index) => (

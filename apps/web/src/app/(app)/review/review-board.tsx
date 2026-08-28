@@ -86,7 +86,8 @@ export function ReviewBoard(props: { initialItems: ReviewItem[]; canSignoff: boo
     <div>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-sg-neutral-900">{REVIEW_TEXT.title}</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-sg-neutral-900">{REVIEW_TEXT.title}</h1>
+          <span className="mt-2 block h-0.5 w-8 rounded-full bg-tri-navy" aria-hidden />
           {campaign && (
             <p className="mt-1 text-sm text-sg-neutral-700">
               {campaign.name}

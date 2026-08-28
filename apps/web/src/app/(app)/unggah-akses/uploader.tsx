@@ -121,7 +121,8 @@ export function AccessUploader({ applications }: { applications: ApplicationRow[
   if (done) {
     return (
       <div>
-        <h1 className="text-xl font-semibold text-sg-neutral-900">Unggah Data Akses</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-sg-neutral-900">Unggah Data Akses</h1>
+        <span className="mt-2 block h-0.5 w-8 rounded-full bg-tri-navy" aria-hidden />
         <div className="mt-6 rounded-lg border border-sg-success-500 bg-sg-success-50 p-5">
           <p className="text-sm font-medium text-sg-success-700">
             Snapshot tersimpan · {formatNumber(done.lineCount)} baris.
@@ -152,8 +153,9 @@ export function AccessUploader({ applications }: { applications: ApplicationRow[
 
   return (
     <div>
-      <h1 className="text-xl font-semibold text-sg-neutral-900">Unggah Data Akses</h1>
-      <p className="mt-1 max-w-3xl text-sm text-sg-neutral-600">
+      <h1 className="text-xl font-semibold tracking-tight text-sg-neutral-900">Unggah Data Akses</h1>
+      <span className="mt-2 block h-0.5 w-8 rounded-full bg-tri-navy" aria-hidden />
+      <p className="mt-2 max-w-3xl text-sm text-sg-neutral-600">
         Unggahan menghasilkan snapshot bertanggal dengan penanda sumber manual dan identitas Anda
         (FR-B-004). Validasi berjalan tanpa menyimpan apa pun; snapshot baru tersimpan hanya setelah
         Anda mengonfirmasi pratinjaunya.
