@@ -165,6 +165,7 @@ model AppUser {
   signedCampaignSignoffs    CampaignSignoff[]  @relation("CampaignSignoffSignedBy")
   reopenedCampaignSignoffs  CampaignSignoff[]  @relation("CampaignSignoffReopenedBy")
   approvedSodExceptions     SodException[]
+  generatedEvidencePackages CampaignEvidencePackage[] @relation("CampaignEvidencePackageAuthor")
 
   // Modul A (docs/04-TRD.md Sec 3.2) back-relations.
   authoredControlVersions   ControlVersion[]   @relation("ControlVersionAuthor")
@@ -901,6 +902,7 @@ model ReviewCampaign {
   scopes           CampaignScope[]
   items            ReviewItem[]
   signoffs         CampaignSignoff[]
+  evidencePackage  CampaignEvidencePackage?
 
   @@index([fallbackReviewerId], map: "idx_review_campaign_fallback_reviewer_id")
   @@index([status], map: "idx_review_campaign_status")
@@ -1002,6 +1004,32 @@ model CampaignSignoff {
 
   @@index([campaignId], map: "idx_campaign_signoff_campaign_id")
   @@map("campaign_signoff")
+}
+
+/// FR-B-022 / FR-B-023 · the frozen evidence pack of a closed campaign.
+///
+/// One per campaign (a campaign closes once, FR-B-010). `contents` is the
+/// eight-section assembly frozen at generation time, and `contentHash` is the
+/// pack's own fingerprint over it (rule 3) -- both are read back verbatim, not
+/// recomputed, so the fingerprint keeps meaning after a later sign-off reopen
+/// or a newer snapshot. `evidenceId` points at the Modul A Evidence entity the
+/// pack was registered as: the FR-B-023 cross-module bridge.
+model CampaignEvidencePackage {
+  id           String   @id @db.Uuid
+  campaignId   String   @unique(map: "uq_campaign_evidence_package_campaign") @map("campaign_id") @db.Uuid
+  evidenceId   String   @map("evidence_id") @db.Uuid
+  title        String   @db.VarChar(300)
+  contentHash  String   @map("content_hash") @db.VarChar(64)
+  contents     Json
+  generatedBy  String   @map("generated_by") @db.Uuid
+  generatedAt  DateTime @default(now()) @map("generated_at") @db.Timestamptz(6)
+
+  campaign        ReviewCampaign @relation(fields: [campaignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  evidence        Evidence       @relation("CampaignEvidencePackageEvidence", fields: [evidenceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  generatedByUser AppUser        @relation("CampaignEvidencePackageAuthor", fields: [generatedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([evidenceId], map: "idx_campaign_evidence_package_evidence_id")
+  @@map("campaign_evidence_package")
 }
 
 /// One ticket per signed-off Cabut/Ubah decision (FR-B-018). Critical
@@ -1352,6 +1380,7 @@ model Evidence {
   createdByUser AppUser           @relation("EvidenceCreator", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   versions      EvidenceVersion[]
   links         EvidenceLink[]
+  campaignPackage CampaignEvidencePackage[] @relation("CampaignEvidencePackageEvidence")
 
   @@index([classification], map: "idx_evidence_classification")
   @@index([status], map: "idx_evidence_status")

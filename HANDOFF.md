@@ -60,6 +60,60 @@ pintas yang sah bila yang diinginkan hanya benih yang segar.
 
 ## 2. Yang berubah pada sesi ini
 
+**Paket bukti kampanye dan jembatan lintas modul (FR-B-022/023) — butir empat
+daftar "berikutnya", kini tertutup.** Inilah diferensiator produk: kampanye yang
+ditutup berubah menjadi satu bukti Modul A yang tertaut otomatis ke kontrol
+audit yang dipenuhinya. Sampai sesi ini, hasil kampanye berhenti pada layar; kini
+menjadi bukti.
+
+| Butir | Keadaan |
+|---|---|
+| FR-B-022 · pembentukan paket | Jalan · `POST /campaigns/{id}/evidence-package` · delapan bagian, dibekukan, sidik jari sendiri |
+| FR-B-023 · penautan otomatis ke Modul A | Jalan · bukti dibangkitkan-sistem, tertaut ke kampanye + kontrol akses periodik, periode = periode kampanye |
+| FR-B-010 · penutupan kampanye | Jalan · pembentukan paket **adalah** transisi Selesai → Ditutup |
+
+`EvidencePackageService` beserta satu tabel `campaign_evidence_package` dan dua
+titik akhir di `CampaignController`. 10 tes baru (6 murni FR-B-014, 4 integrasi),
+130 total lulus. Empat gerbang mutu hijau. Uji HTTP langsung terhadap benih:
+`GET` sebelum dibentuk → 404, `POST` atas kampanye berjalan berisi item belum
+diputus → 409 dengan pesan spesifik ("masih ada 2 item"), `POST` oleh COMPLIANCE
+yang tak punya `campaign:write` → 403.
+
+Yang paling layak diperiksa ulang oleh orang berikutnya:
+
+- **Paketnya dibekukan, bukan dihitung ulang saat dibaca.** FR-B-022 aturan 3
+  memberi paket sidik jarinya sendiri. Sidik jari atas data yang berubah di
+  bawahnya adalah sidik jari atas ketiadaan: buka kembali satu sign-off atau
+  datangkan snapshot baru setelah penutupan, dan paket yang dihitung ulang
+  diam-diam berhenti cocok dengan hash-nya sendiri. Maka delapan bagiannya
+  dirakit sekali dan disimpan; `GET` mengembalikan persis yang di-sidik-jari.
+- **Pembentukan paket yang menutup kampanye, dan itu disengaja.** FR-B-010
+  menjadikan paket satu-satunya sisi masuk ke Ditutup ("paket bukti terbentuk &
+  pencabutan terverifikasi"). Menuntut kampanye sudah Ditutup lebih dulu tidak
+  menyisakan aktor mana pun yang bisa membawanya ke sana. Jadi pembentukan paket
+  melakukan penutupan itu, dalam satu transaksi teraudit.
+- **Status pencabutan dilaporkan, bukan digerbang.** Verifikasi K-1 bergantung
+  pada snapshot berikutnya yang mungkin berhari-hari lagi; memblokir pembentukan
+  paket sampai seluruhnya terverifikasi membuat paket mustahil dibentuk untuk
+  demo. Paket menyatakan kebenarannya (terverifikasi / masih terbuka / gagal /
+  dikecualikan) — FR-X-020 aturan 2: artefak kepatuhan yang menyembunyikan celah
+  lebih buruk daripada tidak ada.
+- **"Kontrol akses periodik" adalah data, bukan kode.** FR-B-023 aturan 2 menaut
+  ke kontrol berjenis akses periodik; dikenali dari `expected_evidence_types`
+  memuat `PAKET_BUKTI_KAMPANYE` (ditandai begitu pada `ITGC-AC-02` di benih Modul
+  A). Menandai kontrol lain demikian membuatnya ikut menerima paket, tanpa
+  perubahan kode.
+- **FR-B-014 dihitung di sini, bukan dibaca dari kolom.** Pendeteksi asal-asalan
+  tak pernah dibangun sebagai proses berdiri sendiri, tetapi paket tetap harus
+  memberi tahu auditor siapa yang perlu diuji petik. Indikator 1 dan 3 dihitung
+  dari data keputusan; indikator 2 (memutus tanpa membuka rincian item) butuh
+  telemetri antarmuka yang belum diterima API, jadi tidak diklaim alih-alih
+  dikarang — penandaan palsu sama merusaknya dengan yang terlewat.
+
+---
+
+## 2b. Sesi sebelumnya: pengambilan data akses lewat unggahan
+
 **Pengambilan data akses lewat unggahan bertemplat — butir nomor satu daftar
 "berikutnya" sebelumnya, sebagian.** Sampai sesi ini satu-satunya sumber data
 akses adalah benih, sehingga K-1 berhenti pada "tiket menunggu snapshot
@@ -300,7 +354,7 @@ Ini yang tidak terlihat dari membaca kode saja. Yang baru ada di bagian bawah.
 1. ~~**Layar L-14 unggahan data akses (FR-B-004).**~~ **Selesai** (commit `2640682`). Tiga langkah dalam satu halaman: pilih aplikasi → unduh templat → unggah + validasi → pratinjau (baris sah, baris bermasalah, akun Tanpa Pemilik, peringatan penurunan) → konfirmasi tanpa pilihan bawaan → simpan. Unggahan dan unduhan CSV lewat server action Next sehingga token sesi tidak keluar dari kuki httpOnly. Respons commit menampilkan berapa tiket pencabutan yang tertutup (K-1 terlihat). Diuji ujung ke ujung terhadap tumpukan berjalan sebagai `rina.kusuma`. Nav digerbang `snapshot:upload`.
 2. **Konektor otomatis (FR-B-003).** LDAP, JDBC, REST, SFTP. Modelnya sudah ada beserta `encrypted_credentials`, penjadwalan, dan penghitung kegagalan beruntun; tidak ada satu pun kodenya. Perlu sistem sungguhan untuk diuji, jadi nilainya untuk demo lebih rendah daripada butir 1 meskipun lingkupnya lebih besar.
 3. ~~**Deteksi anomali dan SoD (FR-B-007, FR-B-024).**~~ **Selesai** (commit `f243709`). Mesin deteksi berjalan saat snapshot baru mendarat (`DetectionService`), setelah commit dan verifikasi, di luar transaksi tangkapan. Aturan sebagai modul murni (`access-detection.ts`): AN-01 (nonaktif tapi aktif, KRITIS per hak akses), AN-02 (Tanpa Pemilik, TINGGI per akun), AN-08/SoD lintas aplikasi (menyatukan kepemilikan tiap karyawan dari snapshot terbaru tiap aplikasi). Carry-forward FR-B-007 aturan 3 (umur dihitung sejak pertama terdeteksi, tidak menduplikasi). Titik akhir: `GET /access-anomalies` + `/exception` + `/resolve`, `GET /sod-rules`, `GET /sod-violations`, `POST /sod-rules/simulate` (aturan 4, evaluator sama dengan deteksi), `POST /sod-violations/{id}/exception` (FR-B-025). Semua tulis lewat `UnitOfWork` + jejak audit (K-7). 22 tes baru, 104 total lulus. Belum ada layar (L-15 Dasbor Kepatuhan menampilkannya kelak).
-4. **Paket bukti kampanye (FR-B-022, FR-B-023).** Penanda keputusan massal sudah tercatat di jejak audit dan diminta muncul di paket bukti (FR-B-013 aturan 5) — paketnya sendiri belum ada.
+4. ~~**Paket bukti kampanye (FR-B-022, FR-B-023).**~~ **Selesai** (lihat §2). Titik akhir `POST`/`GET /campaigns/{id}/evidence-package`. Pembentukan paket **adalah** aksi yang menutup kampanye (FR-B-010: Selesai → Ditutup) — tidak ada jalur lain ke Ditutup, dan diagram siklus menjadikan paket pemicunya. Paketnya delapan bagian (cakupan, metodologi, seluruh keputusan + alasan, catatan sign-off + sidik jari, status pencabutan, pengecualian, anomali, reviewer bertanda FR-B-014), **dibekukan** saat pembentukan dengan sidik jarinya sendiri, lalu **otomatis** menjadi bukti Modul A berpenanda dibangkitkan-sistem (FR-B-023) tertaut ke kampanye dan ke setiap kontrol akses periodik (dikenali dari `expected_evidence_types` memuat `PAKET_BUKTI_KAMPANYE`), dengan periode keberlakuan mengikuti periode kampanye. 10 tes baru, 130 total. Belum ada layar (L-09 menampilkannya kelak) dan berkas PDF/XLSX menunggu report worker — datanya lengkap, perenderan binernya yang belum.
 5. **Pekerjaan terjadwal.** Dua fungsi menunggu pemanggil: `ensure_snapshot_line_partitions_ahead()` dan `RevocationService.markUnverifiable()` (FR-B-020 aturan 3). Keduanya benar; keduanya belum pernah berjalan.
 6. **Direktori pengguna (FR-X-014).** Wisaya kampanye hanya dapat menawarkan pengguna yang sedang masuk sebagai reviewer cadangan, karena tidak ada titik akhir yang mendaftar pengguna. FR-B-009 aturan 1 mewajibkan cadangan, jadi ini membatasi siapa yang dapat menyusun kampanye untuk orang lain.
 7. **Modul C · Policy Hub** — sisa Fase 1.

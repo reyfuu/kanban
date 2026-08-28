@@ -12,6 +12,7 @@ import {
 } from './access.dto.js'
 import { CampaignBuilderService } from './campaign-builder.service.js'
 import { CampaignService } from './campaign.service.js'
+import { EvidencePackageService, type PackSummary } from './evidence-package.service.js'
 import { RevocationService } from './revocation.service.js'
 
 /**
@@ -23,6 +24,7 @@ export class CampaignController {
     private readonly campaigns: CampaignService,
     private readonly builder: CampaignBuilderService,
     private readonly revocations: RevocationService,
+    private readonly evidencePackages: EvidencePackageService,
   ) {}
 
   /** `GET /campaigns` — scoped list for the campaign index screen. */
@@ -187,6 +189,33 @@ export class CampaignController {
   async signoffs(@Req() req: SigapRequest, @Param('id') id: string) {
     this.require(req, 'campaign:read')
     return { data: await this.campaigns.listSignoffs(req.principal!, id) }
+  }
+
+  /**
+   * FR-B-022 · form the campaign evidence package — and, with it, close the
+   * campaign (FR-B-010: Selesai -> Ditutup). FR-B-023 · the same call registers
+   * the pack as system-generated Modul A evidence and links it to the periodic
+   * access-review controls it satisfies.
+   *
+   * Gated on `campaign:write`: forming the pack is the lifecycle act that
+   * closes the campaign, the same authority that launched and extended it
+   * (SEC_OFFICER). The contract's async job envelope is honoured in shape —
+   * generation is synchronous here because a demo campaign is small, but the
+   * response is the finished pack so a caller need not poll.
+   */
+  @Post('campaigns/:id/evidence-package')
+  @HttpCode(201)
+  async generateEvidencePackage(@Req() req: SigapRequest, @Param('id') id: string) {
+    this.require(req, 'campaign:write')
+    const pack = await this.evidencePackages.generate(req.principal!, id)
+    return { data: presentPack(pack) }
+  }
+
+  @Get('campaigns/:id/evidence-package')
+  async evidencePackage(@Req() req: SigapRequest, @Param('id') id: string) {
+    this.require(req, 'campaign:read')
+    const pack = await this.evidencePackages.findForCampaign(req.principal!, id)
+    return { data: presentPack(pack) }
   }
 
   /**
@@ -380,4 +409,44 @@ function parseTicketStatus(value: string | undefined): RevocationTicketStatus | 
   return (Object.values(RevocationTicketStatus) as string[]).includes(value)
     ? (value as RevocationTicketStatus)
     : undefined
+}
+
+/**
+ * 07-API-CONTRACT §5.9 evidence-package shape. The `contents` block reports the
+ * eight sections as counts (with the revocation breakdown expanded), and
+ * `auto_linked_control_ids` is the FR-B-023 bridge made visible on the response.
+ */
+function presentPack(pack: PackSummary) {
+  const c = pack.contents
+  return {
+    evidence_id: pack.evidenceId,
+    package_id: pack.id,
+    title: pack.title,
+    generated_at: pack.generatedAt.toISOString(),
+    content_hash: pack.contentHash,
+    contents: {
+      scope_summary: true,
+      methodology: true,
+      decision_detail: c.decision_detail.length,
+      signoff_records: c.signoff_records.length,
+      revocation_status: {
+        total: c.revocation_status.total,
+        verified_closed: c.revocation_status.verified_closed,
+        failed: c.revocation_status.failed,
+        excepted: c.revocation_status.excepted,
+        open: c.revocation_status.open,
+      },
+      exceptions: c.exceptions.length,
+      anomalies: c.anomalies.length,
+      flagged_reviewers: c.flagged_reviewers.length,
+    },
+    auto_linked_control_ids: pack.linkedControlIds,
+    // The full frozen assembly, so a caller (and the L-09 screen) can render the
+    // pack without a second round-trip. This is the exact object the fingerprint
+    // covers.
+    detail: c,
+    // FR-B-022 rule 2: the pack is offered as PDF and XLSX. Rendering those
+    // binaries waits on the report worker; the data that fills them is complete.
+    formats: ['PDF', 'XLSX'],
+  }
 }

@@ -5,6 +5,7 @@ import { CampaignController } from './campaign.controller.js'
 import { CampaignBuilderService } from './campaign-builder.service.js'
 import { CampaignService } from './campaign.service.js'
 import { DetectionService } from './detection.service.js'
+import { EvidencePackageService } from './evidence-package.service.js'
 import { ReviewDecisionService } from './review-decision.service.js'
 import { ReviewItemController } from './review-item.controller.js'
 import { ReviewItemRepository } from './review-item.repository.js'
@@ -29,8 +30,9 @@ import { SodService } from './sod.service.js'
  *
  * Pengambilan data akses lewat unggahan bertemplat (FR-B-004..006). Deteksi
  * anomali dan SoD (FR-B-007, FR-B-024/025) berjalan saat snapshot baru mendarat
- * (DetectionService). Belum dibangun: konektor otomatis (FR-B-003), paket bukti
- * (FR-B-022..023).
+ * (DetectionService). Paket bukti kampanye + penautan otomatis ke Modul A
+ * (FR-B-022/023) di EvidencePackageService. Belum dibangun: konektor otomatis
+ * (FR-B-003).
  */
 @Module({
   controllers: [ReviewItemController, CampaignController, SnapshotController, AnomalyController],
@@ -47,6 +49,7 @@ import { SodService } from './sod.service.js'
     DetectionService,
     AnomalyService,
     SodService,
+    EvidencePackageService,
   ],
   exports: [RevocationService],
 })

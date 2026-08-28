@@ -34,9 +34,9 @@ Yang dikerjakan sekarang adalah **fondasi lintas modul (FR-X) dari Fase 1**, lal
 | Modul B · Registri aplikasi | FR-B-001 | Baca saja; pengelolaannya **belum** |
 | Modul B · Unggahan data akses & snapshot | FR-B-004 s.d. FR-B-006 | Jalan lewat API — templat, validasi, snapshot, perbandingan, pemetaan akun |
 | Modul B · Konektor otomatis | FR-B-003 | Skema saja; belum ada layar unggahan |
-| Modul B · Deteksi anomali & SoD | FR-B-007, FR-B-024 | Skema saja; temuan demo dari benih |
-| Modul B · Paket bukti kampanye | FR-B-022, FR-B-023 | **Belum** |
-| Modul A · Evidence Vault | FR-A-* | **Belum** — Fase 2 |
+| Modul B · Deteksi anomali & SoD | FR-B-007, FR-B-024, FR-B-025 | Jalan lewat API — mesin deteksi berjalan saat snapshot mendarat |
+| Modul B · Paket bukti kampanye | FR-B-022, FR-B-023 | Jalan lewat API — paket delapan bagian, sidik jari sendiri, otomatis jadi bukti Modul A dan menutup kampanye |
+| Modul A · Evidence Vault | FR-A-001 s.d. FR-A-018 | Jalan lewat API — pustaka kontrol, penugasan, bukti (K-8), retensi, temuan, portal auditor eksternal |
 
 Layar yang sudah ada: masuk, beranda, jejak audit, **L-09 Penyusun Kampanye**,
 **L-10 Review Saya** (termasuk dialog sign-off L-11), daftar kampanye, registri
