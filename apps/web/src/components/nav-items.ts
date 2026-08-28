@@ -16,5 +16,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/kampanye', label: 'Kampanye', permission: 'campaign:read' },
   { href: '/tiket', label: 'Tiket Pencabutan', permission: 'ticket:read' },
   { href: '/aplikasi', label: 'Registri Aplikasi', permission: 'application:read' },
+  { href: '/unggah-akses', label: 'Unggah Data Akses', permission: 'snapshot:upload' },
   { href: '/jejak-audit', label: 'Jejak Audit', permission: 'audit-log:verify' },
 ]
