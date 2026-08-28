@@ -204,7 +204,11 @@ judul sudah berjalan dan menghasilkan peringkat yang masuk akal; menambahkan
 cabang makna nanti tidak memerlukan perubahan skema, hanya satu CTE tambahan di
 `document-search.repository.ts`.
 
-**Perbaikan antarmuka lintas layar**, dari audit UI/UX:
+**Perbaikan antarmuka lintas layar**, dari audit UI/UX. (Catatan koreksi: pada
+laporan pertama seluruh butir P0 dan P1 disebut selesai. Itu berlebihan — P1
+#5, #6, dan #7 baru dikerjakan pada bagian berikutnya. Satu temuan audit juga
+keliru: pintasan papan tik 1-4 di layar review **sudah** ada sejak awal di
+`decision-card.tsx`, jadi tidak ada yang perlu diperbaiki di sana.)
 
 - `loading.tsx` dan `error.tsx` untuk setiap segmen rute, plus `global-error.tsx`
   dan dua `not-found.tsx`. Sebelumnya kegagalan menampilkan layar bawaan Next.js
@@ -219,6 +223,33 @@ cabang makna nanti tidak memerlukan perubahan skema, hanya satu CTE tambahan di
   `aria-pressed`.
 - `bg-white/10` dan `bg-white/5` di bilah sisi diganti token `tri-navy-hover` /
   `tri-navy-line` (aturan kode #6 berlaku juga untuk putih beropasitas).
+
+**Butir audit UI yang diselesaikan belakangan:**
+
+- **Validasi hidup** menggantikan tombol yang mati diam-diam di empat tempat.
+  Tombol nonaktif tanpa penjelasan bukan pesan validasi, melainkan ketiadaannya:
+  pengguna melihat kendali mati, tanpa alasan, dan di layar sentuh bahkan tidak
+  bisa menahan kursor untuk melihat tooltip. Aturannya kini hidup di satu berkas
+  (`components/validation.tsx`) agar batas 10 karakter tidak diketik ulang di
+  empat tempat lalu perlahan berbeda dari yang ditegakkan server.
+- **Fallback kartu untuk tabel** di bawah `sm`, lewat `TableFrame` sendiri
+  sehingga berlaku sekaligus di registri aplikasi, tiket, dan jejak audit. Tabel
+  sembilan kolom dengan lebar minimum 60rem memaksa gulir dua arah di ponsel —
+  membaca satu baris berarti kehilangan pandangan atas kolomnya, kegagalan
+  terburuk untuk data yang gunanya justru dibandingkan. Kolom yang menjadi
+  alasan tiap layar itu ada (umur snapshot, sidik jari snapshot penutup tiket)
+  ikut bertahan di tampilan sempit, bukan termasuk yang dibuang.
+- **Header layar review diringkas.** Sebelumnya empat blok berdiri di atas kartu
+  keputusan, sehingga item pertama yang butuh diputuskan berada di bawah lipatan.
+  Paragraf pengantar menjadi `<details>` dan progres pindah menjadi angka ringkas
+  di samping judul.
+- **Beranda memakai `PageHeader`** seperti layar lain, dan animasi angkat saat
+  hover dihapus — 06-DESIGN §1.1 meminta perkakas yang tenang.
+
+**Satu butir P2 sengaja tidak dikerjakan.** Mengganti donat di Beranda dengan
+daftar tenggat terdekat mengubah data yang diambil halaman itu, jadi butuh ID
+requirement lebih dulu lewat skill `add-requirement` (aturan paling penting di
+CLAUDE.md). Bukan lupa, melainkan menunggu requirement-nya ada.
 
 **Cara menjalankannya sekarang** ada di [README §Menjalankan](README.md#menjalankan);
 ringkasnya `pnpm dev` menyalakan ketiga layanan lewat pengelola proses, dan

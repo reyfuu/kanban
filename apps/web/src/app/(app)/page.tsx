@@ -3,6 +3,7 @@ import { requireUser, hasPermission } from '@/lib/session'
 import { apiFetch } from '@/lib/api'
 import { formatNumber } from '@/lib/format'
 import { NavIcon, type IconName } from '@/components/nav-icons'
+import { PageHeader } from '@/components/ui'
 import { PartialFailureNotice } from '@/components/feedback'
 
 /**
@@ -44,12 +45,10 @@ export default async function BerandaPage() {
 
   return (
     <div className="space-y-8">
-      <header className="border-b border-sg-neutral-200 pb-5">
-        <h1 className="text-xl font-semibold tracking-tight text-sg-neutral-900">
-          Selamat datang, {firstName}.
-        </h1>
-        <span className="mt-2 block h-0.5 w-8 rounded-full bg-tri-navy" aria-hidden />
-      </header>
+      {/* Through PageHeader rather than a hand-rolled header: the navy accent
+          rule under the title was being re-typed in three files and had already
+          started to drift. */}
+      <PageHeader title={`Selamat datang, ${firstName}.`} />
 
       {user.delegations_received.length > 0 && (
         <p className="rounded-lg border border-sg-info-500 bg-sg-info-50 px-3 py-2 text-sm text-sg-info-700">
