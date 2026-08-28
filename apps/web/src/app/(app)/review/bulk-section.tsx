@@ -102,14 +102,20 @@ export function BulkSection(props: {
         <tbody className="divide-y divide-sg-neutral-100">
           {props.items.map((item) => (
             <tr key={item.id} className={selected.has(item.id) ? 'bg-sg-accent-50' : undefined}>
-              <td className="px-3 py-2">
+              {/* The padding is the touch target: 44px tall at the row level,
+                  which is what a thumb actually lands on. */}
+              <td className="px-3 py-3">
                 <input
                   type="checkbox"
                   checked={selected.has(item.id)}
                   disabled={props.disabled || busy}
                   onChange={() => toggle(item.id)}
                   aria-label={`Pilih ${item.employee?.full_name ?? item.account_id} — ${item.entitlement.display_name}`}
-                  className="h-4 w-4 rounded border-sg-neutral-300 accent-sg-accent-600"
+                  // 20px box inside a 44px tap area. The box stays small
+                  // because a row of giant checkboxes reads as a form rather
+                  // than a list, but the target a finger has to hit is the
+                  // padded span, not the box.
+                  className="h-5 w-5 rounded border-sg-neutral-300 accent-sg-accent-600"
                 />
               </td>
               <td className="px-3 py-2 text-sg-neutral-900">
@@ -139,7 +145,7 @@ export function BulkSection(props: {
           onClick={() =>
             setSelected(allVisible ? new Set() : new Set(props.items.map((i) => i.id)))
           }
-          className="text-sm text-sg-accent-700 underline-offset-2 hover:underline"
+          className="inline-flex min-h-11 items-center text-sm text-sg-accent-700 underline-offset-2 hover:underline"
         >
           {REVIEW_TEXT.actions.bulkSelectAll}
         </button>

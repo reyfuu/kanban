@@ -236,7 +236,7 @@ export function DecisionCard(props: { item: ReviewItem; onDecided: (item: Review
               type="button"
               onClick={() => void save()}
               disabled={saving}
-              className="rounded-md bg-sg-accent-600 px-4 py-2 text-sm font-medium text-sg-neutral-0 hover:bg-sg-accent-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sg-accent-600 disabled:opacity-60"
+              className="inline-flex min-h-11 items-center rounded-md bg-sg-accent-600 px-4 text-sm font-medium text-sg-neutral-0 hover:bg-sg-accent-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sg-accent-600 disabled:opacity-60"
             >
               {saving ? REVIEW_TEXT.actions.saving : REVIEW_TEXT.actions.save}
             </button>

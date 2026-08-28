@@ -37,6 +37,21 @@ DESKTOP = (1440, 900)
 
 results: list[tuple[bool, str, str]] = []
 
+# Every screen reachable from the navigation, with a user who may see it.
+# Kept as one list so adding a screen to the app without adding it here is a
+# visible omission rather than a silent gap in coverage.
+SCREENS: list[tuple[str, str]] = [
+    ("/", "rina.kusuma"),
+    ("/review", "dewi.lestari"),
+    ("/kampanye", "rina.kusuma"),
+    ("/tiket", "rina.kusuma"),
+    ("/aplikasi", "rina.kusuma"),
+    ("/unggah-akses", "rina.kusuma"),
+    ("/kebijakan", "hendra.wijaya"),
+    ("/attestation", "sari.dewi"),
+    ("/jejak-audit", "bayu.pratama"),
+]
+
 
 def free_port() -> int:
     """A port nothing else is holding.
@@ -213,6 +228,83 @@ class Browser:
             self.proc.terminate()
 
 
+
+CONTRAST_JS = """
+(() => {
+  // WCAG 2.1 SC 1.4.3 (AA) relative luminance and contrast ratio, computed from
+  // what the browser actually painted rather than from token values. A token
+  // can be correct while the element that uses it sits on an unexpected
+  // background -- which is precisely the case this catches.
+  const lum = (rgb) => {
+    const c = rgb.map((v) => {
+      const s = v / 255;
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  const parse = (s) => {
+    const m = s.match(/rgba?\\(([^)]+)\\)/);
+    if (!m) return null;
+    const p = m[1].split(',').map((x) => parseFloat(x.trim()));
+    return { rgb: [p[0], p[1], p[2]], a: p.length > 3 ? p[3] : 1 };
+  };
+  const effectiveBg = (el) => {
+    // Walk up until an opaque background is found; a transparent element shows
+    // whatever is behind it, and comparing text against `rgba(0,0,0,0)` would
+    // silently pass everything.
+    let node = el;
+    while (node && node !== document.documentElement) {
+      const bg = parse(getComputedStyle(node).backgroundColor);
+      if (bg && bg.a >= 0.95) return bg.rgb;
+      node = node.parentElement;
+    }
+    return [255, 255, 255];
+  };
+
+  const bad = [];
+  const seen = new Set();
+  for (const el of document.querySelectorAll('p, span, a, button, dt, dd, td, th, h1, h2, h3, label, summary, li')) {
+    const text = (el.textContent || '').trim();
+    if (!text) continue;
+    // Only leaf-ish elements: a wrapper reports its children's text and would
+    // be measured against the wrong colours.
+    if (el.querySelector('p, span, a, button, dt, dd, td, th, h1, h2, h3, label, li')) continue;
+    const r = el.getBoundingClientRect();
+    const st = getComputedStyle(el);
+    if (r.width === 0 || r.height === 0) continue;
+    if (st.display === 'none' || st.visibility === 'hidden' || parseFloat(st.opacity) < 0.5) continue;
+
+    const fg = parse(st.color);
+    if (!fg || fg.a < 0.5) continue;
+    const bg = effectiveBg(el);
+    const l1 = lum(fg.rgb) + 0.05;
+    const l2 = lum(bg) + 0.05;
+    const ratio = l1 > l2 ? l1 / l2 : l2 / l1;
+
+    // SC 1.4.3: 3.0 for large text (>=24px, or >=18.66px bold), else 4.5.
+    const size = parseFloat(st.fontSize);
+    const weight = parseInt(st.fontWeight, 10) || 400;
+    const large = size >= 24 || (size >= 18.66 && weight >= 700);
+    const required = large ? 3.0 : 4.5;
+
+    if (ratio < required) {
+      const key = st.color + '|' + bg.join(',') + '|' + Math.round(size);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      bad.push({
+        text: text.slice(0, 32),
+        color: st.color,
+        bg: 'rgb(' + bg.join(', ') + ')',
+        size: Math.round(size),
+        ratio: Math.round(ratio * 100) / 100,
+        required,
+      });
+    }
+  }
+  return bad;
+})()
+"""
+
 # Helpers evaluated in the page, so every assertion is about rendered geometry
 # rather than about markup.
 VISIBLE = """
@@ -227,13 +319,20 @@ VISIBLE = """
 
 
 def main() -> int:
-    tokens = {u: login(u) for u in ("rina.kusuma", "dewi.lestari", "bayu.pratama", "sari.dewi")}
+    tokens = {
+        u: login(u)
+        for u in ("rina.kusuma", "dewi.lestari", "bayu.pratama", "sari.dewi", "hendra.wijaya")
+    }
     b = Browser()
     try:
         print("\n[P0] Target sentuh >= 44px pada lebar ponsel")
         b.set_cookie(tokens["rina.kusuma"])
         b.viewport(*PHONE)
-        for path in ("/tiket", "/aplikasi", "/"):
+        # Every navigable screen, not a sample. A sample is how the two defects
+        # this harness first caught survived: they were on screens nobody
+        # happened to pick.
+        for path, who in SCREENS:
+            b.set_cookie(tokens[who])
             b.goto(path)
             small = b.js(
                 """
@@ -254,6 +353,22 @@ def main() -> int:
                     // unfocused is measuring the wrong state, and it is checked
                     // properly in the a11y section below.
                     if (el.getAttribute('href') === '#konten-utama') continue;
+                    // A visually-hidden input whose <label> is the real target:
+                    // the radio behind a decision control, or a styled
+                    // checkbox. Measuring the input measures the wrong element
+                    // -- what the finger lands on is the label, which is
+                    // checked on its own like any other control.
+                    if ((el.tagName === 'INPUT') &&
+                        (el.classList.contains('sr-only') || el.classList.contains('peer'))) continue;
+                    if (el.tagName === 'INPUT' && (el.type === 'checkbox' || el.type === 'radio') &&
+                        el.closest('label')) continue;
+                    // A checkbox in a table cell: WCAG 2.5.8 measures the
+                    // target, which is the padded cell, not the box drawn
+                    // inside it. Substitute the cell's height.
+                    if (el.tagName === 'INPUT' && el.type === 'checkbox' && el.closest('td, th')) {
+                      const cell = el.closest('td, th').getBoundingClientRect();
+                      if (cell.height >= 44) continue;
+                    }
                     if (r.height < 44) bad.push((el.tagName + ' ' + (el.textContent||'').trim().slice(0,28)).trim() + ' h=' + Math.round(r.height));
                   }
                   return bad;
@@ -511,6 +626,40 @@ def main() -> int:
             "P0 · 404 dalam Bahasa Indonesia, tanpa teks bawaan Next",
             f"{notfound}",
         )
+
+        print("\n[P0 WCAG AA] Kontras teks terhadap latar, diukur dari yang dilukis peramban")
+        # Butir audit #3 yang belum pernah diperiksa sama sekali: token warna bisa
+        # benar sementara elemen yang memakainya duduk di atas latar yang tidak
+        # diduga. Yang dihitung di sini adalah warna hasil render, bukan nilai token.
+        b.viewport(*DESKTOP)
+        for path, who in SCREENS:
+            b.set_cookie(tokens[who])
+            b.goto(path)
+            failures = b.js(CONTRAST_JS)
+            check(
+                len(failures) == 0,
+                f"WCAG AA · kontras teks memadai di {path}",
+                "semua memenuhi"
+                if not failures
+                else f"{len(failures)} kombinasi gagal: {failures[:3]}",
+            )
+
+        print("\n[Cakupan] Setiap layar navigasi memuat dan punya judul")
+        # A screen nobody checks is a screen where a regression lands quietly.
+        # These three were outside the harness entirely until now.
+        for path, who in SCREENS:
+            b.set_cookie(tokens[who])
+            b.goto(path)
+            page = b.js(
+                "(() => ({ h1: (document.querySelector('h1')||{}).textContent || null,"
+                " main: !!document.querySelector('#konten-utama'),"
+                " err: /Application error|could not be found/i.test(document.body.innerText) }))()"
+            )
+            check(
+                bool(page["h1"]) and page["main"] is True and page["err"] is False,
+                f"Cakupan · {path} memuat dengan judul dan tanpa layar galat",
+                f"h1={page['h1']!r}, main={page['main']}, galat={page['err']}",
+            )
 
         print("\n[FR-C-010] Kebocoran hak akses tidak terlihat di antarmuka")
         b.set_cookie(tokens["sari.dewi"])

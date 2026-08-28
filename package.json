@@ -29,7 +29,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json && pnpm -r typecheck",
-    "verify:docs": "python3 .claude/skills/verify-docs/scripts/verify.py docs"
+    "verify:docs": "python3 .claude/skills/verify-docs/scripts/verify.py docs",
+    "verify:ui": "python3 scripts/verify-ui.py"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

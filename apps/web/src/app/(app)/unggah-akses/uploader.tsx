@@ -141,7 +141,7 @@ export function AccessUploader({ applications }: { applications: ApplicationRow[
                 setFileName(null)
                 if (fileInput.current) fileInput.current.value = ''
               }}
-              className="rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-2 text-sm font-medium text-sg-neutral-800 hover:bg-sg-neutral-50"
+              className="inline-flex min-h-11 items-center rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-4 text-sm font-medium text-sg-neutral-800 hover:bg-sg-neutral-50"
             >
               Unggah lagi
             </button>
@@ -183,7 +183,7 @@ export function AccessUploader({ applications }: { applications: ApplicationRow[
                 setPreview(null)
                 setError(null)
               }}
-              className="mt-1 w-72 rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-2 text-sm focus:border-sg-accent-600 focus:outline focus:outline-2 focus:outline-sg-accent-600"
+              className="mt-1 min-h-11 w-72 max-w-full rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-3 text-sm focus:border-sg-accent-600 focus:outline focus:outline-2 focus:outline-sg-accent-600"
             >
               <option value="">— pilih —</option>
               {applications.map((a) => (
@@ -197,7 +197,7 @@ export function AccessUploader({ applications }: { applications: ApplicationRow[
             type="button"
             onClick={downloadTemplate}
             disabled={!applicationId}
-            className="rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-2 text-sm font-medium text-sg-neutral-800 hover:bg-sg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-h-11 items-center rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-4 text-sm font-medium text-sg-neutral-800 hover:bg-sg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Unduh templat CSV
           </button>
@@ -230,7 +230,7 @@ export function AccessUploader({ applications }: { applications: ApplicationRow[
             <button
               type="submit"
               disabled={busy || !applicationId || !fileName}
-              className="rounded-md bg-sg-accent-600 px-4 py-2 text-sm font-medium text-sg-neutral-0 hover:bg-sg-accent-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-11 items-center rounded-md bg-sg-accent-600 px-4 text-sm font-medium text-sg-neutral-0 hover:bg-sg-accent-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {busy ? 'Memvalidasi…' : 'Validasi'}
             </button>
@@ -372,7 +372,7 @@ export function AccessUploader({ applications }: { applications: ApplicationRow[
                 setPreview(null)
                 setProceed(null)
               }}
-              className="rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-2 text-sm font-medium text-sg-neutral-800 hover:bg-sg-neutral-50"
+              className="inline-flex min-h-11 items-center rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-4 text-sm font-medium text-sg-neutral-800 hover:bg-sg-neutral-50"
             >
               Batal
             </button>
@@ -380,7 +380,7 @@ export function AccessUploader({ applications }: { applications: ApplicationRow[
               type="button"
               onClick={onCommit}
               disabled={busy || !canCommit}
-              className="rounded-md bg-sg-accent-600 px-4 py-2 text-sm font-medium text-sg-neutral-0 hover:bg-sg-accent-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-11 items-center rounded-md bg-sg-accent-600 px-4 text-sm font-medium text-sg-neutral-0 hover:bg-sg-accent-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {busy ? 'Menyimpan…' : 'Proses'}
             </button>

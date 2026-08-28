@@ -20,7 +20,7 @@ export function VerifyChainButton() {
         type="button"
         disabled={pending}
         onClick={() => startTransition(async () => setResult(await verifyChain()))}
-        className="rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-2 text-sm font-medium text-sg-neutral-800 hover:bg-sg-neutral-50 disabled:opacity-60"
+        className="inline-flex min-h-11 items-center rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-4 text-sm font-medium text-sg-neutral-800 hover:bg-sg-neutral-50 disabled:opacity-60"
       >
         {pending ? 'Memeriksa…' : 'Periksa integritas rantai'}
       </button>

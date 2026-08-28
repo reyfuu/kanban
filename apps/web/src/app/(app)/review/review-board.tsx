@@ -108,7 +108,16 @@ export function ReviewBoard(props: { initialItems: ReviewItem[]; canSignoff: boo
           {campaign && (
             <p className="mt-2 text-sm text-sg-neutral-700">
               {campaign.name}
-              <span className="ml-2 text-sg-neutral-500">
+              {/*
+                * neutral-600, not neutral-500. On this screen's neutral-100
+                * shell, neutral-500 measures 4.34:1 -- just under the 4.5:1 that
+                * SC 1.4.3 requires for body-size text. It reads fine on white,
+                * which is why it survived review; the shell background is what
+                * breaks it. neutral-600 gives 6.92:1 on the same background.
+                * And of all the text on this screen, a deadline is the last
+                * thing that should be hard to read.
+                */}
+              <span className="ml-2 text-sg-neutral-600">
                 Tenggat {formatDate(campaign.due_date)}
                 {due !== null && ` · ${REVIEW_TEXT.dueIn(due)}`}
               </span>
