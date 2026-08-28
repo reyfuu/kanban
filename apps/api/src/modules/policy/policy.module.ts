@@ -6,6 +6,7 @@ import { DocumentApprovalService } from './document-approval.service.js'
 import { DocumentService } from './document.service.js'
 import { DocumentSearchRepository } from './document-search.repository.js'
 import { DocumentSearchService } from './document-search.service.js'
+import { DocumentAnswerService } from './document-answer.service.js'
 
 /**
  * Modul C · Policy Hub — SOP dan kebijakan internal.
@@ -25,8 +26,10 @@ import { DocumentSearchService } from './document-search.service.js'
  *    Modul A (FR-A-014 aturan 2).
  *  - FR-C-022 · penautan dokumen ke kontrol Modul A.
  *
- * Menyusul: jawaban berbasis dokumen beserta gerbang klasifikasi keluar
- * (FR-C-013 s.d. FR-C-018 — seluruhnya lewat LLM Gateway, ADR-03).
+ *  - FR-C-013 · jawaban berbasis dokumen, dengan rujukan wajib. Seluruh
+ *    kontrolnya (pemutus, gerbang klasifikasi, redaksi, pencatatan) ada di
+ *    LLM Gateway pada modul shared, bukan di sini — ADR-03 mensyaratkan satu
+ *    jalur keluar, dan gerbang yang dititipkan ke pemanggilnya bukan gerbang.
  *
  * Penyaringan hak akses ada di lapisan repositori, di dalam basis data
  * (`check_document_access`), bukan di controller — FR-C-010 aturan 1 melarang
@@ -42,6 +45,7 @@ import { DocumentSearchService } from './document-search.service.js'
     DocumentApprovalService,
     DocumentSearchService,
     DocumentSearchRepository,
+    DocumentAnswerService,
   ],
   exports: [],
 })

@@ -13,9 +13,11 @@ import {
 import { hasPermission, RequiresStepUp, type SigapRequest } from '../shared/index.js'
 import { DocumentService } from './document.service.js'
 import { DocumentApprovalService } from './document-approval.service.js'
+import { DocumentAnswerService } from './document-answer.service.js'
 import { DocumentSearchService } from './document-search.service.js'
 import {
   ApprovalDecisionDto,
+  AskDocumentDto,
   CancelFlowDto,
   CreateDocumentDto,
   CreateVersionDto,
@@ -45,6 +47,7 @@ export class DocumentController {
     private readonly documents: DocumentService,
     private readonly search: DocumentSearchService,
     private readonly approvals: DocumentApprovalService,
+    private readonly answers: DocumentAnswerService,
   ) {}
 
   /** FR-C-009 s.d. FR-C-012 · `GET /documents/search`. */
@@ -65,6 +68,27 @@ export class DocumentController {
       },
     })
     return { data: result }
+  }
+
+  /**
+   * FR-C-013 · `POST /documents/tanya` — a short answer built from policy text.
+   *
+   * A POST, not a GET, even though it reads nothing: the question is user text
+   * that will be logged verbatim in the gateway log (FR-C-016), and a question
+   * containing an account number has no business sitting in a URL, a browser
+   * history, and a proxy access log on its way there.
+   *
+   * Every refusal path returns 200 with a reason rather than an error status.
+   * "No adequate basis" and "the feature is switched off" are answers to the
+   * question, not failures of the request, and rendering them as errors would
+   * push the UI toward a generic failure banner instead of the explanation
+   * FR-C-017 aturan 3 asks for.
+   */
+  @Post('documents/tanya')
+  @HttpCode(200)
+  async ask(@Req() req: SigapRequest, @Body() dto: AskDocumentDto) {
+    this.require(req, 'document:read')
+    return { data: await this.answers.answer(req.principal!, dto.pertanyaan) }
   }
 
   /** FR-C-008 aturan 4 · documents past their review date, still in force. */

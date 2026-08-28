@@ -268,3 +268,19 @@ export class ReattestationDecisionDto {
   @IsBoolean()
   required!: boolean
 }
+
+/**
+ * FR-C-013 · a question to be answered from policy documents.
+ *
+ * The length floor is not cosmetic. A two-character question retrieves
+ * essentially arbitrary chunks, and the gateway would then spend a real request
+ * -- and a real per-user rate-limit slot (ADR-03 K8) -- sending them out. The
+ * ceiling keeps a pasted document out of the payload; the answer feature reads
+ * policy, it does not summarise whatever someone pastes into it.
+ */
+export class AskDocumentDto {
+  @IsString()
+  @MinLength(10)
+  @MaxLength(500)
+  pertanyaan!: string
+}

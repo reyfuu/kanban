@@ -13,6 +13,9 @@ import { AuthController } from './identity/auth.controller.js'
 import { ContextMiddleware } from './http/context.middleware.js'
 import { NotificationService } from './notification/notification.service.js'
 import { NotificationController } from './notification/notification.controller.js'
+import { LlmGatewayService } from './llm-gateway/llm-gateway.service.js'
+import { LlmGatewayController } from './llm-gateway/llm-gateway.controller.js'
+import { LlmProvider, UnconfiguredLlmProvider } from './llm-gateway/llm-provider.js'
 
 /**
  * Cross-cutting foundation -- FR-X-001 s.d. FR-X-018.
@@ -24,13 +27,13 @@ import { NotificationController } from './notification/notification.controller.j
  * Built: audit/ (FR-X-008, ADR-04, K-7) · identity/ (FR-X-001..004, ADR-06) ·
  * authz/ (FR-X-005..007) · http/ (07-API-CONTRACT Sec 1)
  *
- * notification/ (FR-X-010, FR-X-011)
+ * notification/ (FR-X-010, FR-X-011) · llm-gateway/ (ADR-03, FR-C-014..018)
  *
  * Still to build: files/ (FR-X-013)
  */
 @Global()
 @Module({
-  controllers: [AuthController, AuditController, NotificationController],
+  controllers: [AuthController, AuditController, NotificationController, LlmGatewayController],
   providers: [
     PrismaService,
     UnitOfWork,
@@ -40,6 +43,15 @@ import { NotificationController } from './notification/notification.controller.j
     StepUpService,
     AuthService,
     NotificationService,
+    LlmGatewayService,
+    {
+      // ADR-03 K9 / FR-C-018 · which provider is a configuration choice made
+      // here and nowhere else. The default is the unconfigured one: a
+      // deployment that has not completed ADR-03's G1-G7 checks must not be
+      // able to reach an external provider by accident.
+      provide: LlmProvider,
+      useClass: UnconfiguredLlmProvider,
+    },
     {
       // ADR-06: which implementation is a configuration choice, and the rest of
       // the system never learns which one it got.
@@ -61,6 +73,7 @@ import { NotificationController } from './notification/notification.controller.j
     StepUpService,
     AuthService,
     NotificationService,
+    LlmGatewayService,
   ],
 })
 export class SharedModule implements NestModule {

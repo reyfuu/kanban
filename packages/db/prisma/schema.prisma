@@ -165,6 +165,7 @@ model AppUser {
   sessionsRevokedByMe    Session[]               @relation("SessionRevokedBy")
   uploadedFiles          UploadedFile[]
   notifications          Notification[]
+  llmRequests            LlmRequestLog[]         @relation("LlmRequestAsker")
   notificationPreference NotificationPreference?
   auditLogEntries        AuditLog[]              @relation("AuditActor")
 
@@ -1998,4 +1999,94 @@ model AttestationRecord {
   @@index([taskId], map: "idx_attestation_record_task")
   @@index([employeeId], map: "idx_attestation_record_employee")
   @@map("attestation_record")
+}
+
+// ============================================================================
+// LLM Gateway -- ADR-03. The single egress path to an external language
+// provider, and by ADR-03's own words the most critical control point in the
+// architecture. FR-C-013 s.d. FR-C-018.
+// ============================================================================
+
+/// FR-C-016 · what happened to one request at the gateway.
+enum LlmGatewayOutcome {
+  /// Sent to the provider and answered.
+  DITERUSKAN
+  /// FR-C-017 · the feature was switched off by COMPLIANCE.
+  DITOLAK_PEMUTUS
+  /// FR-C-014 · every relevant chunk was Terbatas or Rahasia.
+  DITOLAK_KLASIFIKASI
+  /// FR-C-015 aturan 2 · redaction failed, so the send was cancelled.
+  DITOLAK_REDAKSI
+  /// K10 · the answer came back without verifiable citations and was discarded.
+  DITOLAK_TANPA_RUJUKAN
+  /// K8 · per-user rate limit or monthly budget exceeded.
+  DITOLAK_BATAS
+  /// The provider itself failed.
+  GAGAL_PENYEDIA
+
+  @@map("llm_gateway_outcome")
+}
+
+/// FR-C-016 · the gateway log. Retained 24 months (rule 1).
+///
+/// Rejections are recorded as fully as successes (rule 3). A log that only
+/// contains what was sent cannot answer the question Compliance actually asks,
+/// which is whether the gate ever refused anything and why.
+model LlmRequestLog {
+  id                String            @id @db.Uuid
+  occurredAt        DateTime          @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  askedByUserId     String            @map("asked_by_user_id") @db.Uuid
+  /// The user's question as typed, before redaction.
+  questionRaw       String            @map("question_raw")
+  /// The question after FR-C-015 redaction. Null when the request never got
+  /// that far -- which is itself informative.
+  questionRedacted  String?           @map("question_redacted")
+  outcome           LlmGatewayOutcome
+  /// Why it was refused, in the words shown to the user.
+  refusalReason     String?           @map("refusal_reason")
+  /// Documents and chunks referenced, with their classifications (rule "Isi
+  /// catatan"). jsonb rather than a join table: this is an immutable record of
+  /// what was true at send time, not a live relationship to follow.
+  chunksReferenced  Json              @default("[]") @map("chunks_referenced")
+  /// The exact payload sent, after redaction. Null when nothing was sent.
+  payloadSent       Json?             @map("payload_sent")
+  responseReceived  Json?             @map("response_received")
+  providerName      String?           @map("provider_name") @db.VarChar(100)
+  tokensPrompt      Int?              @map("tokens_prompt")
+  tokensCompletion  Int?              @map("tokens_completion")
+  /// Cost in the smallest currency unit, to avoid float drift on money.
+  costMicros        BigInt?           @map("cost_micros")
+  durationMs        Int?              @map("duration_ms")
+
+  askedBy AppUser @relation("LlmRequestAsker", fields: [askedByUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([occurredAt], map: "idx_llm_request_log_occurred_at")
+  @@index([askedByUserId], map: "idx_llm_request_log_asker")
+  @@index([outcome], map: "idx_llm_request_log_outcome")
+  @@map("llm_request_log")
+}
+
+/// FR-C-017 · the kill switch, and K8's budget limits.
+///
+/// A single row. Kept in the database rather than in configuration precisely
+/// because rule 1 requires it to take effect in seconds without redeploying --
+/// an environment variable cannot do that.
+model LlmGatewaySetting {
+  id             String    @id @db.Uuid
+  /// FR-C-017 · false disables answer generation immediately. Ordinary search
+  /// (rule 2) is unaffected because it never touches this table.
+  enabled        Boolean   @default(false)
+  disabledReason String?   @map("disabled_reason")
+  /// The COMPLIANCE user who switched it off. Declared as a plain column, not
+  /// a relation, following the same pattern as finding.risk_accepted_by: the
+  /// migration carries the FK, and adding a Prisma relation here would only
+  /// rename the constraint without changing what the database enforces.
+  disabledBy     String?   @map("disabled_by") @db.Uuid
+  disabledAt     DateTime? @map("disabled_at") @db.Timestamptz(6)
+  /// K8 · requests per user per hour, and the monthly ceiling in micros.
+  maxRequestsPerUserPerHour Int    @default(20) @map("max_requests_per_user_per_hour")
+  monthlyBudgetMicros       BigInt @default(0) @map("monthly_budget_micros")
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("llm_gateway_setting")
 }

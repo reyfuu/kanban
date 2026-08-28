@@ -46,6 +46,19 @@ export interface SearchHit {
   readonly score: number
 }
 
+/** FR-C-013 · a chunk eligible to form part of an answer. */
+export interface AnswerChunkRow {
+  readonly id: string
+  readonly document_id: string
+  readonly document_title: string
+  readonly classification: string
+  readonly version_major: number
+  readonly version_minor: number
+  readonly section_ref: string | null
+  readonly content: string
+  readonly score: number
+}
+
 export interface FacetCount {
   readonly value: string
   readonly count: number
@@ -172,6 +185,62 @@ export class DocumentSearchRepository {
       JOIN document_chunk c ON c.id = f.id
       JOIN document_version dv ON dv.id = c.document_version_id
       JOIN document d ON d.id = dv.document_id
+      ORDER BY score DESC
+      LIMIT ${limit}
+    `
+  }
+
+  /**
+   * FR-C-013 aturan 1 · chunks that may form an answer for THIS asker.
+   *
+   * Deliberately a separate query from `search`, and deliberately still routed
+   * through `check_document_access`. The temptation is to reuse the search hits
+   * the user already has on screen, but those carry only a snippet; an answer
+   * needs the full chunk text. Re-fetching by id without re-checking
+   * entitlement would create a second, unguarded path to document content --
+   * and this one feeds the single route out of the company (ADR-03).
+   *
+   * The classification travels with each row because the gate downstream
+   * decides on it. Reading it here, in the same query that already proved
+   * access, keeps the two facts from being fetched separately and drifting.
+   */
+  async chunksForAnswer(params: {
+    userId: string
+    query: string
+    statuses: readonly string[]
+    limit: number
+  }): Promise<AnswerChunkRow[]> {
+    const { userId, query, statuses, limit } = params
+
+    return this.prisma.$queryRaw<AnswerChunkRow[]>`
+      WITH accessible AS (
+        SELECT dv.id AS version_id, d.id AS document_id
+        FROM document d
+        JOIN document_version dv ON dv.document_id = d.id
+        WHERE d.status = ANY(${statuses}::document_status[])
+          AND dv.status = ANY(${statuses}::document_status[])
+          AND (dv.effective_from IS NULL OR CURRENT_DATE >= dv.effective_from)
+          AND (dv.effective_until IS NULL OR CURRENT_DATE <= dv.effective_until)
+          AND check_document_access(d.id, ${userId}::uuid)
+      ),
+      q AS (
+        SELECT websearch_to_tsquery('indonesian_simple', ${query}) AS tsq
+      )
+      SELECT c.id,
+             d.id AS document_id,
+             d.title AS document_title,
+             d.classification::text AS classification,
+             dv.version_major,
+             dv.version_minor,
+             c.section_ref,
+             c.content,
+             ts_rank_cd(c.content_tsv, q.tsq)::float8 AS score
+      FROM document_chunk c
+      JOIN accessible a ON a.version_id = c.document_version_id
+      JOIN document_version dv ON dv.id = c.document_version_id
+      JOIN document d ON d.id = dv.document_id
+      CROSS JOIN q
+      WHERE c.content_tsv @@ q.tsq
       ORDER BY score DESC
       LIMIT ${limit}
     `

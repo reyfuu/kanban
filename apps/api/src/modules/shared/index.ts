@@ -34,6 +34,10 @@ export {
   sendsInApp,
   type NotificationSpec,
 } from './notification/notification-matrix.js'
+export { LlmGatewayService, type AskInput, type AskResult, type Citation } from './llm-gateway/llm-gateway.service.js'
+export { LlmProvider, UnconfiguredLlmProvider, type LlmPrompt, type LlmAnswer } from './llm-gateway/llm-provider.js'
+export { applyClassificationGate, maySendExternally, type Chunk } from './llm-gateway/classification-gate.js'
+export { redactForExternal, RedactionFailedError } from './llm-gateway/redaction.js'
 export { Public } from './http/public.decorator.js'
 export { AuthGuard } from './http/auth.guard.js'
 export { StepUpGuard } from './http/step-up.guard.js'
