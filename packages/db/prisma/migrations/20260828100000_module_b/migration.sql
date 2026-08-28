@@ -279,6 +279,29 @@ CREATE INDEX idx_snapshot_line_snapshot_entitlement ON snapshot_line (snapshot_i
 -- `scheduled-jobs` BullMQ queue (ADR-08) from apps/api -- wiring that
 -- invocation up is out of scope for this migration (packages/db only, per
 -- this task''s "Batas kerja"); see packages/db/README.md.
+--
+-- SECURITY DEFINER (verified against a live database, not assumed): the
+-- runtime role sigap_app holds only USAGE on schema public (granted by the
+-- foundation migration), not CREATE, so a SECURITY INVOKER version of this
+-- function fails with "permission denied for schema public" the moment
+-- sigap_app calls it -- which is exactly the caller these functions exist
+-- for (the scheduled-jobs worker runs as sigap_app). SECURITY DEFINER makes
+-- it run with the privileges of the function''s OWNER (the migration role,
+-- which does have CREATE on public) instead of the caller''s. This is the
+-- narrowest fix: it grants sigap_app the ability to create exactly one
+-- shape of object -- a dated monthly partition of snapshot_line, named and
+-- bounded deterministically from a `date` argument -- rather than a blanket
+-- CREATE grant on schema public that would let it create arbitrary tables.
+-- search_path is pinned (SET search_path = pg_catalog, public) for the same
+-- reason it is pinned on every audit_log function in the foundation
+-- migration: an unpinned search_path on a SECURITY DEFINER function is a
+-- privilege-escalation hole (a caller-controlled temp table could shadow an
+-- unqualified name and run with the owner''s privileges). Both the target
+-- table (public.snapshot_line, schema-qualified in the EXECUTE below) and
+-- the new partition name (public.%I) are schema-qualified explicitly, for
+-- the same reason the partition name was qualified after the first test run
+-- against a live database caught an unqualified CREATE TABLE landing in
+-- pg_catalog (see git history / task report).
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ensure_snapshot_line_partition(p_month_start date)
 RETURNS void AS $$
@@ -295,10 +318,10 @@ BEGIN
     v_partition_name, p_month_start, v_month_end
   );
 END;
-$$ LANGUAGE plpgsql SET search_path = pg_catalog, public;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public;
 
 COMMENT ON FUNCTION ensure_snapshot_line_partition(date) IS
-  'Idempotently creates the monthly range partition of snapshot_line covering [p_month_start, p_month_start + 1 month). p_month_start must be the first day of a month. Safe to call repeatedly (CREATE TABLE IF NOT EXISTS).';
+  'Idempotently creates the monthly range partition of snapshot_line covering [p_month_start, p_month_start + 1 month). p_month_start must be the first day of a month. Safe to call repeatedly (CREATE TABLE IF NOT EXISTS). SECURITY DEFINER -- see the comment block above CREATE FUNCTION for why, and why search_path is pinned.';
 
 CREATE OR REPLACE FUNCTION ensure_snapshot_line_partitions_ahead(p_months_ahead integer DEFAULT 3)
 RETURNS void AS $$
@@ -310,10 +333,10 @@ BEGIN
     PERFORM ensure_snapshot_line_partition((v_month + (i || ' months')::interval)::date);
   END LOOP;
 END;
-$$ LANGUAGE plpgsql SET search_path = pg_catalog, public;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public;
 
 COMMENT ON FUNCTION ensure_snapshot_line_partitions_ahead(integer) IS
-  'Creates the current-month partition of snapshot_line plus p_months_ahead future monthly partitions, skipping any that already exist. Intended to be called on a recurring schedule (e.g. monthly) so a partition always exists before data for it arrives -- an INSERT into a month with no partition fails outright by design (see the comment block above CREATE TABLE snapshot_line).';
+  'Creates the current-month partition of snapshot_line plus p_months_ahead future monthly partitions, skipping any that already exist. Intended to be called on a recurring schedule (e.g. monthly) so a partition always exists before data for it arrives -- an INSERT into a month with no partition fails outright by design (see the comment block above CREATE TABLE snapshot_line). SECURITY DEFINER, same reasoning as ensure_snapshot_line_partition above.';
 
 REVOKE EXECUTE ON FUNCTION ensure_snapshot_line_partition(date) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION ensure_snapshot_line_partitions_ahead(integer) FROM PUBLIC;

@@ -115,4 +115,53 @@ Pengecualian: `audit_log.id` memakai `bigserial` sesuai `docs/04-TRD.md §3.5` �
 
 ## Aturan migrasi berikutnya
 
-Migrasi lanjutan **harus** aman terhadap versi aplikasi sebelumnya (lihat `CLAUDE.md`/spesifikasi `db-migrator`): tambah kolom sebagai boleh-kosong dulu, isi mundur, baru hapus kolom lama — tidak pernah pada rilis yang sama dengan perubahan aplikasinya. Migrasi yang menyentuh `audit_log`, `session`, `uploaded_file`, atau tabel besar lain yang sudah berisi data produksi **wajib** memakai `CREATE INDEX CONCURRENTLY` (di luar blok transaksi migrasi Prisma — lihat dokumentasi Prisma tentang `migration.sql` non-transaksional bila diperlukan).
+Migrasi lanjutan **harus** aman terhadap versi aplikasi sebelumnya (lihat `CLAUDE.md`/spesifikasi `db-migrator`): tambah kolom sebagai boleh-kosong dulu, isi mundur, baru hapus kolom lama — tidak pernah pada rilis yang sama dengan perubahan aplikasinya. Migrasi yang menyentuh `audit_log`, `session`, `uploaded_file`, `snapshot_line`, atau tabel besar lain yang sudah berisi data produksi **wajib** memakai `CREATE INDEX CONCURRENTLY` (di luar blok transaksi migrasi Prisma — lihat dokumentasi Prisma tentang `migration.sql` non-transaksional bila diperlukan).
+
+---
+
+## Modul B — Access Review (`20260828100000_module_b`)
+
+Sumber kebenaran: [`docs/04-TRD.md §3.3`](../../docs/04-TRD.md) (ERD lengkap untuk `application`, `entitlement_catalog`, `access_snapshot`, `snapshot_line`, `review_campaign`, `review_item`, `review_decision`, `revocation_ticket`, `sod_rule`), [`docs/03-FRD.md` FR-B-001..025](../../docs/03-FRD.md), [`docs/10-TEST-PLAN.md §3.2`](../../docs/10-TEST-PLAN.md) (kontrol kritis K-1, K-2, K-3, K-4, K-9).
+
+### Tabel yang kolomnya tidak dirinci ERD (dirancang sendiri)
+
+| Tabel | FR rujukan | Keputusan desain utama |
+|---|---|---|
+| `connector` | FR-B-003, ADR-05 | `type` meniru union `AccessConnector.type` (ldap/jdbc/rest/sftp/manual). Kredensial dienkripsi kolom lewat `pgcrypto` (`encrypted_credentials bytea`, ditulis dengan `pgp_sym_encrypt()`), tidak pernah `SELECT` ke DTO generik. **Gap tercatat:** tabel riwayat per-eksekusi (`connector_run`, FR-B-003 rule 3) belum dibuat — di luar daftar 15 tabel yang diminta tugas ini |
+| `campaign_scope` | FR-B-008 | Satu baris per aplikasi dalam cakupan kampanye, dengan `scope_filter` (jsonb) menampung filter unit organisasi/jabatan/tingkat risiko/istimewa/kode anomali. `item_count` adalah cache dari pratinjau peluncuran (rule 2), bukan kolom terhitung langsung |
+| `campaign_signoff` | FR-B-015, **K-9** | Satu baris per (kampanye, penandatangan, lapis). K-9 diimplementasikan lewat `content_fingerprint` (SHA-256 heksadesimal atas kumpulan keputusan yang ditandatangani, dihitung aplikasi) + `decision_counts` (jsonb). Pembukaan kembali (rule 4) tidak menghapus baris; ia menandai `is_active=false` dan mengisi `reopened_at/reopened_by/reopen_reason` pada baris yang sama — sidik jari asli tetap tersimpan |
+| `sod_violation` | FR-B-024 rule 2, AN-08 | Satu baris per (karyawan, hak akses A, hak akses B) yang terdeteksi konflik pada suatu snapshot. Merujuk `entitlement_catalog` langsung (bukan `snapshot_line`) secara sengaja — agar kunci asingnya dapat ditegakkan basis data, tidak terkena batasan tabel terpartisi (lihat di bawah) |
+| `sod_exception` | FR-B-025 | Persetujuan direksi untuk risiko kritis (rule 2) **tidak** ditegakkan lewat `CHECK` — perlu melihat peran/senioritas penyetuju, pemeriksaan lintas tabel yang menjadi tanggung jawab lapisan repositori aplikasi |
+| `access_anomaly` | FR-B-007 | Satu baris per anomali (AN-01..AN-08) per snapshot. `details` (jsonb) menampung akun/baris terkait untuk anomali yang mencakup banyak baris (mis. AN-06). "Umur sejak pertama terdeteksi" (rule 3) — `first_detected_at` dipertahankan aplikasi lintas snapshot, bukan kunci alami yang ditegakkan basis data |
+
+### Kontrol kritis (docs/10-TEST-PLAN.md §3.2) — cara penegakan & hasil uji
+
+Diuji langsung terhadap basis data pengembangan hidup di porta 5442 (lihat riwayat sesi ini untuk transkrip lengkap; ringkasan di bawah).
+
+| Kontrol | Penegakan | Hasil uji |
+|---|---|---|
+| **K-1** — `revocation_ticket` tidak dapat ditutup manual | `CHECK chk_revocation_ticket_verified_requires_snapshot`: status `TERVERIFIKASI_TERTUTUP` mewajibkan `verified_by_snapshot_id NOT NULL`. Tidak ada kolom/nilai status lain yang memungkinkan penutupan manual | INSERT/UPDATE ke `TERVERIFIKASI_TERTUTUP` tanpa `verified_by_snapshot_id` **ditolak**; dengan kolom terisi **berhasil**; status lain tanpa kolom terisi **berhasil** (tidak false-positive) |
+| **K-2** — tanpa pilihan bawaan | `review_decision.decision` **tanpa** `DEFAULT`; `review_item.status` boleh `DEFAULT 'BELUM_DIPUTUSKAN'` (bukan keputusan) | `INSERT` tanpa kolom `decision` **ditolak** (`NOT NULL` violation, bukan diam-diam terisi nilai bawaan) |
+| **K-3** — alasan wajib pada akses istimewa | `CHECK chk_review_decision_reason_format` (panjang ≥10 setelah `btrim`, menolak pengulangan satu karakter via regex ARE `^(.)\1*$`) berlaku untuk **setiap** alasan yang diisi, termasuk `PERTAHANKAN`; `CHECK chk_review_decision_reason_required` mewajibkan alasan untuk `CABUT`/`UBAH`/`ALIHKAN`. Aturan kondisional "wajib walau Pertahankan jika istimewa/berisiko tinggi" (FR-B-012 rule 3) **tidak** ditegakkan di sini — perlu join ke `entitlement_catalog`, jadi jadi tanggung jawab lapisan repositori | Alasan `<10` karakter **ditolak**; alasan berulang (`aaaa...`) **ditolak**; `CABUT` tanpa alasan **ditolak**; `PERTAHANKAN` dengan alasan pendek **ditolak** (format berlaku ke Pertahankan juga); `PERTAHANKAN` tanpa alasan **berhasil**; `CABUT` dengan alasan valid **berhasil** |
+| **K-4** — `bulk_applied` tersimpan | Kolom `NOT NULL DEFAULT false` | Diverifikasi: baris yang disisipkan tanpa menyebut `bulk_applied` bernilai `false`, bukan `NULL` |
+| **K-9** — sign-off mengunci | `campaign_signoff.content_fingerprint` (`CHECK` format SHA-256 heksadesimal) + `decision_counts` (jsonb); pembukaan kembali menyimpan baris asli (lihat tabel desain di atas) | Sidik jari format salah **ditolak**; sidik jari valid **berhasil** |
+
+### Penyimpangan dari dokumen (disengaja, dicatat)
+
+| # | Penyimpangan | Alasan |
+|---|---|---|
+| 1 | `snapshot_line` dipartisi berdasarkan `captured_at` (denormalisasi dari `access_snapshot.captured_at`), **bukan** `snapshot_id` seperti tertulis literal di ADR-04 baris 367 | Partisi rentang bulanan atas nilai UUIDv7 `snapshot_id` tidak dapat diekspresikan sebagai `RANGE` partitioning standar PostgreSQL tanpa menghitung batas UUID per bulan secara manual — rapuh dan sulit dibaca. `docs/04-TRD.md §3.5` baris 801 mendeskripsikan keputusan yang sama sebagai "partisi berdasarkan rentang **waktu**", yang merupakan pembacaan literal standar. **Perlu keputusan manusia**: sinkronkan pengkabelan ADR-07 lewat `doc-sync` |
+| 2 | Kunci utama `snapshot_line` adalah komposit `(id, captured_at)`, bukan `id` saja seperti tabel lain | Konsekuensi wajib dari partisi PostgreSQL: setiap `UNIQUE`/`PRIMARY KEY` pada tabel terpartisi harus memuat kolom kunci partisi |
+| 3 | `review_item.snapshot_line_id`, `access_anomaly.snapshot_line_id` **tidak** memiliki `FOREIGN KEY` ke `snapshot_line` di basis data | Konsekuensi dari #2: PostgreSQL tidak dapat menegakkan `FOREIGN KEY` yang menyasar `id` saja pada tabel terpartisi. Menambah `captured_at` ke tabel-tabel tersebut demi FK komposit ditolak karena berarti menambah kolom di luar daftar kolom ERD `review_item` yang wajib diikuti persis. Integritas referensial ditegakkan di lapisan repositori aplikasi |
+| 4 | Banyak `enum` Postgres **dibagi** lintas tabel (`risk_level_type`, `connector_type`, `finding_status`) alih-alih satu `varchar`/`enum` per kolom | Nilai yang sama persis dipakai berulang (mis. tingkat risiko `application`/`entitlement_catalog`/`sod_rule`/`access_anomaly`); berbagi satu tipe mencegah keempatnya berdrift dan menghindari mendefinisikan ulang set tertutup yang sama empat kali |
+| 5 | `CHECK`, indeks parsial (`WHERE ...`), fungsi pemicu partisi, dan strategi partisi **tidak** dapat direpresentasikan di `schema.prisma` | Batasan bahasa skema Prisma, sama seperti pengecualian yang sudah didokumentasikan untuk fondasi (`idx_session_idle_expires_at` dst.). `prisma migrate diff` diverifikasi tetap menghasilkan `-- This is an empty migration.` meski kesenjangan ini ada |
+| 6 | `application` **tidak** memiliki kolom `uraian`, `jenis data yang diolah`, `metode pengambilan data akses` yang disebut di teks "Atribut" FR-B-001 | ERD `TRD §3.3` (sumber yang diminta diikuti persis untuk tabel ini) tidak mencantumkannya. "Metode pengambilan data akses" direpresentasikan tidak langsung lewat keberadaan baris `connector`. **Perlu keputusan manusia**: apakah ERD perlu diperbarui menambahkan kolom ini |
+| 7 | Fungsi manajemen partisi (`ensure_snapshot_line_partition`, `ensure_snapshot_line_partitions_ahead`) memakai `SECURITY DEFINER` | Ditemukan lewat pengujian langsung: `sigap_app` hanya memegang `USAGE` pada skema `public` (bukan `CREATE`), sehingga versi `SECURITY INVOKER` gagal saat dipanggil pekerja terjadwal (`scheduled-jobs`, ADR-08) yang berjalan sebagai `sigap_app`. `SECURITY DEFINER` memberi `sigap_app` kemampuan sempit untuk membuat **hanya** satu bentuk objek (partisi bulanan `snapshot_line` bernama dan berbatas deterministik dari argumen `date`), bukan hak `CREATE` luas pada skema. `search_path` dipatok untuk mencegah eskalasi hak lewat tabel sementara, konsisten dengan pola fungsi `audit_log` di migrasi fondasi |
+
+### Hal yang perlu diputuskan manusia (Modul B)
+
+1. **Kejelasan kata-kata ADR-07** — apakah "berdasarkan `snapshot_id`" pada baris 367 memang salah ketik untuk "berdasarkan waktu", atau ada maksud lain yang belum tertangkap? Migrasi ini mengikuti pembacaan literal §3.5 baris 801 (partisi waktu).
+2. **Kolom `application`** — apakah `uraian`, `jenis data yang diolah`, `metode pengambilan data akses` perlu ditambahkan ke ERD dan tabel?
+3. **Tabel `connector_run`** — riwayat per-eksekusi konektor (FR-B-003 rule 3) belum dibuat; migrasi Modul B berikutnya perlu menambahkannya.
+4. **Rentang bootstrap partisi `snapshot_line`** — migrasi ini membuat partisi untuk tahun kalender berjalan + 3 bulan ke depan (11 partisi pada saat migrasi ditulis, 2026-01 s.d. 2026-11). Pekerjaan terjadwal yang memanggil `ensure_snapshot_line_partitions_ahead()` secara berkala **belum** dikabelkan di `apps/api` — di luar cakupan `packages/db`.
+5. **Peran migrasi produksi** — di lingkungan pengembangan ini, migrasi dijalankan sebagai peran superuser `sigap` (bukan `sigap_migrator` khusus seperti disebut di bagian "Prasyarat" fondasi). Fungsi `SECURITY DEFINER` baru (butir 7 di atas) mewarisi hak peran migrasi produksi yang sebenarnya — pastikan peran itu bukan superuser di produksi, agar cakupan hak yang diberikan ke `sigap_app` lewat fungsi ini tetap sempit sesuai maksud.

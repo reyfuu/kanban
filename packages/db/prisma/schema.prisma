@@ -112,6 +112,14 @@ model Employee {
   reports Employee[]       @relation("EmployeeManager")
   appUser AppUser?
 
+  // Modul B (docs/04-TRD.md Sec 3.3) back-relations.
+  ownedApplications      Application[]      @relation("ApplicationOwner")
+  techOwnedApplications  Application[]      @relation("ApplicationTechOwner")
+  snapshotLines          SnapshotLine[]
+  assignedRevocations    RevocationTicket[]
+  sodViolations          SodViolation[]
+  accessAnomalies        AccessAnomaly[]
+
   @@index([orgUnitId], map: "idx_employee_org_unit_id")
   @@index([managerId], map: "idx_employee_manager_id")
   @@index([email], map: "idx_employee_email")
@@ -139,6 +147,16 @@ model AppUser {
   notifications          Notification[]
   notificationPreference NotificationPreference?
   auditLogEntries        AuditLog[]              @relation("AuditActor")
+
+  // Modul B (docs/04-TRD.md Sec 3.3) back-relations.
+  capturedSnapshots         AccessSnapshot[]
+  fallbackForCampaigns      ReviewCampaign[]
+  reviewItems               ReviewItem[]
+  decidedReviewDecisions    ReviewDecision[]   @relation("ReviewDecisionDecidedBy")
+  onBehalfReviewDecisions   ReviewDecision[]   @relation("ReviewDecisionOnBehalfOf")
+  signedCampaignSignoffs    CampaignSignoff[]  @relation("CampaignSignoffSignedBy")
+  reopenedCampaignSignoffs  CampaignSignoff[]  @relation("CampaignSignoffReopenedBy")
+  approvedSodExceptions     SodException[]
 
   @@index([isActive], map: "idx_app_user_is_active")
   @@map("app_user")
@@ -369,4 +387,579 @@ model NotificationPreference {
   user AppUser @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("notification_preference")
+}
+
+// ---------------------------------------------------------------------------
+// Modul B -- Access Review (docs/04-TRD.md Sec 3.3, docs/03-FRD.md FR-B-001
+// ..025, docs/10-TEST-PLAN.md Sec 3.2 critical controls K-1/K-2/K-3/K-4/K-9).
+//
+// KNOWN, DOCUMENTED GAPS BETWEEN THIS FILE AND migration.sql (see
+// packages/db/README.md "Modul B" section for the full writeup):
+//
+//   1. CHECK constraints (K-1, K-2/K-3 reason rules, K-4 not-null-default,
+//      every other chk_* in the migration) have no Prisma schema-language
+//      equivalent at all and are simply absent here, same as every CHECK in
+//      the foundation migration (chk_app_user_type_consistency etc.).
+//   2. Partial indexes (`WHERE ...`) -- uq_campaign_signoff_active,
+//      uq_sod_violation_open, uq_sod_exception_active,
+//      idx_entitlement_catalog_uncategorized, idx_sod_rule_is_active -- are
+//      deliberately left UNDECLARED, not declared as full (non-partial)
+//      indexes, for the exact reason documented on the Session model above:
+//      declaring them as full indexes would misrepresent what actually
+//      exists in the database. Same precedent as
+//      idx_session_idle_expires_at.
+//   3. snapshot_line's RANGE partitioning (PARTITION BY / PARTITION OF) and
+//      its two management functions have no Prisma schema-language
+//      equivalent. The model below describes the logical (parent-table)
+//      shape only; see the deviation note in migration.sql Sec 7 for why the
+//      primary key is a composite (id, capturedAt) instead of id alone, and
+//      why several other models below reference snapshotLineId as a plain
+//      String with no Prisma @relation at all.
+// ---------------------------------------------------------------------------
+
+enum RiskLevel {
+  KRITIS
+  TINGGI
+  SEDANG
+  RENDAH
+
+  @@map("risk_level_type")
+}
+
+enum HostingType {
+  ON_PREMISE
+  SAAS
+  HIBRIDA
+
+  @@map("hosting_type")
+}
+
+enum ReviewFrequency {
+  TRIWULANAN
+  SEMESTERAN
+  TAHUNAN
+
+  @@map("review_frequency_type")
+}
+
+enum EntitlementType {
+  PERAN
+  GRUP
+  IZIN
+  PROFIL
+
+  @@map("entitlement_type")
+}
+
+/// Shared by Connector.type and AccessSnapshot.source -- see migration.sql Sec 2.
+enum ConnectorType {
+  LDAP
+  JDBC
+  REST
+  SFTP
+  MANUAL
+
+  @@map("connector_type")
+}
+
+enum AccessSnapshotStatus {
+  MEMPROSES
+  SELESAI
+  GAGAL
+
+  @@map("access_snapshot_status")
+}
+
+enum ConnectorTestResult {
+  BERHASIL
+  GAGAL
+
+  @@map("connector_test_result")
+}
+
+enum ConnectorRunStatus {
+  BERHASIL
+  GAGAL
+  SEDANG_BERJALAN
+
+  @@map("connector_run_status")
+}
+
+enum CampaignType {
+  PERIODIK
+  AD_HOC
+  PEMICU_PERISTIWA
+
+  @@map("campaign_type")
+}
+
+/// FR-B-010 state diagram.
+enum CampaignStatus {
+  DRAF
+  DIJADWALKAN
+  BERJALAN
+  MENUNGGU_SIGNOFF
+  SELESAI
+  DITUTUP
+  DIPERPANJANG
+  DIBATALKAN
+
+  @@map("campaign_status")
+}
+
+enum ReviewItemStatus {
+  BELUM_DIPUTUSKAN
+  DIPUTUSKAN
+  DIALIHKAN
+  ESKALASI
+
+  @@map("review_item_status")
+}
+
+/// FR-B-012 "Pilihan keputusan" table. Critical control K-2: no @default here
+/// or in migration.sql -- see ReviewDecision.decision below.
+enum ReviewDecisionType {
+  PERTAHANKAN
+  CABUT
+  UBAH
+  ALIHKAN
+
+  @@map("review_decision_type")
+}
+
+enum RevocationActionType {
+  CABUT
+  UBAH
+
+  @@map("revocation_action_type")
+}
+
+/// FR-B-019 state diagram plus the FR-B-020 rule 3 terminal state.
+enum RevocationTicketStatus {
+  TERBUKA
+  DALAM_PROSES
+  MENUNGGU_VERIFIKASI
+  TERVERIFIKASI_TERTUTUP
+  GAGAL_DIVERIFIKASI
+  DIKECUALIKAN
+  TIDAK_DAPAT_DIVERIFIKASI
+
+  @@map("revocation_ticket_status")
+}
+
+/// Shared by SodViolation.status and AccessAnomaly.status.
+enum FindingStatus {
+  TERBUKA
+  DIKECUALIKAN
+  TERSELESAIKAN
+
+  @@map("finding_status")
+}
+
+/// FR-B-007 detection table.
+enum AccessAnomalyCode {
+  AN_01 @map("AN-01")
+  AN_02 @map("AN-02")
+  AN_03 @map("AN-03")
+  AN_04 @map("AN-04")
+  AN_05 @map("AN-05")
+  AN_06 @map("AN-06")
+  AN_07 @map("AN-07")
+  AN_08 @map("AN-08")
+
+  @@map("access_anomaly_code")
+}
+
+/// Application registry subject to access review (FR-B-001). See
+/// packages/db/README.md for the documented gap between this column list and
+/// the FR-B-001 prose "Atribut" list (uraian/data classification/retrieval
+/// method are not in the TRD ERD and are not added here).
+model Application {
+  id                   String          @id @db.Uuid
+  code                 String          @unique(map: "uq_application_code") @db.VarChar(50)
+  name                 String          @db.VarChar(200)
+  ownerEmployeeId      String          @map("owner_employee_id") @db.Uuid
+  techOwnerEmployeeId  String?         @map("tech_owner_employee_id") @db.Uuid
+  criticality          RiskLevel
+  hostingType          HostingType     @map("hosting_type")
+  reviewFrequency      ReviewFrequency @map("review_frequency")
+  isActive             Boolean         @default(true) @map("is_active")
+  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  ownerEmployee     Employee            @relation("ApplicationOwner", fields: [ownerEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  techOwnerEmployee Employee?           @relation("ApplicationTechOwner", fields: [techOwnerEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  entitlements      EntitlementCatalog[]
+  connectors        Connector[]
+  snapshots         AccessSnapshot[]
+  campaignScopes    CampaignScope[]
+  revocationTickets RevocationTicket[]
+  accessAnomalies   AccessAnomaly[]
+
+  @@index([ownerEmployeeId], map: "idx_application_owner_employee_id")
+  @@index([techOwnerEmployeeId], map: "idx_application_tech_owner_employee_id")
+  @@map("application")
+}
+
+/// Per-application entitlement catalog (FR-B-002).
+model EntitlementCatalog {
+  id                  String          @id @db.Uuid
+  applicationId       String          @map("application_id") @db.Uuid
+  technicalCode       String          @map("technical_code") @db.VarChar(200)
+  displayName         String          @map("display_name") @db.VarChar(200)
+  businessDescription String?         @map("business_description")
+  entitlementType     EntitlementType @map("entitlement_type")
+  riskLevel           RiskLevel       @map("risk_level")
+  isPrivileged        Boolean         @default(false) @map("is_privileged")
+  isFinancial         Boolean         @default(false) @map("is_financial")
+  isCategorized       Boolean         @default(false) @map("is_categorized")
+  createdAt           DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  application       Application        @relation(fields: [applicationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  snapshotLines     SnapshotLine[]
+  revocationTickets RevocationTicket[]
+  sodViolationsA    SodViolation[]     @relation("SodViolationEntitlementA")
+  sodViolationsB    SodViolation[]     @relation("SodViolationEntitlementB")
+
+  @@unique([applicationId, technicalCode], map: "uq_entitlement_catalog_app_technical_code")
+  @@index([applicationId], map: "idx_entitlement_catalog_application_id")
+  @@map("entitlement_catalog")
+}
+
+/// Access data retrieval configuration per application (FR-B-003, ADR-05).
+/// Not in the ERD relation diagram with columns -- see migration.sql Sec 5
+/// for the full design rationale, including why encryptedCredentials is
+/// Bytes (pgcrypto ciphertext) rather than a plaintext column.
+model Connector {
+  id                        String                @id @db.Uuid
+  applicationId             String                @map("application_id") @db.Uuid
+  type                      ConnectorType
+  name                      String                @db.VarChar(200)
+  config                    Json                  @default("{}")
+  encryptedCredentials      Bytes?                @map("encrypted_credentials")
+  scheduleCron              String?               @map("schedule_cron") @db.VarChar(100)
+  isActive                  Boolean               @default(true) @map("is_active")
+  consecutiveFailureCount   Int                   @default(0) @map("consecutive_failure_count") @db.SmallInt
+  lastTestedAt              DateTime?             @map("last_tested_at") @db.Timestamptz(6)
+  lastTestResult            ConnectorTestResult?  @map("last_test_result")
+  lastRunAt                 DateTime?             @map("last_run_at") @db.Timestamptz(6)
+  lastRunStatus             ConnectorRunStatus?   @map("last_run_status")
+  createdAt                 DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([applicationId], map: "idx_connector_application_id")
+  @@index([isActive], map: "idx_connector_is_active")
+  @@map("connector")
+}
+
+/// Immutable point-in-time capture of one application's identities and
+/// entitlements (FR-B-005, ADR-07).
+model AccessSnapshot {
+  id                String                 @id @db.Uuid
+  applicationId     String                 @map("application_id") @db.Uuid
+  capturedAt        DateTime               @map("captured_at") @db.Timestamptz(6)
+  source            ConnectorType
+  capturedBy        String?                @map("captured_by") @db.Uuid
+  identityCount     Int                    @default(0) @map("identity_count")
+  entitlementCount  Int                    @default(0) @map("entitlement_count")
+  contentHash       String                 @map("content_hash") @db.VarChar(64)
+  status            AccessSnapshotStatus   @default(MEMPROSES)
+  createdAt         DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  application         Application        @relation(fields: [applicationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  capturedByUser      AppUser?           @relation(fields: [capturedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  lines               SnapshotLine[]
+  verifiedRevocations RevocationTicket[]
+  sodViolations       SodViolation[]
+  accessAnomalies     AccessAnomaly[]
+
+  @@index([applicationId], map: "idx_access_snapshot_application_id")
+  @@index([applicationId, capturedAt(sort: Desc)], map: "idx_access_snapshot_app_captured_at")
+  @@map("access_snapshot")
+}
+
+/// One row per (account, entitlement) held at capture time (FR-B-005,
+/// ADR-07). Partitioned monthly by capturedAt in migration.sql -- NOT
+/// expressible in Prisma schema language, see the Modul B header comment
+/// above and the deviation note in migration.sql Sec 7. The primary key is
+/// the composite (id, capturedAt), not id alone, because PostgreSQL requires
+/// every unique constraint on a partitioned table to include the partition
+/// key.
+model SnapshotLine {
+  id             String    @db.Uuid
+  snapshotId     String    @map("snapshot_id") @db.Uuid
+  capturedAt     DateTime  @map("captured_at") @db.Timestamptz(6)
+  accountId      String    @map("account_id") @db.VarChar(200)
+  accountName    String?   @map("account_name") @db.VarChar(200)
+  entitlementId  String    @map("entitlement_id") @db.Uuid
+  employeeId     String?   @map("employee_id") @db.Uuid
+  accountStatus  String    @map("account_status") @db.VarChar(50)
+  lastAccessAt   DateTime? @map("last_access_at") @db.Timestamptz(6)
+  grantedAt      DateTime? @map("granted_at") @db.Date
+  grantedBy      String?   @map("granted_by") @db.VarChar(200)
+
+  snapshot    AccessSnapshot     @relation(fields: [snapshotId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  entitlement EntitlementCatalog @relation(fields: [entitlementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  employee    Employee?          @relation(fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([id, capturedAt], map: "snapshot_line_pkey")
+  @@index([snapshotId, employeeId], map: "idx_snapshot_line_snapshot_employee")
+  @@index([snapshotId, entitlementId], map: "idx_snapshot_line_snapshot_entitlement")
+  @@map("snapshot_line")
+}
+
+/// Access review campaign (FR-B-008..010).
+model ReviewCampaign {
+  id                  String         @id @db.Uuid
+  code                String         @unique(map: "uq_review_campaign_code") @db.VarChar(50)
+  name                String         @db.VarChar(200)
+  campaignType        CampaignType   @map("campaign_type")
+  startDate           DateTime       @map("start_date") @db.Date
+  dueDate             DateTime       @map("due_date") @db.Date
+  reviewerRule        Json           @map("reviewer_rule")
+  fallbackReviewerId  String         @map("fallback_reviewer_id") @db.Uuid
+  status              CampaignStatus @default(DRAF)
+  extensionCount      Int            @default(0) @map("extension_count") @db.SmallInt
+  createdAt           DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  fallbackReviewer AppUser           @relation(fields: [fallbackReviewerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  scopes           CampaignScope[]
+  items            ReviewItem[]
+  signoffs         CampaignSignoff[]
+
+  @@index([fallbackReviewerId], map: "idx_review_campaign_fallback_reviewer_id")
+  @@index([status], map: "idx_review_campaign_status")
+  @@map("review_campaign")
+}
+
+/// Design decision (FR-B-008): one row per application in a campaign's
+/// scope. See migration.sql Sec 9.
+model CampaignScope {
+  id             String   @id @db.Uuid
+  campaignId     String   @map("campaign_id") @db.Uuid
+  applicationId  String   @map("application_id") @db.Uuid
+  scopeFilter    Json     @default("{}") @map("scope_filter")
+  itemCount      Int?     @map("item_count")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  campaign    ReviewCampaign @relation(fields: [campaignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  application Application    @relation(fields: [applicationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([campaignId, applicationId], map: "uq_campaign_scope_campaign_application")
+  @@index([campaignId], map: "idx_campaign_scope_campaign_id")
+  @@map("campaign_scope")
+}
+
+/// One review item per (identity, entitlement) combination in a campaign's
+/// scope (FR-B-011).
+model ReviewItem {
+  id               String            @id @db.Uuid
+  campaignId       String            @map("campaign_id") @db.Uuid
+  snapshotLineId   String            @map("snapshot_line_id") @db.Uuid
+  reviewerId       String            @map("reviewer_id") @db.Uuid
+  layerNo          Int               @default(1) @map("layer_no") @db.SmallInt
+  status           ReviewItemStatus  @default(BELUM_DIPUTUSKAN)
+  isFlagged        Boolean           @default(false) @map("is_flagged")
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  campaign ReviewCampaign  @relation(fields: [campaignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reviewer AppUser         @relation(fields: [reviewerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  decision ReviewDecision?
+
+  // snapshotLineId intentionally has NO @relation: snapshot_line is
+  // partitioned and carries no database FOREIGN KEY from this column (see
+  // migration.sql Sec 7/10 deviation notes). Referential integrity is
+  // enforced in the application repository layer.
+
+  @@index([campaignId, reviewerId, status], map: "idx_review_item_worklist")
+  @@index([snapshotLineId], map: "idx_review_item_snapshot_line_id")
+  @@map("review_item")
+}
+
+/// Reviewer decision for one review_item (FR-B-012). Critical controls K-2
+/// (decision has NO @default), K-3 (reason format/required -- CHECK
+/// constraints in migration.sql, not expressible here), K-4 (bulkApplied
+/// NOT NULL, default false).
+model ReviewDecision {
+  id             String              @id @db.Uuid
+  reviewItemId   String              @unique(map: "uq_review_decision_review_item_id") @map("review_item_id") @db.Uuid
+  // K-2 (FR-B-012 rule 1): deliberately no @default -- see migration.sql
+  // Sec 11 for the full rationale.
+  decision       ReviewDecisionType
+  reason         String?
+  decidedBy      String              @map("decided_by") @db.Uuid
+  onBehalfOf     String?             @map("on_behalf_of") @db.Uuid
+  decidedAt      DateTime            @default(now()) @map("decided_at") @db.Timestamptz(6)
+  // K-4 (FR-B-013 rule 5): NOT NULL, default false.
+  bulkApplied    Boolean             @default(false) @map("bulk_applied")
+  secondsSpent   Int                 @default(0) @map("seconds_spent")
+
+  reviewItem        ReviewItem         @relation(fields: [reviewItemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  decidedByUser      AppUser           @relation("ReviewDecisionDecidedBy", fields: [decidedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  onBehalfOfUser      AppUser?         @relation("ReviewDecisionOnBehalfOf", fields: [onBehalfOf], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  revocationTickets   RevocationTicket[]
+
+  @@index([decidedBy], map: "idx_review_decision_decided_by")
+  @@map("review_decision")
+}
+
+/// Design decision (FR-B-015). Critical control K-9: contentFingerprint is
+/// the SHA-256 fingerprint over the exact signed decision set.
+model CampaignSignoff {
+  id                  String    @id @db.Uuid
+  campaignId          String    @map("campaign_id") @db.Uuid
+  signedBy            String    @map("signed_by") @db.Uuid
+  layerNo             Int       @default(1) @map("layer_no") @db.SmallInt
+  signedAt            DateTime  @default(now()) @map("signed_at") @db.Timestamptz(6)
+  ipAddress           String    @map("ip_address") @db.VarChar(45)
+  decisionCounts      Json      @map("decision_counts")
+  contentFingerprint  String    @map("content_fingerprint") @db.VarChar(64)
+  isActive            Boolean   @default(true) @map("is_active")
+  reopenedAt          DateTime? @map("reopened_at") @db.Timestamptz(6)
+  reopenedBy          String?   @map("reopened_by") @db.Uuid
+  reopenReason        String?   @map("reopen_reason")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  campaign     ReviewCampaign @relation(fields: [campaignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  signedByUser AppUser        @relation("CampaignSignoffSignedBy", fields: [signedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reopenedByUser AppUser?     @relation("CampaignSignoffReopenedBy", fields: [reopenedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([campaignId], map: "idx_campaign_signoff_campaign_id")
+  @@map("campaign_signoff")
+}
+
+/// One ticket per signed-off Cabut/Ubah decision (FR-B-018). Critical
+/// control K-1: TERVERIFIKASI_TERTUTUP requires verifiedBySnapshotId
+/// (CHECK constraint chk_revocation_ticket_verified_requires_snapshot in
+/// migration.sql, not expressible here -- the absence of any other path to
+/// that status is itself the control).
+model RevocationTicket {
+  id                     String                   @id @db.Uuid
+  decisionId             String                   @map("decision_id") @db.Uuid
+  ticketNo               String                   @unique(map: "uq_revocation_ticket_ticket_no") @map("ticket_no") @db.VarChar(50)
+  applicationId          String                   @map("application_id") @db.Uuid
+  entitlementId          String                   @map("entitlement_id") @db.Uuid
+  accountId              String                   @map("account_id") @db.VarChar(200)
+  actionType             RevocationActionType     @map("action_type")
+  assigneeId             String                   @map("assignee_id") @db.Uuid
+  slaDueDate             DateTime                 @map("sla_due_date") @db.Date
+  status                 RevocationTicketStatus   @default(TERBUKA)
+  verifiedBySnapshotId   String?                  @map("verified_by_snapshot_id") @db.Uuid
+  externalTicketRef      String?                  @map("external_ticket_ref") @db.VarChar(200)
+  createdAt              DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  decision           ReviewDecision      @relation(fields: [decisionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  application        Application         @relation(fields: [applicationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  entitlement        EntitlementCatalog  @relation(fields: [entitlementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignee            Employee           @relation(fields: [assigneeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  verifiedBySnapshot  AccessSnapshot?    @relation(fields: [verifiedBySnapshotId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([decisionId], map: "idx_revocation_ticket_decision_id")
+  @@index([applicationId], map: "idx_revocation_ticket_application_id")
+  @@index([verifiedBySnapshotId], map: "idx_revocation_ticket_verified_by_snapshot_id")
+  @@index([assigneeId, status, slaDueDate], map: "idx_revocation_ticket_assignee_worklist")
+  @@map("revocation_ticket")
+}
+
+/// Segregation-of-duties conflict rule (FR-B-024).
+model SodRule {
+  id                    String    @id @db.Uuid
+  code                  String    @unique(map: "uq_sod_rule_code") @db.VarChar(50)
+  name                  String    @db.VarChar(200)
+  riskDescription       String    @map("risk_description")
+  groupA                Json      @map("group_a")
+  groupB                Json      @map("group_b")
+  riskLevel             RiskLevel @map("risk_level")
+  compensatingControl   String?   @map("compensating_control")
+  isActive              Boolean   @default(true) @map("is_active")
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  violations SodViolation[]
+
+  @@map("sod_rule")
+}
+
+/// Design decision (FR-B-024 rule 2, AN-08). See migration.sql Sec 15.
+model SodViolation {
+  id                     String        @id @db.Uuid
+  ruleId                 String        @map("rule_id") @db.Uuid
+  employeeId             String        @map("employee_id") @db.Uuid
+  entitlementIdA         String        @map("entitlement_id_a") @db.Uuid
+  entitlementIdB         String        @map("entitlement_id_b") @db.Uuid
+  detectedInSnapshotId   String        @map("detected_in_snapshot_id") @db.Uuid
+  detectedAt             DateTime      @default(now()) @map("detected_at") @db.Timestamptz(6)
+  status                 FindingStatus @default(TERBUKA)
+  resolvedAt             DateTime?     @map("resolved_at") @db.Timestamptz(6)
+  createdAt              DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  rule               SodRule         @relation(fields: [ruleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  employee           Employee        @relation(fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  entitlementA       EntitlementCatalog @relation("SodViolationEntitlementA", fields: [entitlementIdA], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  entitlementB       EntitlementCatalog @relation("SodViolationEntitlementB", fields: [entitlementIdB], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  detectedInSnapshot AccessSnapshot     @relation(fields: [detectedInSnapshotId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  exceptions         SodException[]
+
+  @@index([employeeId], map: "idx_sod_violation_employee_id")
+  @@index([ruleId], map: "idx_sod_violation_rule_id")
+  @@index([status], map: "idx_sod_violation_status")
+  @@map("sod_violation")
+}
+
+/// Design decision (FR-B-025). See migration.sql Sec 16.
+model SodException {
+  id                    String    @id @db.Uuid
+  violationId           String    @map("violation_id") @db.Uuid
+  businessReason        String    @map("business_reason")
+  compensatingControl   String    @map("compensating_control")
+  approvedBy            String    @map("approved_by") @db.Uuid
+  approvedAt            DateTime  @default(now()) @map("approved_at") @db.Timestamptz(6)
+  reviewDate            DateTime  @map("review_date") @db.Date
+  isActive              Boolean   @default(true) @map("is_active")
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  violation      SodViolation @relation(fields: [violationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  approvedByUser AppUser      @relation(fields: [approvedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([reviewDate], map: "idx_sod_exception_review_date")
+  @@map("sod_exception")
+}
+
+/// Design decision (FR-B-007). See migration.sql Sec 17.
+model AccessAnomaly {
+  id                    String              @id @db.Uuid
+  snapshotId            String              @map("snapshot_id") @db.Uuid
+  snapshotLineId        String?             @map("snapshot_line_id") @db.Uuid
+  employeeId            String?             @map("employee_id") @db.Uuid
+  applicationId         String              @map("application_id") @db.Uuid
+  code                  AccessAnomalyCode
+  severity              RiskLevel
+  firstDetectedAt       DateTime            @default(now()) @map("first_detected_at") @db.Timestamptz(6)
+  lastDetectedAt        DateTime            @default(now()) @map("last_detected_at") @db.Timestamptz(6)
+  status                FindingStatus       @default(TERBUKA)
+  exceptionReason       String?             @map("exception_reason")
+  exceptionReviewDate   DateTime?           @map("exception_review_date") @db.Date
+  resolvedAt            DateTime?           @map("resolved_at") @db.Timestamptz(6)
+  details               Json                @default("{}")
+  createdAt             DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  snapshot    AccessSnapshot @relation(fields: [snapshotId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  employee    Employee?      @relation(fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  application Application    @relation(fields: [applicationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  // snapshotLineId intentionally has NO @relation -- same reason as
+  // ReviewItem.snapshotLineId above.
+
+  @@index([snapshotId], map: "idx_access_anomaly_snapshot_id")
+  @@index([applicationId, code], map: "idx_access_anomaly_application_code")
+  @@index([employeeId], map: "idx_access_anomaly_employee_id")
+  @@index([status], map: "idx_access_anomaly_status")
+  @@map("access_anomaly")
 }
