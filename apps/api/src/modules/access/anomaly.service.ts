@@ -104,10 +104,13 @@ export class AnomalyService {
   /**
    * FR-B-007 aturan 2 · record an exception with a mandatory review date.
    *
-   * The exception ends automatically on the review date — enforced by the read
-   * path treating a past review date as expired (see `isExceptionActive`),
-   * rather than by mutating the row on a schedule, so a lapsed exception cannot
-   * be silently forgotten. Only SEC_OFFICER reaches here (controller gate).
+   * The exception ends on the review date (FR-B-025 aturan 3, applied to
+   * anomalies too): detection carries an actively-excepted finding forward
+   * without duplicating it, but once the review date passes the exception no
+   * longer suppresses re-detection and the anomaly reappears as a fresh TERBUKA
+   * finding on the next snapshot. The row is not mutated on a schedule, so a
+   * lapsed exception cannot be silently forgotten. Only SEC_OFFICER reaches here
+   * (controller gate).
    */
   async grantException(
     principal: Principal,

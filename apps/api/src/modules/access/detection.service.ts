@@ -184,7 +184,7 @@ export class DetectionService {
       }
 
       for (const violation of sodViolations) {
-        const opened = await this.insertSodViolationIfNew(tx, violation)
+        const opened = await this.insertSodViolationIfNew(tx, violation, now)
         if (opened) sodViolationsOpened += 1
       }
 
@@ -222,6 +222,14 @@ export class DetectionService {
    * in `details` jsonb, because the migration keeps account/entitlement out of
    * the columns (Sec 17). Matching therefore reads `details->>'account_id'` and
    * `details->>'entitlement_code'` in raw SQL rather than as Prisma columns.
+   *
+   * "Known" means TERBUKA, or DIKECUALIKAN with an exception that has not yet
+   * lapsed (FR-B-007 aturan 2 review date). An active exception suppresses
+   * re-detection so a finding a SEC_OFFICER excepted is not duplicated; once the
+   * review date passes the row stops matching and the anomaly reappears as a
+   * fresh TERBUKA finding, which is what the review date is for. A carried
+   * forward TERBUKA finding has its lastDetectedAt moved but its firstDetectedAt
+   * preserved (aturan 3); an excepted match is left untouched.
    */
   private async upsertAnomaly(
     tx: TransactionClient,
@@ -234,22 +242,30 @@ export class DetectionService {
     // The enum's stored Postgres value is hyphenated (AN-02) via @map, while the
     // Prisma identifier is AN_02. The raw cast must use the stored value.
     const dbCode = anomaly.code.replace('_', '-')
-    const existing = await tx.$queryRaw<{ id: string }[]>`
-      SELECT id FROM public.access_anomaly
+    const existing = await tx.$queryRaw<{ id: string; status: string }[]>`
+      SELECT id, status FROM public.access_anomaly
       WHERE application_id = ${applicationId}::uuid
         AND code = ${dbCode}::access_anomaly_code
-        AND status = 'TERBUKA'
+        AND (
+          status = 'TERBUKA'
+          OR (status = 'DIKECUALIKAN' AND exception_review_date >= ${now}::date)
+        )
         AND COALESCE(details->>'account_id', '') = ${anomaly.accountId}
         AND COALESCE(details->>'entitlement_code', '') = ${entitlementCode}
       LIMIT 1
     `
 
     if (existing[0]) {
-      await tx.accessAnomaly.update({
-        where: { id: existing[0].id },
-        // firstDetectedAt untouched (aturan 3): age is measured from first sight.
-        data: { lastDetectedAt: now, snapshotId },
-      })
+      // Only an open finding is carried forward; an actively-excepted one is
+      // left exactly as the exception left it, so re-detection does not disturb
+      // a decision already recorded against it.
+      if (existing[0].status === 'TERBUKA') {
+        await tx.accessAnomaly.update({
+          where: { id: existing[0].id },
+          // firstDetectedAt untouched (aturan 3): age is measured from first sight.
+          data: { lastDetectedAt: now, snapshotId },
+        })
+      }
       return true
     }
 
@@ -273,16 +289,38 @@ export class DetectionService {
     return false
   }
 
-  /** Returns true when a new violation was inserted. */
+  /**
+   * Returns true when a new violation was inserted.
+   *
+   * A violation is "already known" — and therefore not re-inserted — when an
+   * open one exists, OR when an excepted one exists whose exception has not yet
+   * lapsed. That second case is FR-B-025 aturan 3 working in the safe direction:
+   * an active exception suppresses re-detection, so re-running detection does not
+   * duplicate a conflict a director already signed off on. Once the exception's
+   * review date passes it is no longer active, this returns "not known", and the
+   * conflict reappears as a fresh TERBUKA finding — which is the other half of
+   * aturan 3.
+   */
   private async insertSodViolationIfNew(
     tx: TransactionClient,
     violation: DetectedSodViolation,
+    now: Date,
   ): Promise<boolean> {
-    const existing = await tx.sodViolation.findFirst({
-      where: { ruleId: violation.ruleId, employeeId: violation.employeeId, status: 'TERBUKA' },
+    const known = await tx.sodViolation.findFirst({
+      where: {
+        ruleId: violation.ruleId,
+        employeeId: violation.employeeId,
+        OR: [
+          { status: 'TERBUKA' },
+          {
+            status: 'DIKECUALIKAN',
+            exceptions: { some: { isActive: true, reviewDate: { gte: now } } },
+          },
+        ],
+      },
       select: { id: true },
     })
-    if (existing) return false
+    if (known) return false
 
     await tx.sodViolation.create({
       data: {

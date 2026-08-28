@@ -389,4 +389,26 @@ describe('FR-B-024 · cross-application SoD', () => {
     const stillOpen = await sodService.listViolations(principal, { status: 'TERBUKA', take: 100 })
     expect(stillOpen.find((v) => v.id === target!.id)).toBeUndefined()
   })
+
+  it('TC-IN-B-124 · FR-B-025 aturan 3 · re-detecting an actively-excepted conflict does not duplicate it', async () => {
+    // The cross-application conflict for crossEmp is now DIKECUALIKAN with a
+    // future review date (TC-IN-B-123). Re-ingesting the same holdings must not
+    // re-open it as a second TERBUKA row: an active exception suppresses
+    // re-detection.
+    const emp = `EC-${suffix}`
+    const before = await sodService.listViolations(principal, { take: 100 })
+    const mineBefore = before.filter((v) => v.rule.code === `SOD-UJI-${suffix}`)
+
+    await ingest(
+      ids.appB,
+      `account_id,account_name,entitlement_code,account_status,employee_number\n` +
+        `u-cross,cross.acc,APPROVE_${suffix},AKTIF,${emp}`,
+    )
+
+    const after = await sodService.listViolations(principal, { take: 100 })
+    const mineAfter = after.filter((v) => v.rule.code === `SOD-UJI-${suffix}`)
+    // Exactly the same set of violations, none newly TERBUKA.
+    expect(mineAfter).toHaveLength(mineBefore.length)
+    expect(mineAfter.filter((v) => v.status === 'TERBUKA')).toHaveLength(0)
+  })
 })
