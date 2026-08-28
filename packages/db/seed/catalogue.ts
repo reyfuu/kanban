@@ -40,6 +40,13 @@ export const PERMISSIONS = [
   ['dashboard:executive', 'Melihat dasbor eksekutif', 'X'],
   ['control:read', 'Melihat pustaka kontrol dan framework', 'A'],
   ['control:write', 'Mengelola kontrol, framework, dan pemetaan', 'A'],
+  // Separate from control:* because FRD Sec 6 gives EVIDENCE_PIC BT(t) over
+  // evidence and request items while giving it no access at all to the control
+  // library. Folding the two together forced a choice between locking the PIC
+  // out of the one job the role exists for, or handing every PIC the authority
+  // to edit the control library -- and the first of those is what shipped.
+  ['evidence:read', 'Melihat bukti dan permintaan bukti', 'A'],
+  ['evidence:write', 'Mendaftarkan bukti dan menautkannya ke permintaan', 'A'],
   ['document:read', 'Mencari dan membaca dokumen normatif', 'C'],
   ['document:write', 'Menyusun dan merevisi dokumen', 'C'],
   ['document:approve', 'Mengesahkan dan memberlakukan dokumen', 'C'],
@@ -60,7 +67,7 @@ export const PERMISSIONS = [
  */
 export const ROLE_PERMISSIONS: Record<string, readonly string[]> = {
   SYS_ADMIN: ['application:read', 'application:write', 'user:read', 'user:write'],
-  COMPLIANCE: ['campaign:read', 'review:read', 'audit-log:verify', 'user:read', 'application:read', 'control:read', 'control:write', 'document:read', 'document:approve', 'attestation:manage'],
+  COMPLIANCE: ['campaign:read', 'review:read', 'audit-log:verify', 'user:read', 'application:read', 'control:read', 'control:write', 'evidence:read', 'document:read', 'document:approve', 'attestation:manage'],
   SEC_OFFICER: [
     'campaign:read',
     'campaign:write',
@@ -70,12 +77,22 @@ export const ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     'ticket:read',
     'ticket:execute',
     'review:read',
+    // FRD Sec 6 · B over "Kontrol & framework", B(t) over "Bukti" and
+    // "Temuan". Read only: the security officer must be able to see which
+    // control a review serves and what was found, without being able to author
+    // controls or accept evidence against them.
+    'control:read',
+    'evidence:read',
   ],
-  APP_OWNER: ['campaign:read', 'review:read', 'review:decide', 'campaign:signoff', 'application:read', 'ticket:read'],
-  LINE_MANAGER: ['campaign:read', 'review:read', 'review:decide'],
-  AUDIT_LEAD: ['campaign:read', 'review:read', 'audit-log:verify', 'control:read', 'control:write', 'document:read', 'document:approve', 'attestation:manage'],
-  AUDITOR_INT: ['campaign:read', 'review:read', 'control:read', 'control:write', 'document:read'],
-  EXECUTIVE: ['dashboard:executive', 'campaign:read', 'control:read', 'document:read'],
+  // APP_OWNER and LINE_MANAGER both hold B(t) over "Temuan", and APP_OWNER
+  // additionally B(t) over "Bukti" -- findings against their own application or
+  // their own unit. Scoping decides which rows; the permission only admits them
+  // to the module.
+  APP_OWNER: ['campaign:read', 'review:read', 'review:decide', 'campaign:signoff', 'application:read', 'ticket:read', 'evidence:read'],
+  LINE_MANAGER: ['campaign:read', 'review:read', 'review:decide', 'evidence:read'],
+  AUDIT_LEAD: ['campaign:read', 'review:read', 'audit-log:verify', 'control:read', 'control:write', 'evidence:read', 'evidence:write', 'document:read', 'document:approve', 'attestation:manage'],
+  AUDITOR_INT: ['campaign:read', 'review:read', 'control:read', 'control:write', 'evidence:read', 'evidence:write', 'document:read'],
+  EXECUTIVE: ['dashboard:executive', 'campaign:read', 'control:read', 'evidence:read', 'document:read'],
   // FR-C-010: every internal employee may SEARCH; which documents they
   // actually see is decided per row by check_document_access, not by this
   // permission. Granting document:read broadly is therefore safe, and
@@ -83,7 +100,11 @@ export const ROLE_PERMISSIONS: Record<string, readonly string[]> = {
   // they are meant to follow.
   EMPLOYEE: ['document:read'],
   AUDITOR_EXT: [],
-  EVIDENCE_PIC: [],
+  // FRD Sec 6 · BT(t) over permintaan bukti and bukti, and nothing over the
+  // control library. Row-level scoping still decides which evidence this PIC
+  // may touch; the permission only says the role is in the business of
+  // handling evidence at all.
+  EVIDENCE_PIC: ['evidence:read', 'evidence:write'],
   DOC_AUTHOR: ['document:read', 'document:write'],
   // DOC_APPROVER ratifies but does not author: the same separation as
   // ticket:execute vs campaign:signoff in Modul B. Whoever writes a procedure

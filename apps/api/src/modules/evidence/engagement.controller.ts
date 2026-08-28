@@ -59,7 +59,7 @@ export class EngagementController {
     @Query('year') year?: string,
     @Query('take') take?: string,
   ) {
-    this.require(req, 'control:read')
+    this.require(req, 'evidence:read')
     return {
       data: await this.engagements.list(req.principal!, {
         ...(status ? { status: status as EngagementStatus } : {}),
@@ -95,7 +95,7 @@ export class EngagementController {
 
   @Get('engagements/:id')
   async findOne(@Req() req: SigapRequest, @Param('id') id: string) {
-    this.require(req, 'control:read')
+    this.require(req, 'evidence:read')
     return { data: await this.engagements.findOne(req.principal!, id) }
   }
 
@@ -112,7 +112,7 @@ export class EngagementController {
 
   @Get('engagements/:id/readiness')
   async readiness(@Req() req: SigapRequest, @Param('id') id: string) {
-    this.require(req, 'control:read')
+    this.require(req, 'evidence:read')
     return { data: await this.engagements.readiness(req.principal!, id) }
   }
 
@@ -139,7 +139,7 @@ export class EngagementController {
 
   @Get('engagements/:id/request-items')
   async listRequestItems(@Req() req: SigapRequest, @Param('id') id: string) {
-    this.require(req, 'control:read')
+    this.require(req, 'evidence:read')
     return { data: await this.requestItems.listForEngagement(req.principal!, id) }
   }
 
@@ -216,7 +216,7 @@ export class EngagementController {
 
   @Get('engagements/:id/findings')
   async listFindings(@Req() req: SigapRequest, @Param('id') id: string) {
-    this.require(req, 'control:read')
+    this.require(req, 'evidence:read')
     return { data: await this.findings.listForEngagement(req.principal!, id) }
   }
 
@@ -249,7 +249,7 @@ export class EngagementController {
 
   @Get('findings/:id')
   async findFinding(@Req() req: SigapRequest, @Param('id') id: string) {
-    this.require(req, 'control:read')
+    this.require(req, 'evidence:read')
     return { data: await this.findings.findOne(req.principal!, id) }
   }
 

@@ -190,7 +190,8 @@ describe('FR-A-005 · engagement lifecycle', () => {
 })
 
 describe('FR-A-007 · request item review', () => {
-  it('TC-IN-A-030 · a rejection needs a 20-character reason', async () => {
+  /** Builds a published request item owned by the PIC, ready to submit. */
+  async function publishedItem(): Promise<{ engagementId: string; itemId: string }> {
     const eid = await newEngagement()
     await asAuditor(() => engagements.transition(auditor, eid, 'BERJALAN', undefined))
     const { id } = await asAuditor(() =>
@@ -202,10 +203,45 @@ describe('FR-A-007 · request item review', () => {
       }),
     )
     await asAuditor(() => requestItems.publish(auditor, eid))
+    return { engagementId: eid, itemId: id }
+  }
+
+  const picPrincipal = (): Principal => ({ ...auditor, userId: ids.auditor, employeeId: ids.picEmp })
+
+  async function attachEvidence(itemId: string): Promise<void> {
+    const { id: evidenceId } = await asAuditor(() =>
+      evidence.create(auditor, {
+        title: `Bukti untuk ${itemId.slice(0, 8)}`,
+        evidenceType: 'LAPORAN_SISTEM',
+        classification: 'INTERNAL',
+        source: 'UNGGAHAN_MANUAL',
+      }),
+    )
+    createdEvidenceIds.push(evidenceId)
+    await asAuditor(() =>
+      evidence.createLink(auditor, evidenceId, { targetType: 'REQUEST_ITEM', targetId: itemId }),
+    )
+  }
+
+  it('TC-IN-A-029 · penyerahan tanpa bukti terlampir ditolak', async () => {
+    // FR-A-007 menamai transisi ini "PIC menyerahkan bukti". Penyerahan kosong
+    // menghabiskan satu siklus telaah penuh untuk mencapai kesimpulan yang
+    // sudah diketahui sistem, sementara persentase kesiapan pada aturan 4
+    // sempat menghitungnya sebagai pekerjaan yang telah diserahkan.
+    const { itemId } = await publishedItem()
+    await expect(
+      runWithRequestContext(ctx(ids.auditor, ['EMPLOYEE']), () =>
+        requestItems.submit(picPrincipal(), itemId),
+      ),
+    ).rejects.toThrow(/belum memiliki bukti terlampir/i)
+  })
+
+  it('TC-IN-A-030 · a rejection needs a 20-character reason', async () => {
+    const { engagementId: eid, itemId: id } = await publishedItem()
+    await attachEvidence(id)
     // Submit as the PIC, then the auditor reviews.
-    const picPrincipal: Principal = { ...auditor, userId: ids.auditor, employeeId: ids.picEmp }
     await runWithRequestContext(ctx(ids.auditor, ['EMPLOYEE']), () =>
-      requestItems.submit(picPrincipal, id),
+      requestItems.submit(picPrincipal(), id),
     )
     await expect(
       asAuditor(() => requestItems.review(auditor, id, 'TOLAK', 'pendek')),

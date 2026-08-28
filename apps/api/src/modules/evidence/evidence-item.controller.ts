@@ -29,8 +29,13 @@ const MAX_TAKE = 500
  * Modul A · evidence entities, versions, links and attestation.
  * FR-A-010..014; 07-API-CONTRACT Sec 4.5. Critical control K-8.
  *
- * Reading is control:read, writing control:write. The integrity guarantees
- * (no overwrite, duplicate-SHA refusal, download re-verify) live in the service.
+ * Reading is evidence:read, writing evidence:write -- deliberately not the
+ * control:* pair, because FRD Sec 6 grants EVIDENCE_PIC write access to
+ * evidence while granting it nothing over the control library. Retention and
+ * legal hold stay on control:* for the mirror-image reason.
+ *
+ * The integrity guarantees (no overwrite, duplicate-SHA refusal, download
+ * re-verify) live in the service.
  */
 @Controller()
 export class EvidenceItemController {
@@ -45,7 +50,7 @@ export class EvidenceItemController {
     @Query('valid_on') validOn?: string,
     @Query('take') take?: string,
   ) {
-    this.require(req, 'control:read')
+    this.require(req, 'evidence:read')
     return {
       data: await this.evidence.list(req.principal!, {
         ...(q ? { q } : {}),
@@ -64,7 +69,7 @@ export class EvidenceItemController {
     @Body() dto: CreateEvidenceDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    this.require(req, 'control:write')
+    this.require(req, 'evidence:write')
     const result = await this.evidence.create(req.principal!, {
       title: dto.title,
       ...(dto.description ? { description: dto.description } : {}),
@@ -80,7 +85,7 @@ export class EvidenceItemController {
 
   @Get('evidence/:id')
   async findOne(@Req() req: SigapRequest, @Param('id') id: string) {
-    this.require(req, 'control:read')
+    this.require(req, 'evidence:read')
     return { data: await this.evidence.findOne(req.principal!, id) }
   }
 
@@ -92,7 +97,7 @@ export class EvidenceItemController {
     @Param('id') id: string,
     @Body() dto: AddEvidenceVersionDto,
   ) {
-    this.require(req, 'control:write')
+    this.require(req, 'evidence:write')
     const size = Number.parseInt(dto.file_size, 10)
     if (Number.isNaN(size) || size <= 0) {
       throw new ForbiddenException('Ukuran berkas tidak valid.')
@@ -110,13 +115,13 @@ export class EvidenceItemController {
   /** FR-A-011 aturan 4 · authenticity attestation. */
   @Get('evidence/:id/attestation')
   async attestation(@Req() req: SigapRequest, @Param('id') id: string) {
-    this.require(req, 'control:read')
+    this.require(req, 'evidence:read')
     return { data: await this.evidence.attestation(req.principal!, id) }
   }
 
   @Get('evidence/:id/links')
   async links(@Req() req: SigapRequest, @Param('id') id: string) {
-    this.require(req, 'control:read')
+    this.require(req, 'evidence:read')
     return { data: await this.evidence.findOne(req.principal!, id) }
   }
 
@@ -127,7 +132,7 @@ export class EvidenceItemController {
     @Param('id') id: string,
     @Body() dto: CreateEvidenceLinkDto,
   ) {
-    this.require(req, 'control:write')
+    this.require(req, 'evidence:write')
     const result = await this.evidence.createLink(req.principal!, id, {
       targetType: dto.target_type,
       targetId: dto.target_id,
@@ -147,19 +152,25 @@ export class EvidenceItemController {
    */
   @Get('request-items/:id/evidence-suggestions')
   async suggestions(@Req() req: SigapRequest, @Param('id') id: string) {
-    this.require(req, 'control:read')
+    this.require(req, 'evidence:read')
     return { data: await this.evidence.suggestForRequest(req.principal!, id) }
   }
 
   @Delete('evidence-links/:id')
   @HttpCode(200)
   async deleteLink(@Req() req: SigapRequest, @Param('id') id: string) {
-    this.require(req, 'control:write')
+    this.require(req, 'evidence:write')
     await this.evidence.deleteLink(req.principal!, id)
     return { data: { id, deleted: true } }
   }
 
   // --- Retention & legal hold (FR-A-015) ---
+
+  // These four stay on control:* rather than moving to evidence:* with the
+  // rest. FRD Sec 6 puts "Retensi & legal hold" under COMPLIANCE alone, so a
+  // PIC holding evidence:write must not thereby gain the power to freeze
+  // evidence against deletion or to approve its destruction. The split in
+  // permission names is what keeps those two authorities apart.
 
   /** FR-A-015 rule 3 · legal hold on one evidence. Step-up (FR-X-003). */
   @Post('evidence/:id/legal-hold')

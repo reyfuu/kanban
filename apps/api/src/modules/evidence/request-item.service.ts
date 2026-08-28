@@ -180,11 +180,32 @@ export class RequestItemService {
     })
   }
 
-  /** FR-A-007 · PIC submits, moving TERBIT/INFO_TAMBAHAN -> DISERAHKAN. */
+  /**
+   * FR-A-007 · PIC submits, moving TERBIT/INFO_TAMBAHAN -> DISERAHKAN.
+   *
+   * Refuses a submission with nothing attached. The state machine names this
+   * transition "PIC menyerahkan bukti", and an empty one consumes the whole
+   * review cycle to reach a conclusion the system already had: an auditor is
+   * notified, opens the item, finds nothing, and rejects it, while the
+   * readiness percentage in FR-A-007 rule 4 counts the item as submitted work
+   * in the meantime.
+   *
+   * The check is against the link, not against a file, because evidence reused
+   * from the library (FR-A-012) is a link to a record that already exists and
+   * is a perfectly good submission.
+   */
   async submit(principal: Principal, id: string): Promise<void> {
     const item = await this.requireItem(id)
     if (principal.employeeId !== item.picEmployeeId) {
       throw new ForbiddenException('Hanya PIC permintaan ini yang dapat menyerahkan bukti.')
+    }
+    const linked = await this.prisma.evidenceLink.count({
+      where: { targetType: 'REQUEST_ITEM', targetId: id },
+    })
+    if (linked === 0) {
+      throw new BadRequestException(
+        'Permintaan ini belum memiliki bukti terlampir. Tautkan setidaknya satu bukti sebelum menyerahkan.',
+      )
     }
     await this.move(id, item.status, 'DISERAHKAN', 'SERAHKAN_PERMINTAAN_BUKTI', {})
   }
