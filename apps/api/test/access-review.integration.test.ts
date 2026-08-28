@@ -125,7 +125,43 @@ beforeAll(async () => {
   })
 })
 
+/**
+ * Fixtures are removed, in reverse dependency order.
+ *
+ * Not tidiness: these tests write to the DEVELOPMENT database, and rows left
+ * behind show up in the application registry and in campaign scope pickers as
+ * "Aplikasi Uji". A developer then sees test fixtures in the product and has no
+ * way to tell them from real data.
+ *
+ * audit_log is the exception and is deliberately NOT cleaned: it refuses DELETE
+ * by design (ADR-04, K-7). Anything these tests recorded there stays there,
+ * which is the correct behaviour and worth seeing.
+ */
 afterAll(async () => {
+  await prisma.revocationTicket.deleteMany({ where: { applicationId: ids.application } })
+  await prisma.reviewDecision.deleteMany({ where: { reviewItem: { campaignId: ids.campaign } } })
+  await prisma.reviewItem.deleteMany({ where: { campaignId: ids.campaign } })
+  await prisma.campaignSignoff.deleteMany({ where: { campaignId: ids.campaign } })
+  await prisma.campaignScope.deleteMany({ where: { campaignId: ids.campaign } })
+  await prisma.reviewCampaign.deleteMany({ where: { id: ids.campaign } })
+  await prisma.$executeRaw`DELETE FROM public.snapshot_line WHERE snapshot_id = ${ids.snapshot}::uuid`
+  await prisma.accessSnapshot.deleteMany({ where: { id: ids.snapshot } })
+  await prisma.entitlementCatalog.deleteMany({ where: { id: ids.entitlement } })
+  await prisma.application.deleteMany({ where: { id: ids.application } })
+  // The identity rows come last and are allowed to fail. If anything in this
+  // run recorded an audit entry under this actor, audit_log.actor_id refuses
+  // the delete -- and that refusal is K-7 doing its job, not an obstacle to
+  // route around. The application row above is the one that must go, because
+  // that is what would otherwise appear in the product's own registry.
+  try {
+    await prisma.userRole.deleteMany({ where: { userId: ids.user } })
+    await prisma.appUser.deleteMany({ where: { id: ids.user } })
+    await prisma.employee.deleteMany({ where: { id: ids.employee } })
+    await prisma.organizationUnit.deleteMany({ where: { id: ids.orgUnit } })
+  } catch {
+    // Referenced by the audit trail; it stays, permanently and correctly.
+  }
+
   await prisma.$disconnect()
 })
 

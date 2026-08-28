@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common'
 import { CampaignController } from './campaign.controller.js'
+import { CampaignBuilderService } from './campaign-builder.service.js'
 import { CampaignService } from './campaign.service.js'
 import { ReviewDecisionService } from './review-decision.service.js'
 import { ReviewItemController } from './review-item.controller.js'
 import { ReviewItemRepository } from './review-item.repository.js'
+import { ReviewerResolver } from './reviewer-resolver.js'
 import { RevocationService } from './revocation.service.js'
 
 /**
@@ -17,12 +19,19 @@ import { RevocationService } from './revocation.service.js'
  * pemakaian `applicationScope` di dalam servis — aturan kode #1, bukan di
  * controller.
  *
- * Belum dibangun: penyusun kampanye (FR-B-008..010), konektor & snapshot
- * (FR-B-003..006), deteksi anomali (FR-B-007), paket bukti (FR-B-022..023).
+ * Belum dibangun: konektor & snapshot (FR-B-003..006), deteksi anomali
+ * (FR-B-007), paket bukti (FR-B-022..023).
  */
 @Module({
   controllers: [ReviewItemController, CampaignController],
-  providers: [ReviewItemRepository, ReviewDecisionService, CampaignService, RevocationService],
+  providers: [
+    ReviewItemRepository,
+    ReviewDecisionService,
+    CampaignService,
+    CampaignBuilderService,
+    ReviewerResolver,
+    RevocationService,
+  ],
   exports: [RevocationService],
 })
 export class AccessModule {}

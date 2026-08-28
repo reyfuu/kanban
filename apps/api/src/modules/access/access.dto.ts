@@ -3,7 +3,9 @@ import {
   ArrayMinSize,
   ArrayNotEmpty,
   IsArray,
+  IsDateString,
   IsEnum,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -13,7 +15,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator'
-import { ReviewDecisionType } from '@prisma/client'
+import { CampaignType, ReviewDecisionType } from '@prisma/client'
 import { BULK_MAX_ITEMS } from './review-rules.js'
 
 /**
@@ -119,6 +121,58 @@ export class CompleteTicketDto {
 export class TicketExceptionDto {
   @IsString()
   @MinLength(10, { message: 'Alasan pengecualian wajib diisi minimal 10 karakter.' })
+  @MaxLength(2000)
+  reason!: string
+}
+
+/** FR-B-008 · campaign construction. */
+export class CreateCampaignDto {
+  @IsString()
+  @MinLength(5)
+  @MaxLength(200)
+  name!: string
+
+  @IsEnum(CampaignType)
+  campaign_type!: CampaignType
+
+  @IsArray()
+  @ArrayNotEmpty({ message: 'Kampanye harus mencakup setidaknya satu aplikasi.' })
+  @IsUUID('4', { each: true })
+  application_ids!: string[]
+
+  @IsIn(['RA-01', 'RA-02', 'RA-03', 'RA-04', 'RA-05'], {
+    message: 'Aturan penugasan reviewer harus salah satu dari RA-01 sampai RA-05.',
+  })
+  reviewer_rule!: 'RA-01' | 'RA-02' | 'RA-03' | 'RA-04' | 'RA-05'
+
+  @IsOptional()
+  @IsUUID()
+  specific_reviewer_user_id?: string
+
+  /** FR-B-009 rule 1 makes this mandatory, not a convenience. */
+  @IsUUID()
+  fallback_reviewer_user_id!: string
+
+  @IsDateString({}, { message: 'Tanggal mulai tidak sah.' })
+  start_date!: string
+
+  @IsDateString({}, { message: 'Tenggat tidak sah.' })
+  due_date!: string
+}
+
+export class ExtendCampaignDto {
+  @IsDateString()
+  due_date!: string
+
+  @IsString()
+  @MinLength(10, { message: 'Alasan perpanjangan wajib diisi minimal 10 karakter.' })
+  @MaxLength(2000)
+  reason!: string
+}
+
+export class CancelCampaignDto {
+  @IsString()
+  @MinLength(10, { message: 'Alasan pembatalan wajib diisi minimal 10 karakter.' })
   @MaxLength(2000)
   reason!: string
 }

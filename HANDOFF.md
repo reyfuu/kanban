@@ -13,7 +13,8 @@ Status per **28 Agustus 2026**. Untuk orang berikutnya yang melanjutkan, termasu
 ```
 docs/          11 dokumen · sumber kebenaran · verify-docs LULUS
 apps/api/      NestJS 11 — audit, autentikasi, otorisasi, step-up, Modul B
-apps/web/      Next.js 15 — masuk, beranda, jejak audit, Review Saya, Tiket
+apps/web/      Next.js 15 — masuk, beranda, jejak audit, Kampanye, Penyusun
+               Kampanye, Review Saya, Registri Aplikasi, Tiket
 packages/db/   Prisma 6 — 2 migrasi, 42 tabel
 .claude/       9 subagent + 6 skill
 ```
@@ -48,6 +49,9 @@ Empat butir pertama dari daftar "berikutnya" di handoff sebelumnya, ditambah dua
 | Layar L-10 Review Saya + L-11 sign-off | Jalan |
 | Layar Tiket Pencabutan | Jalan — kolom "Bukti" adalah K-1 yang terlihat |
 | Data demo Modul B | 4 aplikasi, 8 hak akses, 13 item, satu konflik SoD nyata |
+| Penyusun kampanye FR-B-008 s.d. FR-B-010 | Jalan — susun, pratinjau, luncurkan, perpanjang, batalkan |
+| Penugasan reviewer FR-B-009 | RA-01, RA-02, RA-03, RA-05 jalan; RA-04 sengaja tidak |
+| Layar L-09, daftar kampanye, registri aplikasi | Jalan |
 
 Kontrol kritis diuji dengan **mencoba melanggarnya** terhadap tumpukan yang berjalan,
 bukan dengan membaca kode. Rekamannya:
@@ -176,11 +180,11 @@ Ini yang tidak terlihat dari membaca kode saja. Yang baru ada di bagian bawah.
 
 ## 7. Berikutnya, berurutan
 
-1. **Penyusun kampanye (FR-B-008 s.d. FR-B-010).** Kampanye demo sekarang datang dari benih. Ini yang membuatnya dapat dibuat pengguna: pratinjau cakupan, aturan penentuan reviewer, peluncuran, perpanjangan, pembatalan.
-2. **Snapshot & konektor (FR-B-003 s.d. FR-B-006).** Sekarang snapshot juga dari benih. Verifikasi pencabutan (K-1) sudah siap menerimanya — ia hanya perlu snapshot yang sungguh masuk.
-3. **Deteksi anomali dan SoD (FR-B-007, FR-B-024).** Temuan SoD pada demo ditanam. Mesin deteksinya belum ada, padahal `sod_rule.group_a`/`group_b` sudah menyimpan aturannya.
-4. **Paket bukti kampanye (FR-B-022, FR-B-023).** Penanda keputusan massal sudah tercatat di jejak audit dan diminta muncul di paket bukti (FR-B-013 aturan 5) — paketnya sendiri belum ada.
-5. **Pekerjaan terjadwal.** Dua fungsi menunggu pemanggil: `ensure_snapshot_line_partitions_ahead()` dan `RevocationService.markUnverifiable()` (FR-B-020 aturan 3). Keduanya benar; keduanya belum pernah berjalan.
+1. **Snapshot & konektor (FR-B-003 s.d. FR-B-006).** Satu-satunya sumber data akses saat ini adalah benih. Ini penghalang terbesar yang tersisa: penyusun kampanye sudah menolak snapshot berumur lebih dari 7 hari, dan verifikasi pencabutan (K-1) sudah siap menerima snapshot baru — keduanya hanya perlu snapshot yang sungguh masuk. Tanpa ini, demo hanya dapat dijalankan pada tanggal yang benihnya masih segar.
+2. **Deteksi anomali dan SoD (FR-B-007, FR-B-024).** Temuan SoD pada demo ditanam. Mesin deteksinya belum ada, padahal `sod_rule.group_a`/`group_b` sudah menyimpan aturannya.
+3. **Paket bukti kampanye (FR-B-022, FR-B-023).** Penanda keputusan massal sudah tercatat di jejak audit dan diminta muncul di paket bukti (FR-B-013 aturan 5) — paketnya sendiri belum ada.
+4. **Pekerjaan terjadwal.** Dua fungsi menunggu pemanggil: `ensure_snapshot_line_partitions_ahead()` dan `RevocationService.markUnverifiable()` (FR-B-020 aturan 3). Keduanya benar; keduanya belum pernah berjalan.
+5. **Direktori pengguna (FR-X-014).** Wisaya kampanye hanya dapat menawarkan pengguna yang sedang masuk sebagai reviewer cadangan, karena tidak ada titik akhir yang mendaftar pengguna. FR-B-009 aturan 1 mewajibkan cadangan, jadi ini membatasi siapa yang dapat menyusun kampanye untuk orang lain.
 6. **Modul C · Policy Hub** — sisa Fase 1.
 
 Setelah menyentuh kontrol kritis mana pun: jalankan skill `critical-controls`, lalu subagent `security-reviewer`. Daftar periksa menangkap pelanggaran yang terlihat; review adversarial menangkap yang tersembunyi — kebocoran cakupan di §4 tidak akan tertangkap oleh daftar periksa.
@@ -205,6 +209,9 @@ Setelah menyentuh kontrol kritis mana pun: jalankan skill `critical-controls`, l
 | Aturan ADR-03 di ESLint mudah dilewati | Tidak menangkap `import()` dinamis, `require()`, maupun `fetch` langsung |
 | Kata sandi bawaan `docker-compose` memakai `:-` | `.env` yang hilang menghasilkan tumpukan yang berjalan mulus dengan kredensial tertulis di git |
 | Model `Connector` dan `AccessAnomaly` belum punya kode pemakai | Dipertahankan karena TRD §3.3 menyebutnya eksplisit di ERD. Membuangnya menciptakan penyimpangan dokumen-kode |
+| **RA-04 tidak dapat diterapkan** | FR-B-009 mendefinisikan "pemilik hak akses", tetapi `entitlement_catalog` tidak punya kolom pemilik (TRD §3.3). Aturannya sengaja menghasilkan nol reviewer sehingga seluruh item jatuh ke cadangan secara **terlihat** di pratinjau, alih-alih diam-diam berperilaku seperti RA-02. Perlu kolom baru atau penghapusan RA-04 dari FRD |
+| **Snapshot bertanggal masa depan tidak ditolak** | Umur snapshot dihitung `now - captured_at`, jadi snapshot bertanggal besok berumur negatif dan lolos batas 7 hari. Data konektor sungguhan tidak akan begitu, tetapi unggahan manual (FR-B-006) bisa |
+| **Pembatalan kampanye berjalan menuntut dua hal berbeda** | Titik akhirnya menerima `campaign:write` **atau** peran COMPLIANCE, karena tidak ada peran yang punya keduanya — menuntut keduanya membuat jalur ini mati. Servisnya tetap menuntut COMPLIANCE untuk kampanye berjalan. Bila FRD §1.4 kelak memberi COMPLIANCE `campaign:write`, gerbang ganda ini dapat disederhanakan |
 
 ---
 

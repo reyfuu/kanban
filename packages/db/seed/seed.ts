@@ -33,6 +33,24 @@ const ORG_UNITS = [
   ['RTL', 'Divisi Ritel & Cabang', 'DIR'],
 ] as const
 
+/**
+ * Reporting lines, by employee number. Set in a second pass because a manager
+ * must exist before anyone can point at them, and because RA-01 (atasan
+ * langsung) is only meaningful with a real org chart -- without one every item
+ * falls to the campaign's fallback reviewer and the assignment rule looks
+ * broken when it is merely unfed.
+ */
+const REPORTS_TO: Record<string, string> = {
+  'EMP-00142': 'EMP-00002', // Bayu Pratama      -> Direktur Utama
+  'EMP-00187': 'EMP-00142', // Sari Dewi         -> Bayu Pratama
+  'EMP-00093': 'EMP-00002', // Hendra Wijaya     -> Direktur Utama
+  'EMP-00211': 'EMP-00056', // Rina Kusuma       -> Agus Santoso
+  'EMP-00056': 'EMP-00002', // Agus Santoso      -> Direktur Utama
+  'EMP-00174': 'EMP-00002', // Dewi Lestari      -> Direktur Utama
+  'EMP-00238': 'EMP-00002', // Fajar Nugroho     -> Direktur Utama
+  'EMP-00001': 'EMP-00056', // Administrator     -> Agus Santoso
+}
+
 const PEOPLE = [
   ['bayu.pratama', 'EMP-00142', 'Bayu Pratama', 'Kepala SKAI', 'SKAI', ['AUDIT_LEAD', 'EMPLOYEE']],
   ['sari.dewi', 'EMP-00187', 'Sari Dewi', 'Auditor Internal Senior', 'SKAI', ['AUDITOR_INT', 'EMPLOYEE']],
@@ -140,9 +158,21 @@ async function main(): Promise<void> {
     }
   }
 
+  // Second pass: reporting lines, now that every manager exists.
+  for (const [employeeNumber, managerNumber] of Object.entries(REPORTS_TO)) {
+    const managerId = employeeIds.get(managerNumber)
+    if (!managerId) continue
+    await prisma.employee.update({ where: { employeeNumber }, data: { managerId } })
+  }
+
   await seedModuleB({ prisma, orgIds, employeeIds, userIds })
 
-  const itemCount = await prisma.reviewItem.count()
+  // Scoped to the demo campaign. A global count would drift upwards every time
+  // the integration tests ran, and report a number that is not about the seed.
+  const demoCampaign = await prisma.reviewCampaign.findUnique({ where: { code: 'UAR-2026-S2' } })
+  const itemCount = demoCampaign
+    ? await prisma.reviewItem.count({ where: { campaignId: demoCampaign.id } })
+    : 0
 
   console.log(
     `Benih siap: ${ORG_UNITS.length} unit, ${ROLES.length} peran, ` +

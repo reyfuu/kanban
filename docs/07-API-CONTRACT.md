@@ -1308,6 +1308,40 @@ POST  /api/v1/signoffs/{id}/reopen           # memerlukan X-Step-Up-Token, hanya
 POST  /api/v1/campaigns/{id}/evidence-package
 ```
 
+**Pratinjau** — `POST /api/v1/campaigns/{id}/preview`, FR-B-008 aturan 2.
+
+Menghitung dengan jalur resolusi yang sama dengan peluncuran, sehingga angka yang
+ditampilkan adalah angka yang akan terjadi. Tidak menulis apa pun.
+
+```json
+{
+  "data": {
+    "item_count": 4127,
+    "reviewer_count": 38,
+    "application_count": 3,
+    "reviewer_load": {
+      "lowest": 3, "median": 62, "highest": 418,
+      "heaviest_reviewer": { "full_name": "Sari Wulandari", "item_count": 418 }
+    },
+    "warnings": [
+      { "code": "HIGH_FALLBACK_RATIO", "count": 51, "message": "51 item (1,2%) jatuh ke reviewer cadangan karena data atasan tidak lengkap." },
+      { "code": "PRIVILEGED_TWO_LAYER", "count": 87, "message": "87 item merupakan hak akses istimewa dan akan ditinjau dua lapis." }
+    ],
+    "blockers": [
+      { "code": "SNAPSHOT_TOO_OLD", "applicationId": "0192f9bc-...", "message": "Snapshot \"Aplikasi Kustodian\" berumur 14 hari (batas 7 hari)." }
+    ],
+    "can_launch": false,
+    "applications": [
+      { "id": "0192f9bc-...", "code": "BACKOFFICE", "name": "Aplikasi Back Office Sekuritas", "snapshot_id": "...", "snapshot_age_days": 2, "line_count": 1247 }
+    ]
+  }
+}
+```
+
+`blockers` dan `warnings` sengaja dipisah: penghalang menonaktifkan peluncuran
+(L-09 aturan 1), peringatan tidak memblokir tetapi tercatat pada jejak audit
+peluncuran bila kampanye tetap diluncurkan (L-09 aturan 2).
+
 **Membuat kampanye**
 
 ```json

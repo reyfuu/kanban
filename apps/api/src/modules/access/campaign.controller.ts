@@ -1,7 +1,16 @@
 import { Body, Controller, ForbiddenException, Get, HttpCode, Param, Post, Query, Req } from '@nestjs/common'
 import { RevocationTicketStatus } from '@prisma/client'
 import { hasPermission, RequiresStepUp, type SigapRequest } from '../shared/index.js'
-import { CompleteTicketDto, ReopenSignoffDto, SignoffDto, TicketExceptionDto } from './access.dto.js'
+import {
+  CancelCampaignDto,
+  CompleteTicketDto,
+  CreateCampaignDto,
+  ExtendCampaignDto,
+  ReopenSignoffDto,
+  SignoffDto,
+  TicketExceptionDto,
+} from './access.dto.js'
+import { CampaignBuilderService } from './campaign-builder.service.js'
 import { CampaignService } from './campaign.service.js'
 import { RevocationService } from './revocation.service.js'
 
@@ -12,6 +21,7 @@ import { RevocationService } from './revocation.service.js'
 export class CampaignController {
   constructor(
     private readonly campaigns: CampaignService,
+    private readonly builder: CampaignBuilderService,
     private readonly revocations: RevocationService,
   ) {}
 
@@ -20,6 +30,131 @@ export class CampaignController {
   async list(@Req() req: SigapRequest, @Query('status') status?: string) {
     this.require(req, 'campaign:read')
     return { data: await this.campaigns.list(req.principal!, status) }
+  }
+
+  /**
+   * FR-B-001 · the application registry, and step 1 of the L-09 wizard.
+   *
+   * Carries the age of each application's latest snapshot, because that is what
+   * decides whether it can be included at all (FR-B-008 rule 3). The screen
+   * shows it next to the name so the author sees the blocker while choosing,
+   * not after clicking launch.
+   */
+  @Get('applications')
+  async applications(@Req() req: SigapRequest) {
+    this.require(req, 'application:read')
+    return { data: await this.builder.listApplications(req.principal!) }
+  }
+
+  /** FR-B-008 · a campaign starts as a draft; nothing is routed until launch. */
+  @Post('campaigns')
+  @HttpCode(201)
+  async create(@Req() req: SigapRequest, @Body() dto: CreateCampaignDto) {
+    this.require(req, 'campaign:write')
+
+    const result = await this.builder.create(req.principal!, {
+      name: dto.name,
+      campaignType: dto.campaign_type,
+      applicationIds: dto.application_ids,
+      reviewerRule: {
+        code: dto.reviewer_rule,
+        ...(dto.specific_reviewer_user_id
+          ? { specificReviewerUserId: dto.specific_reviewer_user_id }
+          : {}),
+      },
+      fallbackReviewerUserId: dto.fallback_reviewer_user_id,
+      startDate: new Date(dto.start_date),
+      dueDate: new Date(dto.due_date),
+    })
+
+    return { data: { id: result.id, code: result.code, status: 'DRAF' } }
+  }
+
+  /**
+   * FR-B-008 rule 2 · the preview behind screen L-09 step 4.
+   *
+   * Resolves through the same path launch does, so the numbers shown are the
+   * numbers that will happen. Writes nothing.
+   */
+  @Post('campaigns/:id/preview')
+  @HttpCode(200)
+  async preview(@Req() req: SigapRequest, @Param('id') id: string) {
+    this.require(req, 'campaign:write')
+
+    const p = await this.builder.preview(id)
+    return {
+      data: {
+        item_count: p.itemCount,
+        reviewer_count: p.reviewerCount,
+        application_count: p.applicationCount,
+        reviewer_load: {
+          lowest: p.load.lowest,
+          median: p.load.median,
+          highest: p.load.highest,
+          heaviest_reviewer: p.load.heaviest
+            ? { full_name: p.load.heaviest.fullName, item_count: p.load.heaviest.itemCount }
+            : null,
+        },
+        // Separate lists, because they mean different things to the author:
+        // a blocker is something they must fix, a warning something they must
+        // see (L-09 rules 1 and 2).
+        blockers: p.blockers,
+        warnings: p.warnings,
+        can_launch: p.blockers.length === 0 && p.itemCount > 0,
+        applications: p.perApplication.map((a) => ({
+          id: a.applicationId,
+          code: a.code,
+          name: a.name,
+          snapshot_id: a.snapshotId,
+          snapshot_age_days: a.snapshotAgeDays,
+          line_count: a.lineCount,
+        })),
+      },
+    }
+  }
+
+  @Post('campaigns/:id/launch')
+  @HttpCode(200)
+  async launch(@Req() req: SigapRequest, @Param('id') id: string) {
+    this.require(req, 'campaign:write')
+    const result = await this.builder.launch(req.principal!, id)
+    return { data: { id, status: 'BERJALAN', item_count: result.itemCount } }
+  }
+
+  @Post('campaigns/:id/extend')
+  @HttpCode(204)
+  async extend(@Req() req: SigapRequest, @Param('id') id: string, @Body() dto: ExtendCampaignDto) {
+    this.require(req, 'campaign:write')
+    await this.builder.extend(req.principal!, id, {
+      dueDate: new Date(dto.due_date),
+      reason: dto.reason,
+    })
+  }
+
+  /**
+   * FR-B-010 rule 2 · cancellation.
+   *
+   * Two kinds of caller reach this, and requiring one permission for both makes
+   * the endpoint unreachable. A draft is cancelled by whoever builds campaigns
+   * (`campaign:write`, held by SEC_OFFICER). A RUNNING campaign needs COMPLIANCE
+   * approval -- and COMPLIANCE deliberately does not hold `campaign:write`,
+   * because FRD Sec 1.4 makes them an overseer rather than an operator.
+   *
+   * Demanding both would mean nobody can cancel a running campaign, which is
+   * how a rule that reads correctly becomes a dead path. So either suffices to
+   * enter, and CampaignBuilderService.cancel enforces the part that matters:
+   * a running campaign still refuses anyone without COMPLIANCE.
+   */
+  @Post('campaigns/:id/cancel')
+  @HttpCode(204)
+  async cancel(@Req() req: SigapRequest, @Param('id') id: string, @Body() dto: CancelCampaignDto) {
+    const principal = req.principal
+    const mayCancel =
+      principal &&
+      (hasPermission(principal, 'campaign:write') || principal.roles.includes('COMPLIANCE'))
+    if (!mayCancel) throw new ForbiddenException('Anda tidak memiliki hak untuk membatalkan kampanye.')
+
+    await this.builder.cancel(principal, id, { reason: dto.reason })
   }
 
   @Get('campaigns/:id/progress')

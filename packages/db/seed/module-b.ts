@@ -22,16 +22,20 @@ interface Ctx {
   userIds: Map<string, string>
 }
 
-/** Reviewed staff — the people whose access is under review, not the reviewers. */
+/**
+ * Reviewed staff — the people whose access is under review, not the reviewers.
+ * The fourth column is their manager's employee number, which is what makes
+ * RA-01 (atasan langsung) resolve to a real person.
+ */
 const STAFF = [
-  ['EMP-00341', 'Rudi Hartono', 'Staf Settlement', 'OPS'],
-  ['EMP-00352', 'Nadia Putri', 'Analis Riset', 'RTL'],
-  ['EMP-00367', 'Andi Setiawan', 'Analis Riset Junior', 'RTL'],
-  ['EMP-00389', 'Budi Santoso', 'Staf Administrasi', 'OPS'],
-  ['EMP-00401', 'Citra Maharani', 'Dealer Ritel', 'RTL'],
-  ['EMP-00418', 'Eko Prasetyo', 'Staf Kustodian', 'OPS'],
-  ['EMP-00426', 'Gita Ananda', 'Staf Kepegawaian', 'TI'],
-  ['EMP-00437', 'Hadi Nurcahyo', 'Administrator Basis Data', 'TI'],
+  ['EMP-00341', 'Rudi Hartono', 'Staf Settlement', 'OPS', 'EMP-00174'],
+  ['EMP-00352', 'Nadia Putri', 'Analis Riset', 'RTL', 'EMP-00238'],
+  ['EMP-00367', 'Andi Setiawan', 'Analis Riset Junior', 'RTL', 'EMP-00238'],
+  ['EMP-00389', 'Budi Santoso', 'Staf Administrasi', 'OPS', 'EMP-00174'],
+  ['EMP-00401', 'Citra Maharani', 'Dealer Ritel', 'RTL', 'EMP-00238'],
+  ['EMP-00418', 'Eko Prasetyo', 'Staf Kustodian', 'OPS', 'EMP-00174'],
+  ['EMP-00426', 'Gita Ananda', 'Staf Kepegawaian', 'TI', 'EMP-00056'],
+  ['EMP-00437', 'Hadi Nurcahyo', 'Administrator Basis Data', 'TI', 'EMP-00056'],
 ] as const
 
 const APPLICATIONS = [
@@ -215,6 +219,13 @@ export async function seedModuleB(ctx: Ctx): Promise<void> {
       },
     })
     employeeIds.set(employeeNumber, id)
+  }
+
+  // Reporting lines in a second pass: every manager here is one of the people
+  // seeded by seed.ts, which has already run by the time this is called.
+  for (const [employeeNumber, , , , managerNumber] of STAFF) {
+    const managerId = employeeIds.get(managerNumber)
+    if (managerId) await prisma.employee.update({ where: { employeeNumber }, data: { managerId } })
   }
 
   const appIds = new Map<string, string>()

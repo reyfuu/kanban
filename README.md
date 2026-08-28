@@ -29,14 +29,17 @@ Yang dikerjakan sekarang adalah **fondasi lintas modul (FR-X) dari Fase 1**, lal
 | Modul B · Sign-off kampanye | FR-B-015 | Jalan — K-9, dengan sidik jari isi |
 | Modul B · Pemantauan kampanye | FR-B-016 | Jalan |
 | Modul B · Tiket pencabutan & verifikasi | FR-B-018 s.d. FR-B-021 | Jalan — K-1 |
-| Modul B · Penyusun kampanye | FR-B-008 s.d. FR-B-010 | **Belum** — kampanye demo dari benih |
+| Modul B · Penyusun kampanye | FR-B-008 s.d. FR-B-010 | Jalan — susun, pratinjau, luncurkan, perpanjang, batalkan |
+| Modul B · Penugasan reviewer | FR-B-009 | Jalan — RA-01, RA-02, RA-03, RA-05; RA-04 belum didukung |
+| Modul B · Registri aplikasi | FR-B-001 | Baca saja; pengelolaannya **belum** |
 | Modul B · Konektor & snapshot | FR-B-003 s.d. FR-B-006 | Skema saja; snapshot demo dari benih |
 | Modul B · Deteksi anomali & SoD | FR-B-007, FR-B-024 | Skema saja; temuan demo dari benih |
 | Modul B · Paket bukti kampanye | FR-B-022, FR-B-023 | **Belum** |
 | Modul A · Evidence Vault | FR-A-* | **Belum** — Fase 2 |
 
-Layar yang sudah ada: masuk, beranda, jejak audit, dan **L-10 Review Saya**
-(termasuk dialog sign-off L-11). Sembilan pengguna benih dengan peran berbeda
+Layar yang sudah ada: masuk, beranda, jejak audit, **L-09 Penyusun Kampanye**,
+**L-10 Review Saya** (termasuk dialog sign-off L-11), daftar kampanye, registri
+aplikasi, dan tiket pencabutan. Sembilan pengguna benih dengan peran berbeda
 tersedia untuk mencoba.
 
 ### Alur demo Modul B
@@ -60,6 +63,12 @@ Masuk sebagai `dewi.lestari` (pemilik Back Office & Trading) lalu buka **Review 
    untuk membuktikan K-1: tiket **tidak dapat** ditutup dengan menyatakan
    pekerjaan selesai. Hanya snapshot baru yang membuktikan akses telah hilang
    dapat menutupnya; bila akses masih ada, tiket menjadi Gagal Diverifikasi.
+
+Untuk menyusun kampanye sendiri, masuk sebagai `rina.kusuma` lalu
+**Kampanye → Susun kampanye**. Wisaya empat langkahnya berakhir pada pratinjau
+yang menghitung jumlah item, jumlah reviewer, dan sebaran bebannya sebelum
+apa pun diarahkan ke siapa pun — dan menonaktifkan tombol peluncuran selama
+masih ada snapshot yang lebih tua dari tujuh hari.
 
 ## Menjalankan
 
