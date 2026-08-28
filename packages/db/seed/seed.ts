@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client'
 import { PERMISSIONS, ROLES, ROLE_PERMISSIONS } from './catalogue.js'
 import { seedModuleB } from './module-b.js'
 import { seedModuleA } from './module-a.js'
+import { seedModuleC } from './module-c.js'
 
 /**
  * Development and demo dataset.
@@ -168,6 +169,7 @@ async function main(): Promise<void> {
 
   await seedModuleB({ prisma, orgIds, employeeIds, userIds })
   await seedModuleA({ prisma, orgIds, employeeIds, userIds })
+  await seedModuleC({ prisma, orgIds, employeeIds, userIds })
 
   // Scoped to the demo campaign. A global count would drift upwards every time
   // the integration tests ran, and report a number that is not about the seed.

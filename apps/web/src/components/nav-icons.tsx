@@ -17,6 +17,7 @@ export type IconName =
   | 'grid'
   | 'upload'
   | 'shield'
+  | 'book'
 
 function base(props: SVGProps<SVGSVGElement>) {
   return {
@@ -41,6 +42,13 @@ export function NavIcon({ name, ...props }: { name: IconName } & SVGProps<SVGSVG
           <path d="M3 10.5 12 3l9 7.5" />
           <path d="M5 9.5V21h14V9.5" />
           <path d="M9.5 21v-6h5v6" />
+        </svg>
+      )
+    case 'book':
+      return (
+        <svg {...base(props)}>
+          <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5z" />
+          <path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H19v3H6.5A2.5 2.5 0 0 1 4 20.5z" />
         </svg>
       )
     case 'clipboard-check':

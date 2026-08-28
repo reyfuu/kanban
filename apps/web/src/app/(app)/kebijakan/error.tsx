@@ -1,0 +1,9 @@
+'use client'
+
+import { ErrorPanel } from '@/components/feedback'
+
+/** Segment error boundary; `reset` retries the transient API failures.
+ *  See components/feedback.tsx. */
+export default function Error({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  return <ErrorPanel onRetry={reset} />
+}
