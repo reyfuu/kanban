@@ -9,6 +9,7 @@ import {
   IsIn,
   IsInt,
   IsNotEmpty,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
@@ -204,4 +205,61 @@ export class CommitUploadDto {
   @IsString()
   @MaxLength(2000)
   confirmation_note?: string
+}
+
+/**
+ * FR-B-007 aturan 2 · an exception on an anomaly.
+ *
+ * Every field is required: an exception without a compensating control or a
+ * review date is exactly the "quietly kept forever" the rule exists to prevent.
+ * The review date's future-and-bounded check is in the service, where "now" is
+ * available.
+ */
+export class AnomalyExceptionDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
+  reason!: string
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
+  compensating_control!: string
+
+  @IsDateString()
+  review_date!: string
+}
+
+/** FR-B-025 · an exception on an SoD violation. */
+export class SodExceptionDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
+  business_reason!: string
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
+  compensating_control!: string
+
+  @IsUUID()
+  approved_by!: string
+
+  @IsDateString()
+  review_date!: string
+}
+
+/**
+ * FR-B-024 aturan 4 · simulate a rule before activating it.
+ *
+ * Groups are free-form JSON objects carrying `entitlement_ids` and/or
+ * `entitlement_codes`; the shape is validated in the service via
+ * `resolveGroupEntitlementIds`, which drops unknown codes rather than failing.
+ */
+export class SodSimulateDto {
+  @IsObject()
+  group_a!: Record<string, unknown>
+
+  @IsObject()
+  group_b!: Record<string, unknown>
 }

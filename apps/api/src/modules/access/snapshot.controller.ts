@@ -17,6 +17,7 @@ import { FileInterceptor } from '@nestjs/platform-express'
 import type { Response } from 'express'
 import { hasPermission, type SigapRequest } from '../shared/index.js'
 import { CommitUploadDto } from './access.dto.js'
+import { DetectionService } from './detection.service.js'
 import { RevocationService } from './revocation.service.js'
 import { SnapshotService } from './snapshot.service.js'
 import {
@@ -40,6 +41,7 @@ export class SnapshotController {
     private readonly uploads: SnapshotUploadService,
     private readonly snapshots: SnapshotService,
     private readonly revocations: RevocationService,
+    private readonly detection: DetectionService,
   ) {}
 
   /** FR-B-004 aturan 1 · `GET /applications/{id}/upload-template`. */
@@ -140,6 +142,12 @@ export class SnapshotController {
 
     const verification = await this.revocations.verifyAgainstSnapshot(result.snapshotId)
 
+    // FR-B-007, FR-B-024: detection runs on the fresh snapshot, after the commit
+    // and after verification, for the same reason verification runs outside the
+    // capture transaction — a detection failure must not undo a snapshot that
+    // was stored correctly.
+    const detection = await this.detection.runForSnapshot(result.snapshotId)
+
     return {
       data: {
         snapshot_id: result.snapshotId,
@@ -148,6 +156,11 @@ export class SnapshotController {
           checked: verification.checked,
           closed: verification.closed,
           failed: verification.failed,
+        },
+        detection: {
+          anomalies_opened: detection.anomaliesOpened,
+          anomalies_carried_forward: detection.anomaliesCarriedForward,
+          sod_violations_opened: detection.sodViolationsOpened,
         },
       },
     }
