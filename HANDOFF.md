@@ -58,6 +58,62 @@ pintas yang sah bila yang diinginkan hanya benih yang segar.
 
 ---
 
+## 1a. Lanjutan sesi 28 Agustus 2026 — FR-C-005 dan FR-C-006 aturan 3
+
+**Celah kontrol yang ditemukan dan ditutup.** Slice Modul C pertama memberikan
+`POST /documents/:id/transisi` yang dapat memindahkan dokumen langsung ke
+`DISAHKAN` — tanpa satu tanda tangan pun, dan tanpa autentikasi ulang yang
+FR-X-003 sebut namanya secara eksplisit ("pengesahan dokumen"). Dokumen bisa
+"disahkan" oleh siapa pun yang memegang `document:approve`, dan catatannya tidak
+akan menunjukkan siapa yang menyetujui apa.
+
+Sekarang: satu-satunya jalan dari Draf ke Disahkan adalah alur persetujuan.
+`transition()` menolak segala perpindahan selain penarikan, di lapisan servis,
+bukan hanya di controller — jadi tidak ada pemanggil kedua yang bisa melewatinya.
+
+| Butir | Keadaan |
+|---|---|
+| FR-C-005 aturan 1 & 2 | Jalan · penelaah paralel, pengesah berurutan; langkah berjenjang ditolak bila jenjang sebelumnya belum selesai |
+| FR-C-005 aturan 3 | Jalan · komentar wajib, alasan penolakan wajib — ditegakkan CHECK constraint, bukan hanya servis |
+| FR-C-005 aturan 4 | Jalan · `@RequiresStepUp()` pada keputusan, penarikan, dan pemberlakuan |
+| FR-C-005 aturan 5 | Jalan · pengalihan ke penerima delegasi atau atasan, **tercatat** (bukan menimpa penerima tugas asli) |
+| FR-C-005 aturan 6 | Jalan · penyusun menghentikan alur sebelum pengesahan, ditolak sesudahnya |
+| FR-C-006 aturan 2 | Jalan · perubahan minor melewati langkah yang templatnya tandai; yang dilewati tetap tercatat sebagai DILEWATI |
+| FR-C-006 aturan 3 | Jalan · perbandingan isi antar versi + layar `/kebijakan/:id/bandingkan` |
+
+**Tiga cacat nyata ditemukan oleh loop verifikasi, bukan oleh review.**
+
+1. **Kebuntuan pengajuan ulang.** `UNIQUE (version, kind, order, assignee)`
+   membuat alur yang ditolak menahan slotnya selamanya, sehingga dokumen macet
+   di Draf — persis keadaan yang aturan 6 anggap bisa dipulihkan. Diperbaiki
+   dengan kolom `round`, bukan dengan menghapus baris lama: menghapusnya akan
+   menghapus alasan penolakannya, dan itu pertanyaan pertama seorang auditor
+   atas dokumen yang baru disahkan pada percobaan ketiga.
+2. **Urutan pesan galat menyesatkan.** Pengesah yang terhalang telaah yang belum
+   selesai justru diberi tahu "langkah sebelumnya belum selesai", sehingga ia
+   mengejar orang yang salah. Pemeriksaan telaah kini didahulukan.
+3. **`include` dan `select` bersaudara pada satu relasi Prisma.** Lolos
+   typecheck, gagal saat runtime. Tertangkap karena detailnya diuji lewat HTTP
+   sungguhan, bukan hanya dikompilasi.
+
+Selain itu: **tidak ada satu pun pengguna benih yang memegang `DOC_AUTHOR`**,
+sehingga Modul C sebenarnya tidak dapat didemokan lewat aplikasinya sendiri.
+`hendra.wijaya` dan `dewi.lestari` kini penyusun, `bayu.pratama` pengesah —
+penyusun dan pengesah sengaja dipisah, sama seperti `ticket:execute` versus
+`campaign:signoff` di Modul B.
+
+**183 tes lulus** (dari 162). Empat gerbang mutu hijau. Verifikasi HTTP ujung ke
+ujung: pintasan status ditolak, keputusan tanpa step-up ditolak 401, dengan
+step-up 204, dan jejak auditnya membentuk rantai `BUAT_DOKUMEN →
+AJUKAN_TELAAH_DOKUMEN → SETUJUI_TELAAH_DOKUMEN → SAHKAN_DOKUMEN →
+BERLAKUKAN_DOKUMEN`.
+
+**Sisa Modul C:** jawaban berbasis dokumen beserta gerbang klasifikasi keluar
+(FR-C-013 s.d. FR-C-018, seluruhnya lewat LLM Gateway — ADR-03) dan kampanye
+attestation (FR-C-019 s.d. FR-C-021).
+
+---
+
 ## 1b. Sesi 28 Agustus 2026 (sore) — Modul C dan perbaikan UI
 
 **Modul C · Policy Hub kini punya tulang punggung yang jalan ujung ke ujung.**
