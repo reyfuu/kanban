@@ -246,6 +246,29 @@ keliru: pintasan papan tik 1-4 di layar review **sudah** ada sejak awal di
 - **Beranda memakai `PageHeader`** seperti layar lain, dan animasi angkat saat
   hover dihapus — 06-DESIGN §1.1 meminta perkakas yang tenang.
 
+**Verifikasi antarmuka kini berjalan di peramban sungguhan** —
+`scripts/verify-ui.py`, 24 pemeriksaan pada Chrome headless lewat DevTools
+Protocol. Ini menggantikan cara sebelumnya, yaitu grep atas HTML yang dikirim
+server, yang ternyata bukan bukti melainkan inspeksi. Dua cacat nyata lolos dari
+cara lama dan tertangkap begitu halamannya benar-benar dijalankan:
+
+1. **Tiga tombol masih di bawah 44px** — "Daftarkan aplikasi" (36px) dan tiga
+   tautan aksi panel di Beranda (20px) — padahal butir P0 target sentuh sudah
+   dilaporkan selesai. Grep mencari `min-h-11`; ia tidak bisa mengukur apa pun.
+2. **Skip-link tidak pernah muncul saat difokus.** Kelasnya
+   `focus:not-sr-only`, yang di build ini **tidak menghasilkan CSS sama sekali**,
+   sehingga tautannya tetap 1×1 piksel meski difokus: hadir di pohon
+   aksesibilitas, tak terlihat oleh pengguna papan tik awas yang justru menjadi
+   alasan tautan itu ada. Nama kelasnya benar di markup, dan itulah sebabnya
+   setiap pemeriksaan tingkat markup meloloskannya. Sekarang ditulis sebagai
+   kelas bernama di `globals.css`, dan diukur: 192×45 piksel di posisi 16,16.
+
+Catatan bagi yang menjalankannya: headless Chrome menganggap halaman tidak
+ter-fokus, sehingga `:focus` tak pernah cocok dan setiap elemen yang muncul saat
+fokus terukur tersembunyi. `Emulation.setFocusEmulationEnabled` mengatasinya —
+tanpa itu harness melaporkan cacat yang tidak ada, dan regresi sungguhan pada
+elemen yang sama tidak akan bisa dibedakan dari artefak harness.
+
 **Satu butir P2 sengaja tidak dikerjakan.** Mengganti donat di Beranda dengan
 daftar tenggat terdekat mengubah data yang diambil halaman itu, jadi butuh ID
 requirement lebih dulu lewat skill `add-requirement` (aturan paling penting di
