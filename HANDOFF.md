@@ -1,6 +1,6 @@
 # HANDOFF — SIGAP
 
-Status per **27 Agustus 2026**. Dokumen ini untuk orang berikutnya yang melanjutkan, termasuk Anda sendiri beberapa minggu lagi.
+Status per **28 Agustus 2026**. Untuk orang berikutnya yang melanjutkan, termasuk Anda sendiri beberapa minggu lagi.
 
 ---
 
@@ -8,140 +8,154 @@ Status per **27 Agustus 2026**. Dokumen ini untuk orang berikutnya yang melanjut
 
 **Proyek:** SIGAP — Sistem Integrasi Governance, Akses, dan Prosedur, untuk PT Trimegah Sekuritas Indonesia Tbk.
 
-Tiga modul dengan satu penyimpanan bukti bersama: manajemen bukti audit (A), review hak akses lintas aplikasi (B), pencarian SOP dan kebijakan (C).
+**Tahap:** dokumentasi lengkap, **fondasi lintas modul sudah berjalan**, Modul B sedang dibangun untuk keperluan demo ke klien.
 
-**Tahap:** dokumentasi selesai, **implementasi belum dimulai**. Tidak ada kode aplikasi, tidak ada `package.json`, tidak ada skema Prisma. Fase 1 belum jalan.
-
-**Repo:** `/home/reyfuu/ai-assitant`, git di cabang `main`, dua commit, working tree bersih.
+Ini berubah besar sejak handoff sebelumnya, yang menyatakan "implementasi belum dimulai".
 
 ```
-docs/          11 dokumen · 10.156 baris · sumber kebenaran
-.claude/       9 subagent + 6 skill · harness pengembangan
-brand/         kosong, menunggu brand guideline
-CLAUDE.md      aturan kerja yang mengikat
+docs/          11 dokumen · sumber kebenaran · verify-docs LULUS
+apps/api/      NestJS 11 — audit, autentikasi, otorisasi, jejak audit
+apps/web/      Next.js 15 — masuk, beranda, jejak audit
+packages/db/   Prisma 6 — 2 migrasi, 42 tabel
+.claude/       9 subagent + 6 skill
 ```
 
----
+**Repo:** `/home/reyfuu/ai-assitant`, cabang `main`, tanpa remote.
 
-## 2. Yang menghambat
-
-### 2.1 Kunci API Gemini perlu dicabut — belum dikonfirmasi selesai
-
-Sebuah kunci API Gemini pernah dikirim dalam bentuk teks biasa melalui percakapan. Kunci itu **tidak pernah ditulis ke berkas mana pun** dan repo sudah dipindai bersih sebelum commit.
-
-Tetap harus dicabut dan diterbitkan ulang. Kredensial yang pernah terekspos dianggap bocor terlepas dari siapa yang melihatnya — dan untuk perusahaan efek, itu bukan formalitas.
-
-- [ ] Cabut kunci lama di Google AI Studio / Google Cloud Console
-- [ ] Terbitkan kunci baru, simpan di penyimpanan rahasia — bukan `.env` yang di-commit, bukan chat, bukan tiket
-- [ ] Catat sebagai pemenuhan syarat **G3** pada [ADR-03](docs/04-TRD.md)
-
-### 2.2 Brand guideline Trimegah belum diterima
-
-Dikirim dua kali, lampirannya tidak sampai. Folder `brand/` sudah disiapkan beserta daftar kebutuhannya.
-
-Akibatnya token `--tri-*` pada [06-DESIGN §2.0](docs/06-DESIGN.md) sengaja **dikosongkan**. Aturan penerapannya sudah lengkap dan tidak perlu menunggu; hanya nilainya yang kosong.
-
-**Jangan menebak nilai warna dari tangkapan layar situs.** Kesalahan warna merek pada dokumen resmi lebih mahal daripada penundaan.
-
-Yang dibutuhkan minimal: heksadesimal primer/sekunder/aksen, nama tipografi beserta bobot, logo SVG terang dan gelap, aturan zona aman.
-
----
-
-## 3. Keputusan terbuka
-
-Daftar lengkap 19 butir ada di [00-README](docs/00-README.md) bagian akhir. Empat yang paling menentukan:
-
-| # | Pertanyaan | Pemilik | Kalau salah |
-|---|---|---|---|
-| **Q-08** | Apakah anak usaha — antara lain Trimegah Asset Management — ikut memakai SIGAP? | Direksi & TI | **Mengubah arsitektur secara mendasar.** Rancangan sekarang mengasumsikan satu badan hukum. Multi-entitas menuntut pemisahan data antar-entitas dan konsolidasi laporan tingkat grup. Harus dijawab **sebelum Fase 1**, bukan nanti |
-| **QA-01** | Anggaran satu peladen GPU 48 GB | Divisi TI | **Belum masuk sizing di [TRD §6.3](docs/04-TRD.md).** Tanpa GPU, AG-2, AG-3, dan AG-5 gugur; tersisa AG-1, AG-4, AG-6 |
-| **G1–G7** | Tujuh syarat kepatuhan Gemini | Kepatuhan & TI | AG-1 tidak boleh diaktifkan sebelum ketujuhnya terpenuhi dan dibuktikan |
-| **Q-03** | Masa retensi bukti — 5 atau 10 tahun menurut ketentuan sektor efek | Kepatuhan | Memengaruhi kebijakan penguncian objek dan kapasitas penyimpanan |
-
-Selain itu, angka biaya kondisi saat ini di [BRD §3](docs/01-BRD.md) masih **estimasi berbasis asumsi tertulis**, bukan hasil pengukuran. Perlu *time study* singkat pada satu siklus audit dan satu siklus UAR sebelum dibawa ke Steering Committee.
-
----
-
-## 4. Cara melanjutkan
-
-### Verifikasi keadaan sehat
+### Yang bisa dijalankan hari ini
 
 ```bash
-python3 .claude/skills/verify-docs/scripts/verify.py docs
+pnpm install && cp .env.example .env
+pnpm infra:up && pnpm db:setup && pnpm db:generate && pnpm db:seed
+pnpm dev:api    # 3001
+pnpm dev:web    # 3000
 ```
 
-Harus `HASIL: LULUS`, exit 0. Jalankan setiap kali dokumen berubah, sebelum commit.
+Masuk sebagai `bayu.pratama` / `demo`. Rincian pengguna benih ada di [README](README.md).
 
-Untuk validasi diagram, sekali saja: `npm i -D mermaid jsdom`, lalu
+---
+
+## 2. PEKERJAAN YANG BELUM SELESAI — baca ini lebih dulu
+
+**Ada perubahan belum ter-commit di `packages/db/prisma/migrations/20260828100000_module_b/migration.sql`.**
+
+Migrasi Modul B sedang ditulis saat sesi berakhir. Sudah diterapkan ke basis data pengembangan — 28 tabel baru ada di sana, termasuk `snapshot_line` yang dipartisi bulanan sesuai ADR-07 — tetapi **belum diverifikasi dan belum di-commit**.
+
+Sebelum melanjutkan apa pun:
 
 ```bash
-node .claude/skills/verify-docs/scripts/check-mermaid.mjs docs
+git status                       # lihat apa yang berubah
+pnpm db:validate
+npx prisma migrate diff --from-migrations packages/db/prisma/migrations \
+  --to-schema-datamodel packages/db/prisma/schema.prisma \
+  --shadow-database-url "postgresql://sigap:sigap_dev_only@localhost:5442/sigap_shadow?schema=public" --script
 ```
 
-### Alur kerja yang sudah disiapkan
+Drift **wajib nol** (`-- This is an empty migration.`). Kalau tidak nol, `schema.prisma` belum mendeskripsikan apa yang migrasi bangun — dan `prisma migrate dev` berikutnya akan menulis ulang tabel orang lain. Lihat §5.
 
-| Situasi | Yang dipakai |
+Yang belum diperiksa siapa pun: apakah `CHECK` untuk **K-1** (tiket tidak dapat ditutup tanpa `verified_by_snapshot_id`) dan **K-3** (alasan minimal 10 karakter) benar-benar menolak data yang salah. Uji dengan memasukkan baris yang seharusnya ditolak. Jangan percaya bahwa constraint ada hanya karena tertulis di SQL.
+
+---
+
+## 3. Sepuluh commit terakhir dan artinya
+
+| Commit | Isi |
 |---|---|
-| Mau mulai pekerjaan apa pun | Subagent `spec-guardian` — pastikan ada ID requirement-nya |
-| Permintaan belum tercakup FR mana pun | Skill `add-requirement` |
-| Menulis backend / frontend / migrasi | Subagent `backend-impl` / `frontend-impl` / `db-migrator` |
-| Membangun agent AI produk | Subagent `agent-builder`, lalu skill `guardrail-audit` |
-| Setelah menyentuh kontrol kritis | Skill `critical-controls`, lalu subagent `security-reviewer` |
-| Sebelum mengaktifkan agent | Skill `run-eval` |
-| Dokumen berubah | Subagent `doc-sync`, lalu skill `verify-docs` |
+| `27bc8ac` | Akar workspace Next dipatok; README diperbaiki karena isinya sudah tidak benar |
+| `12433fd` | Layar jejak audit + titik akhir verifikasi rantai |
+| `4819212` | Kerangka web: masuk, sesi httpOnly, navigasi menurut hak akses |
+| `31c8c01` | Autentikasi, otorisasi, data benih |
+| `0175e6d` | Lapisan audit; celah K-7 di sisi aplikasi ditutup |
+| `7044466` | Membuat tumpukan benar-benar bisa dijalankan |
+| `1a6a2fb` | Fondasi Fase 1: scaffold monorepo + skema jejak audit |
 
-### Bila implementasi dimulai
+Badan tiap commit memuat alasannya. Baca `git show <sha>` sebelum mengubah apa pun yang disentuhnya — beberapa keputusan tampak aneh sampai Anda tahu serangan apa yang ditutupnya.
 
-Urutan yang masuk akal, sesuai roadmap [BRD §11](docs/01-BRD.md):
+---
 
-1. **Jawab Q-08 dulu.** Menunda ini berarti berisiko membongkar model data setelah kode ditulis.
-2. Fondasi Fase 1: autentikasi AD, peran, jejak audit, penyimpanan objek. Ketiga yang pertama tidak dapat ditambahkan belakangan tanpa membongkar sistem.
-3. Modul C, lalu AG-1 setelah G1–G7 terpenuhi.
+## 4. Yang menghambat
+
+### 4.1 Kunci API Gemini masih belum dicabut
+
+Terbawa dari handoff sebelumnya dan **belum dikonfirmasi selesai**. Kunci pernah dikirim sebagai teks biasa lewat percakapan. Tidak pernah ditulis ke berkas mana pun, repo dipindai bersih pada setiap commit.
+
+- [ ] Cabut kunci lama di Google AI Studio / Cloud Console
+- [ ] Terbitkan kunci baru ke penyimpanan rahasia — bukan `.env`, bukan chat, bukan tiket
+- [ ] Catat sebagai pemenuhan **G3** pada [ADR-03](docs/04-TRD.md)
+
+Tidak memblokir pekerjaan apa pun, tapi juga tidak menunggu apa pun.
+
+### 4.2 Brand guideline belum diterima
+
+Token `--tri-*` di [tokens.css](apps/web/src/styles/tokens.css) sengaja dikosongkan, dan sengaja **belum** dimasukkan ke `@theme` — entri `@theme` tanpa nilai membangkitkan kelas utilitas rusak yang merender warna kosong tanpa memberi tanda.
+
+Layar masuk dan bilah atas memakai netral. **Jangan menebak warna merek dari tangkapan layar situs.**
+
+### 4.3 Basis data sistem kemungkinan tercemar
+
+Pada sesi sebelumnya, migrasi kemungkinan mendarat di PostgreSQL sistem di porta 5432, bukan di kontainer. Porta pengembangan sudah dipindah ke 5442/6389/9010 supaya tidak terulang. Pembersihan basis data `sigap` dan peran `sigap_app` di instalasi sistem belum dilakukan.
 
 ---
 
 ## 5. Hal yang mudah disalahpahami
 
-Ini yang tidak terlihat dari membaca dokumen saja.
+Ini yang tidak terlihat dari membaca kode saja.
 
-**Dokumen adalah sumber kebenaran, bukan catatan pendukung.** Kode mengikuti dokumen. Kalau berbeda, salah satunya diperbaiki secara sadar — bukan dibiarkan.
+**Migrasi tidak pernah dijalankan sebagai `sigap_app`.** Di PostgreSQL, pemilik objek memegang seluruh *grant option* secara permanen. Kalau `sigap_app` memiliki `audit_log`, ia bisa memberi `DELETE` kembali ke dirinya sendiri, membuang pemicu, lalu mengosongkan tabel — tiga pernyataan, tanpa hak tambahan. Itu bukan teori; review keamanan membuktikannya. Karena itu `audit_log` dimiliki peran `sigap_owner` yang `NOLOGIN`, dan `schema.prisma` punya `directUrl` terpisah. **Jangan pernah memberi `sigap_app` keanggotaan di `sigap_owner`** — satu `GRANT` itu membatalkan seluruh lapisan, dan membatalkannya secara senyap: semua tes tetap lulus.
 
-**Sepuluh kontrol kritis (K-1..K-10) bukan daftar keinginan.** Kesepuluhnya adalah alasan sistem ini dibangun. Yang paling mudah dilanggar tanpa sadar:
+**Rumus hash memakai pemisah U+001E, dan itu bagian dari kontrol.** Tanpa pemisah, pemberian `SYS_ADMIN` dan pencabutannya menghasilkan sidik jari identik — penukaran `before`/`after` jadi tak terdeteksi. Rumus ini **tidak dapat diubah** setelah ada satu baris produksi.
 
-- **K-1** — tiket pencabutan tidak punya jalur penutupan manual. Ketiadaan tombol itu disengaja. Jangan menambahkannya "untuk memudahkan pengujian"; pakai penyuntikan snapshot.
-- **K-2** — komponen keputusan tidak menerima properti nilai bawaan. Ketiadaan properti itu adalah kontrolnya.
-- **K-5** — pencarian menyaring hak akses **sebelum** memeringkat. Kalau dibalik, jumlah hasil membocorkan keberadaan dokumen rahasia walau isinya tidak pernah tampil.
-- **K-10** — agent tidak punya tool tulis. Bukan dilarang lewat prompt; tool-nya memang tidak ada, dan `assertNoWriteTools` membuat aplikasi gagal menyala kalau ada yang menambahkan.
+**`TRUNCATE` bukan `DELETE`.** Ia melewati pemicu tingkat baris. Pemicunya `FOR EACH STATEMENT`, dan `TRUNCATE` disebut eksplisit di `REVOKE`.
 
-**Guardrail yang hanya ada di prompt bukan guardrail.** Setiap kontrol pada [09-GUARDRAILS](docs/09-GUARDRAILS.md) wajib punya penegakan di kode. Kalau Anda tidak bisa menunjuk barisnya, kontrol itu belum ada.
+**`UnitOfWork.write()` menolak transaksi yang tidak menulis jejak audit.** Lupa mencatat tidak menghasilkan tulisan tanpa jejak — ia menghasilkan tulisan yang gagal. Jangan "memperbaiki" ini dengan membuat pengecualian.
 
-**Rute model ditentukan klasifikasi data, bukan konfigurasi.** Kalau model lokal mati, agent tidak jalan. Tidak ada jalur penurunan ke Gemini — dan jangan pernah menyediakannya, termasuk sebagai flag pengujian.
+**Penyamaran rahasia berjalan saat masuk, bukan saat tampil.** `audit_log` menolak `UPDATE` dan `DELETE`, jadi rahasia yang masuk ke sana masuk selamanya. Penyamaran yang ditambahkan belakangan tidak bisa menyusul ke belakang.
 
-**Delapan dimensi eval bertanda mutlak tidak bisa dilonggarkan.** Kebocoran klasifikasi, kebocoran data pribadi, penyisipan instruksi yang berhasil, kriteria temuan tanpa sitasi, dan empat lainnya. Satu penyimpangan menahan agent dari produksi. Jangan pernah melonggarkan "sementara".
+**Penyedia identitas demo menolak menyala di luar pengembangan.** `NODE_ENV` selain `development`/`test` membuat API gagal start. Skrip `dev:api` menyetelnya eksplisit, bukan membacanya dari `.env` — pemeriksaan keselamatan yang hasilnya bergantung pada urutan pemuatan modul bukan pemeriksaan keselamatan.
 
-**Pemeriksa istilah di `verify.py` punya tiga penyaring positif palsu** yang harus dipahami sebelum menambah pasangan istilah baru: batas kata (agar "peninjauan" tidak tertangkap "peninjau"), lewati baris glosarium, dan lewati tabel yang kepala kolomnya memuat "salah" atau "tidak dipakai". Ketiganya ada alasannya, dijelaskan di [SKILL.md](.claude/skills/verify-docs/SKILL.md).
+**Navigasi yang disaring hak akses bukan kontrol.** FR-X-005 aturan 3 menyatakannya tegas. API menolak permintaan terlepas dari apa yang ditampilkan bilah sisi.
 
-**Angka endpoint yang benar 187.** Versi pertama skrip menghitung 189 karena variasi spasi penjajaran kolom. Sudah diperbaiki; sebutkan ini kalau ada yang menemukan angka berbeda di catatan lama.
+**`prisma migrate dev` menggantung tanpa TTY** dan menahan advisory lock Prisma. Pakai `pnpm db:deploy` di skrip dan CI.
+
+**Aturan lint `consistent-type-imports` dimatikan untuk `apps/api`.** `import type` menghapus metadata `design:paramtypes` yang dipakai NestJS untuk injeksi dependensi, dan kegagalannya muncul saat berjalan, bukan saat kompilasi.
 
 ---
 
-## 6. Riwayat singkat
+## 6. Berikutnya, berurutan
 
-| Commit | Isi |
+1. **Selesaikan dan verifikasi migrasi Modul B** (§2). Sampai drift nol dan constraint K-1/K-3 terbukti menolak, jangan bangun apa pun di atasnya.
+2. **FR-X-003 autentikasi ulang.** Sign-off kampanye (K-9) mensyaratkannya, dan itu bagian dari alur demo. Perlu penyimpanan token berumur pendek — Redis sudah berjalan.
+3. **Penyaringan cakupan di lapisan repositori.** Sudah diresolusi di `AuthzService` tapi **belum dipakai menyaring baris mana pun**. Modul B adalah pemakai pertamanya, dan aturan kode #1 menuntutnya ada di repositori, bukan controller.
+4. **Backend Modul B:** penyusun kampanye, keputusan reviewer (K-2, K-3, K-4), sign-off (K-9), tiket pencabutan (K-1).
+5. **Layar L-10 Review Saya** — layar paling kritis dalam sistem menurut [05-UIUX-FLOW](docs/05-UIUX-FLOW.md). Di sinilah K-2 terlihat sebagai *tidak ada satu pun tombol terpilih saat item ditampilkan*.
+6. **Data demo Modul B:** aplikasi Trimegah, katalog hak akses, snapshot, satu kampanye berjalan.
+
+Setelah menyentuh kontrol kritis mana pun: jalankan skill `critical-controls`, lalu subagent `security-reviewer`. Review adversarial pada sesi ini menemukan satu temuan KRITIS dan tiga TINGGI yang semuanya lolos dari daftar periksa.
+
+---
+
+## 7. Utang yang sudah diketahui
+
+Dicatat di badan commit, dikumpulkan di sini supaya tidak hilang.
+
+| Hal | Akibat bila dibiarkan |
 |---|---|
-| `acdb6e3` | Sebelas dokumen produk dan teknis, plus harness pengembangan: 9 subagent, 6 skill, `CLAUDE.md` |
-| `3834e65` | Kontekstualisasi Trimegah: ADR-03 menetapkan Gemini dengan syarat G1–G7, DESIGN §2.0 lapisan merek, ASM-01 ditandai perlu konfirmasi, domain contoh diganti |
-
-Referensi produk sejenis yang ditelaah saat perancangan ada di [BRD Lampiran A](docs/01-BRD.md) dan [00-README](docs/00-README.md).
+| Pemotongan **ekor** rantai audit tidak terdeteksi | ADR-04 menuntut sidik jari kepala rantai disalin ke penyimpanan log di luar basis data. Belum ada. Pihak yang bisa menulis dapat memotong aktivitas terbarunya sendiri |
+| Tidak ada penegakan rantai saat `INSERT` | `hash` dan `prev_hash` hanya kolom teks. Baris palsu dapat disisipkan oleh siapa pun yang punya `INSERT` |
+| `employee.email` tanpa `UNIQUE` | Mengikuti ERD persis; data HR rawan duplikat |
+| `employee_history` belum dimodelkan | FR-X-017 aturan 3 menuntut sistem bisa menjawab "siapa atasan orang ini pada tanggal itu" |
+| Titik akhir sesi belum ada di kontrak API | FR-X-002 menjanjikan pengakhiran sesi jarak jauh; [07-API-CONTRACT](docs/07-API-CONTRACT.md) belum memuatnya |
+| Satu token buram, bukan JWT + refresh | Menyimpang dari [07-API-CONTRACT §2.1](docs/07-API-CONTRACT.md). Alasannya di badan `31c8c01`. Perlu `doc-sync` |
+| Kolom tambahan `audit_log` belum masuk TRD | `actor_role_at_action`, `session_id`, `request_id` dituntut FR-X-008 tapi tidak ada di ERD TRD §3.1. Perlu `doc-sync` |
+| Aturan ADR-03 di ESLint mudah dilewati | Tidak menangkap `import()` dinamis, `require()`, maupun `fetch` langsung. Penegakan sebenarnya tetap di jaringan (TRD §5.1) |
+| Kata sandi bawaan `docker-compose` memakai `:-` | `.env` yang hilang menghasilkan tumpukan yang berjalan mulus dengan kredensial tertulis di git |
 
 ---
 
-## 7. Berikutnya
+## 8. Verifikasi keadaan sehat
 
-Tiga hal, berurutan:
+```bash
+pnpm lint && pnpm typecheck && pnpm test && pnpm verify:docs
+```
 
-1. **Cabut kunci API.** Tidak menunggu apa pun.
-2. **Jawab Q-08.** Memblokir keputusan arsitektur.
-3. **Kirim brand guideline** ke `brand/`, lalu isi token `--tri-*` dan periksa kontras setiap pasangan terhadap ambang 4,5:1.
-
-Setelah ketiganya, dokumen siap dibawa ke Steering Committee — dengan catatan bahwa angka biaya di BRD masih perlu divalidasi lewat *time study*.
+Keempatnya harus lulus. `verify:docs` menggagalkan build bila keterlacakan ID lintas dokumen putus — dokumen adalah sumber kebenaran, dan itu ditegakkan, bukan diimbau.
