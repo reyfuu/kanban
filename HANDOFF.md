@@ -35,25 +35,35 @@ Masuk sebagai `bayu.pratama` / `demo`. Rincian pengguna benih ada di [README](RE
 
 ---
 
-## 2. PEKERJAAN YANG BELUM SELESAI — baca ini lebih dulu
+## 2. Modul B: skema sudah ada, kode belum
 
-**Ada perubahan belum ter-commit di `packages/db/prisma/migrations/20260828100000_module_b/migration.sql`.**
+Migrasi kedua (`20260828100000_module_b`) sudah di-commit dan diterapkan. Lima belas tabel, drift nol, dan kontrol kritisnya **diuji dengan memasukkan data yang seharusnya ditolak** — bukan dibaca dari SQL:
 
-Migrasi Modul B sedang ditulis saat sesi berakhir. Sudah diterapkan ke basis data pengembangan — 28 tabel baru ada di sana, termasuk `snapshot_line` yang dipartisi bulanan sesuai ADR-07 — tetapi **belum diverifikasi dan belum di-commit**.
+| Kontrol | Bukti |
+|---|---|
+| K-1 | Tiket ke `TERVERIFIKASI_TERTUTUP` tanpa `verified_by_snapshot_id` ditolak `chk_revocation_ticket_verified_requires_snapshot` |
+| K-2 | `review_decision.decision` tanpa `DEFAULT`, `NOT NULL` — keputusan yang tidak diisi gagal, bukan diam-diam jadi "pertahankan" |
+| K-3 | Alasan 5 karakter ditolak; `aaaaaaaaaaaaaaa` ditolak; `CABUT` tanpa alasan ditolak |
+| K-9 | `campaign_signoff.content_fingerprint` dengan `CHECK` format SHA-256 |
 
-Sebelum melanjutkan apa pun:
+**Belum ada satu baris kode aplikasi untuk Modul B.** Tidak ada repositori, servis, controller, maupun layar. Yang ada baru tempat menyimpan datanya.
 
-```bash
-git status                       # lihat apa yang berubah
-pnpm db:validate
-npx prisma migrate diff --from-migrations packages/db/prisma/migrations \
-  --to-schema-datamodel packages/db/prisma/schema.prisma \
-  --shadow-database-url "postgresql://sigap:sigap_dev_only@localhost:5442/sigap_shadow?schema=public" --script
-```
+### Yang perlu diputuskan sebelum melanjutkan
 
-Drift **wajib nol** (`-- This is an empty migration.`). Kalau tidak nol, `schema.prisma` belum mendeskripsikan apa yang migrasi bangun — dan `prisma migrate dev` berikutnya akan menulis ulang tabel orang lain. Lihat §5.
+**Penyimpangan ADR-07 melemahkan integritas referensial.** `snapshot_line` dipartisi atas `captured_at` (didenormalisasi dari `access_snapshot`), bukan `snapshot_id` seperti tertulis di [ADR-07](docs/04-TRD.md) baris 367 — partisi rentang bulanan atas UUID memang tidak bermakna, dan TRD §3.5 sendiri menyebut partisi rentang waktu. Konsekuensinya nyata:
 
-Yang belum diperiksa siapa pun: apakah `CHECK` untuk **K-1** (tiket tidak dapat ditutup tanpa `verified_by_snapshot_id`) dan **K-3** (alasan minimal 10 karakter) benar-benar menolak data yang salah. Uji dengan memasukkan baris yang seharusnya ditolak. Jangan percaya bahwa constraint ada hanya karena tertulis di SQL.
+- Kunci utama menjadi komposit `(id, captured_at)`.
+- `review_item.snapshot_line_id` dan `access_anomaly.snapshot_line_id` **tidak punya kunci asing** — PostgreSQL tidak dapat mereferensi tabel terpartisi seperti itu.
+
+Artinya integritas referensial untuk dua rujukan itu pindah ke lapisan repositori: dari aturan yang ditegakkan basis data menjadi aturan yang harus dijaga kode. Itu keputusan yang perlu disadari, bukan diwarisi. Perbaiki ADR-07 lewat `doc-sync`, atau ubah rancangannya.
+
+Empat hal lain menunggu jawaban: apakah `application` perlu kolom uraian/jenis data/metode pengambilan sesuai teks FR-B-001 (ERD tidak memuatnya); tabel `connector_run` untuk riwayat eksekusi konektor (FR-B-003 aturan 3) belum dibuat; pekerjaan terjadwal pemanggil `ensure_snapshot_line_partitions_ahead()` belum dikabelkan; dan di produksi peran migrasi **tidak boleh** superuser agar cakupan `SECURITY DEFINER` tetap sempit.
+
+### Temuan ponytail yang belum diterapkan
+
+Model `Connector` (+3 enum, ~45 baris) dan `AccessAnomaly` (+1 enum, ~42 baris) tidak punya kode pemakai dan berada di luar alur demo. Keduanya **tidak** dipotong karena [TRD §3.3](docs/04-TRD.md) menyebut `CONNECTOR` dan `ACCESS_ANOMALY` secara eksplisit di ERD — membuangnya menciptakan penyimpangan dokumen-kode yang justru dilarang CLAUDE.md. Kalau memang ingin dipotong, dokumennya diubah lebih dulu.
+
+Fungsi `ensure_snapshot_line_partitions_ahead` juga masih nol pemanggil sementara 13 partisi sudah dibuat statis.
 
 ---
 
@@ -123,7 +133,7 @@ Ini yang tidak terlihat dari membaca kode saja.
 
 ## 6. Berikutnya, berurutan
 
-1. **Selesaikan dan verifikasi migrasi Modul B** (§2). Sampai drift nol dan constraint K-1/K-3 terbukti menolak, jangan bangun apa pun di atasnya.
+1. **Putuskan penyimpangan ADR-07** (§2). Ia memindahkan integritas referensial dari basis data ke kode; keputusan itu harus sadar sebelum ada kode yang bergantung padanya.
 2. **FR-X-003 autentikasi ulang.** Sign-off kampanye (K-9) mensyaratkannya, dan itu bagian dari alur demo. Perlu penyimpanan token berumur pendek — Redis sudah berjalan.
 3. **Penyaringan cakupan di lapisan repositori.** Sudah diresolusi di `AuthzService` tapi **belum dipakai menyaring baris mana pun**. Modul B adalah pemakai pertamanya, dan aturan kode #1 menuntutnya ada di repositori, bukan controller.
 4. **Backend Modul B:** penyusun kampanye, keputusan reviewer (K-2, K-3, K-4), sign-off (K-9), tiket pencabutan (K-1).
