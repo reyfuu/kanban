@@ -75,54 +75,61 @@ enum NotificationFrequency {
 
 model OrganizationUnit {
   id        String   @id @db.Uuid
-  code      String   @unique
-  name      String
+  code      String   @unique(map: "uq_organization_unit_code") @db.VarChar(50)
+  name      String   @db.VarChar(200)
   parentId  String?  @map("parent_id") @db.Uuid
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  parent    OrganizationUnit?  @relation("OrgUnitHierarchy", fields: [parentId], references: [id])
+  // onDelete/onUpdate spelled out (see AuditLog above for why): migration.sql
+  // writes every foreign key with no action clause, i.e. NO ACTION, but
+  // Prisma's default for an optional relation is SetNull.
+  parent    OrganizationUnit?  @relation("OrgUnitHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   children  OrganizationUnit[] @relation("OrgUnitHierarchy")
   employees Employee[]
 
+  @@index([parentId], map: "idx_organization_unit_parent_id")
   @@map("organization_unit")
 }
 
 model Employee {
   id               String    @id @db.Uuid
-  employeeNumber   String    @unique @map("employee_number")
-  fullName         String    @map("full_name")
-  email            String
-  jobTitle         String    @map("job_title")
+  employeeNumber   String    @unique(map: "uq_employee_employee_number") @map("employee_number") @db.VarChar(50)
+  fullName         String    @map("full_name") @db.VarChar(200)
+  email            String    @db.VarChar(320)
+  jobTitle         String    @map("job_title") @db.VarChar(200)
   orgUnitId        String    @map("org_unit_id") @db.Uuid
   managerId        String?   @map("manager_id") @db.Uuid
-  employmentStatus String    @map("employment_status")
+  employmentStatus String    @map("employment_status") @db.VarChar(30)
   joinedAt         DateTime  @map("joined_at") @db.Date
   terminatedAt     DateTime? @map("terminated_at") @db.Date
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  orgUnit OrganizationUnit @relation(fields: [orgUnitId], references: [id])
-  manager Employee?        @relation("EmployeeManager", fields: [managerId], references: [id])
+  orgUnit OrganizationUnit @relation(fields: [orgUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  manager Employee?        @relation("EmployeeManager", fields: [managerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   reports Employee[]       @relation("EmployeeManager")
   appUser AppUser?
 
+  @@index([orgUnitId], map: "idx_employee_org_unit_id")
+  @@index([managerId], map: "idx_employee_manager_id")
+  @@index([email], map: "idx_employee_email")
   @@map("employee")
 }
 
 model AppUser {
   id          String      @id @db.Uuid
-  employeeId  String?     @unique @map("employee_id") @db.Uuid
-  externalId  String      @unique @map("external_id")
+  employeeId  String?     @unique(map: "uq_app_user_employee_id") @map("employee_id") @db.Uuid
+  externalId  String      @unique(map: "uq_app_user_external_id") @map("external_id") @db.VarChar(200)
   userType    AppUserType @map("user_type")
   isActive    Boolean     @default(true) @map("is_active")
   expiresAt   DateTime?   @map("expires_at") @db.Timestamptz(6)
   lastLoginAt DateTime?   @map("last_login_at") @db.Timestamptz(6)
   createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedAt   DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  employee               Employee?               @relation(fields: [employeeId], references: [id])
+  employee               Employee?               @relation(fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   userRoles              UserRole[]
   delegationsGiven       Delegation[]            @relation("DelegationFrom")
   delegationsReceived    Delegation[]            @relation("DelegationTo")
@@ -133,16 +140,17 @@ model AppUser {
   notificationPreference NotificationPreference?
   auditLogEntries        AuditLog[]              @relation("AuditActor")
 
+  @@index([isActive], map: "idx_app_user_is_active")
   @@map("app_user")
 }
 
 model Role {
   id        String   @id @db.Uuid
-  code      String   @unique
-  name      String
+  code      String   @unique(map: "uq_role_code") @db.VarChar(50)
+  name      String   @db.VarChar(200)
   scopeType Json     @default("[]") @map("scope_type")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   userRoles       UserRole[]
   rolePermissions RolePermission[]
@@ -158,13 +166,14 @@ model UserRole {
   validFrom  DateTime  @map("valid_from") @db.Date
   validUntil DateTime? @map("valid_until") @db.Date
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  user AppUser @relation(fields: [userId], references: [id])
-  role Role    @relation(fields: [roleId], references: [id])
+  user AppUser @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  role Role    @relation(fields: [roleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([userId])
-  @@index([roleId])
+  @@index([userId], map: "idx_user_role_user_id")
+  @@index([roleId], map: "idx_user_role_role_id")
+  @@index([userId, validFrom, validUntil], map: "idx_user_role_active_period")
   @@map("user_role")
 }
 
@@ -187,12 +196,19 @@ model AuditLog {
   prevHash          String?  @map("prev_hash")
   hash              String
 
-  actor   AppUser  @relation("AuditActor", fields: [actorId], references: [id])
-  session Session? @relation(fields: [sessionId], references: [id])
+  // onDelete/onUpdate are spelled out because Prisma's defaults are wrong here.
+  // For an optional relation Prisma defaults to SetNull, which would emit
+  // `ON DELETE SET NULL` on session_id -- and a referential action runs with the
+  // TABLE OWNER's rights, not the caller's, so it sails straight past the
+  // privilege revoke and slams into the append-only trigger instead. Deleting a
+  // session would then fail at runtime, and the pressure to "fix" that lands on
+  // the trigger, which is the one thing that must not move (ADR-04, K-7).
+  actor   AppUser  @relation("AuditActor", fields: [actorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  session Session? @relation(fields: [sessionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([objectType, objectId, occurredAt])
-  @@index([actorId, occurredAt])
-  @@index([sessionId])
+  @@index([objectType, objectId, occurredAt], map: "idx_audit_log_object")
+  @@index([actorId, occurredAt], map: "idx_audit_log_actor")
+  @@index([sessionId], map: "idx_audit_log_session_id")
   @@map("audit_log")
 }
 
@@ -203,8 +219,8 @@ model AuditLog {
 
 model Permission {
   id          String   @id @db.Uuid
-  code        String   @unique
-  name        String
+  code        String   @unique(map: "uq_permission_code") @db.VarChar(100)
+  name        String   @db.VarChar(200)
   description String?
   module      String?  @db.VarChar(10)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -220,11 +236,11 @@ model RolePermission {
   permissionId String   @map("permission_id") @db.Uuid
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  role       Role       @relation(fields: [roleId], references: [id])
-  permission Permission @relation(fields: [permissionId], references: [id])
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@unique([roleId, permissionId])
-  @@index([permissionId])
+  @@unique([roleId, permissionId], map: "uq_role_permission")
+  @@index([permissionId], map: "idx_role_permission_permission_id")
   @@map("role_permission")
 }
 
@@ -239,13 +255,13 @@ model Delegation {
   isActive   Boolean   @default(true) @map("is_active")
   revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  fromUser AppUser @relation("DelegationFrom", fields: [fromUserId], references: [id])
-  toUser   AppUser @relation("DelegationTo", fields: [toUserId], references: [id])
+  fromUser AppUser @relation("DelegationFrom", fields: [fromUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  toUser   AppUser @relation("DelegationTo", fields: [toUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([toUserId, isActive])
-  @@index([fromUserId])
+  @@index([toUserId, isActive], map: "idx_delegation_to_user_active")
+  @@index([fromUserId], map: "idx_delegation_from_user_id")
   @@map("delegation")
 }
 
@@ -263,20 +279,24 @@ model Session {
   idleExpiresAt     DateTime  @map("idle_expires_at") @db.Timestamptz(6)
   ipAddress         String    @map("ip_address") @db.VarChar(45)
   userAgent         String?   @map("user_agent")
-  refreshTokenHash  String    @unique @map("refresh_token_hash") @db.VarChar(64)
+  refreshTokenHash  String    @unique(map: "uq_session_refresh_token_hash") @map("refresh_token_hash") @db.VarChar(64)
   isActive          Boolean   @default(true) @map("is_active")
   revokedAt         DateTime? @map("revoked_at") @db.Timestamptz(6)
   revokedByUserId   String?   @map("revoked_by_user_id") @db.Uuid
   revokeReason      String?   @map("revoke_reason") @db.VarChar(40)
   createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  user            AppUser    @relation("SessionUser", fields: [userId], references: [id])
-  revokedByUser   AppUser?   @relation("SessionRevokedBy", fields: [revokedByUserId], references: [id])
+  user            AppUser    @relation("SessionUser", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  revokedByUser   AppUser?   @relation("SessionRevokedBy", fields: [revokedByUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   auditLogEntries AuditLog[]
 
-  @@index([userId, isActive])
-  @@index([idleExpiresAt])
-  @@index([absoluteExpiresAt])
+  // idx_session_idle_expires_at and idx_session_absolute_expires_at exist in
+  // migration.sql as PARTIAL indexes (`WHERE is_active`). Prisma's schema
+  // language cannot express a partial index, so they are deliberately left
+  // undeclared here rather than declared as full (non-partial) indexes, which
+  // would misrepresent what actually exists in the database. See
+  // packages/db/README.md.
+  @@index([userId, isActive], map: "idx_session_user_active")
   @@map("session")
 }
 
@@ -290,7 +310,7 @@ model UploadedFile {
   uploadedByUserId  String         @map("uploaded_by_user_id") @db.Uuid
   originalFileName  String         @map("original_file_name")
   sanitizedFileName String         @map("sanitized_file_name")
-  storageKey        String         @unique @map("storage_key")
+  storageKey        String         @unique(map: "uq_uploaded_file_storage_key") @map("storage_key")
   fileSize          BigInt         @map("file_size")
   declaredMimeType  String?        @map("declared_mime_type") @db.VarChar(255)
   detectedMimeType  String?        @map("detected_mime_type") @db.VarChar(255)
@@ -302,11 +322,11 @@ model UploadedFile {
   purpose           String         @db.VarChar(30)
   createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  uploadedBy AppUser @relation(fields: [uploadedByUserId], references: [id])
+  uploadedBy AppUser @relation(fields: [uploadedByUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([sha256])
-  @@index([scanStatus])
-  @@index([uploadedByUserId])
+  @@index([sha256], map: "idx_uploaded_file_sha256")
+  @@index([scanStatus], map: "idx_uploaded_file_scan_status")
+  @@index([uploadedByUserId], map: "idx_uploaded_file_uploaded_by")
   @@map("uploaded_file")
 }
 
@@ -330,23 +350,23 @@ model Notification {
   emailFailedAt   DateTime? @map("email_failed_at") @db.Timestamptz(6)
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  recipient AppUser @relation(fields: [recipientUserId], references: [id])
+  recipient AppUser @relation(fields: [recipientUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([recipientUserId, isRead])
-  @@index([code])
-  @@index([objectType, objectId])
+  @@index([recipientUserId, isRead], map: "idx_notification_recipient_unread")
+  @@index([code], map: "idx_notification_code")
+  @@index([objectType, objectId], map: "idx_notification_object")
   @@map("notification")
 }
 
 model NotificationPreference {
   id                String                @id @db.Uuid
-  userId            String                @unique @map("user_id") @db.Uuid
+  userId            String                @unique(map: "uq_notification_preference_user_id") @map("user_id") @db.Uuid
   defaultFrequency  NotificationFrequency @default(SEKETIKA) @map("default_frequency")
   categoryOverrides Json                  @default("{}") @map("category_overrides")
   createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedAt         DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  user AppUser @relation(fields: [userId], references: [id])
+  user AppUser @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("notification_preference")
 }

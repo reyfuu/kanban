@@ -65,6 +65,17 @@ export default tseslint.config(
     },
   },
 
+  // NestJS resolves constructor dependencies from `design:paramtypes` metadata,
+  // which TypeScript only emits for imports kept as VALUES. `import type` erases
+  // them, and the failure is a runtime DI error at boot, not a compile error --
+  // so the rule that "helps" here actively breaks the application.
+  {
+    files: ['apps/api/src/**/*.ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-imports': 'off',
+    },
+  },
+
   // ADR-01 — module boundaries inside the NestJS monolith.
   {
     files: ['apps/api/src/modules/**/*.ts'],
@@ -111,6 +122,16 @@ export default tseslint.config(
           message: 'Gunakan token warna dari 06-DESIGN, bukan nilai heksadesimal langsung.',
         },
       ],
+    },
+  },
+
+  // Tests assert against JSON payloads whose shape is the thing under test --
+  // typing them precisely would restate the assertion in the type system and
+  // hide the failure the test exists to catch.
+  {
+    files: ['**/test/**/*.ts', '**/*.test.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 )
