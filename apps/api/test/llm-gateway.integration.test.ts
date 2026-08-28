@@ -68,6 +68,21 @@ const chunk = (
   classification,
 })
 
+/*
+ * The settings row is a singleton shared with the running dev deployment, so
+ * this suite mutates state it does not own. Restoring `enabled: false` is not
+ * enough: leaving "Dinonaktifkan untuk pengujian." behind means the live
+ * /llm-gateway/status endpoint tells a Compliance Officer the feature is off
+ * for testing, when the real reason is that ADR-03's G1-G7 preconditions have
+ * never been verified. A misleading reason on a control surface is worse than
+ * no reason at all, so the original row is captured and put back.
+ */
+let originalSetting: {
+  enabled: boolean
+  disabledReason: string | null
+  maxRequestsPerUserPerHour: number
+} | null = null
+
 async function setGateway(enabled: boolean, budgetPerHour = 20) {
   const row = await prisma.llmGatewaySetting.findFirst({ select: { id: true } })
   await prisma.llmGatewaySetting.update({
@@ -82,6 +97,12 @@ async function setGateway(enabled: boolean, budgetPerHour = 20) {
 
 beforeAll(async () => {
   await prisma.$connect()
+
+  const current = await prisma.llmGatewaySetting.findFirst({
+    select: { enabled: true, disabledReason: true, maxRequestsPerUserPerHour: true },
+  })
+  originalSetting = current ?? null
+
   await prisma.organizationUnit.create({
     data: { id: ids.orgUnit, code: `OUL-${suffix}`, name: 'Unit Uji Gerbang' },
   })
@@ -136,7 +157,11 @@ async function logRow(outcome?: string) {
 }
 
 afterAll(async () => {
-  await setGateway(false)
+  // Put the row back exactly as found, reason text included.
+  const row = await prisma.llmGatewaySetting.findFirst({ select: { id: true } })
+  if (row && originalSetting) {
+    await prisma.llmGatewaySetting.update({ where: { id: row.id }, data: originalSetting })
+  }
   try {
     await prisma.appUser.deleteMany({ where: { id: ids.user } })
     await prisma.employee.deleteMany({ where: { id: ids.employee } })
