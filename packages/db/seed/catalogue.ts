@@ -40,6 +40,9 @@ export const PERMISSIONS = [
   ['dashboard:executive', 'Melihat dasbor eksekutif', 'X'],
   ['control:read', 'Melihat pustaka kontrol dan framework', 'A'],
   ['control:write', 'Mengelola kontrol, framework, dan pemetaan', 'A'],
+  ['document:read', 'Mencari dan membaca dokumen normatif', 'C'],
+  ['document:write', 'Menyusun dan merevisi dokumen', 'C'],
+  ['document:approve', 'Mengesahkan dan memberlakukan dokumen', 'C'],
 ] as const
 
 /**
@@ -56,7 +59,7 @@ export const PERMISSIONS = [
  */
 export const ROLE_PERMISSIONS: Record<string, readonly string[]> = {
   SYS_ADMIN: ['application:read', 'application:write', 'user:read', 'user:write'],
-  COMPLIANCE: ['campaign:read', 'review:read', 'audit-log:verify', 'user:read', 'application:read', 'control:read', 'control:write'],
+  COMPLIANCE: ['campaign:read', 'review:read', 'audit-log:verify', 'user:read', 'application:read', 'control:read', 'control:write', 'document:read', 'document:approve'],
   SEC_OFFICER: [
     'campaign:read',
     'campaign:write',
@@ -69,12 +72,20 @@ export const ROLE_PERMISSIONS: Record<string, readonly string[]> = {
   ],
   APP_OWNER: ['campaign:read', 'review:read', 'review:decide', 'campaign:signoff', 'application:read', 'ticket:read'],
   LINE_MANAGER: ['campaign:read', 'review:read', 'review:decide'],
-  AUDIT_LEAD: ['campaign:read', 'review:read', 'audit-log:verify', 'control:read', 'control:write'],
-  AUDITOR_INT: ['campaign:read', 'review:read', 'control:read', 'control:write'],
-  EXECUTIVE: ['dashboard:executive', 'campaign:read', 'control:read'],
-  EMPLOYEE: [],
+  AUDIT_LEAD: ['campaign:read', 'review:read', 'audit-log:verify', 'control:read', 'control:write', 'document:read'],
+  AUDITOR_INT: ['campaign:read', 'review:read', 'control:read', 'control:write', 'document:read'],
+  EXECUTIVE: ['dashboard:executive', 'campaign:read', 'control:read', 'document:read'],
+  // FR-C-010: every internal employee may SEARCH; which documents they
+  // actually see is decided per row by check_document_access, not by this
+  // permission. Granting document:read broadly is therefore safe, and
+  // withholding it would only stop people finding the Publik/Internal SOPs
+  // they are meant to follow.
+  EMPLOYEE: ['document:read'],
   AUDITOR_EXT: [],
   EVIDENCE_PIC: [],
-  DOC_AUTHOR: [],
-  DOC_APPROVER: [],
+  DOC_AUTHOR: ['document:read', 'document:write'],
+  // DOC_APPROVER ratifies but does not author: the same separation as
+  // ticket:execute vs campaign:signoff in Modul B. Whoever writes a procedure
+  // is not who declares it binding.
+  DOC_APPROVER: ['document:read', 'document:approve'],
 }

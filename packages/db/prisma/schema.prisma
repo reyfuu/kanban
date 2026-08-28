@@ -91,6 +91,9 @@ model OrganizationUnit {
   executedControls Control[]   @relation("ControlExecutingUnit")
   ownedEvidence    Evidence[]   @relation("EvidenceOwnerUnit")
 
+  // Modul C (docs/04-TRD.md Sec 3.4) back-relations.
+  ownedDocuments   Document[]   @relation("DocumentOwnerUnit")
+
   @@index([parentId], map: "idx_organization_unit_parent_id")
   @@map("organization_unit")
 }
@@ -127,6 +130,9 @@ model Employee {
   requestItemsAsPic      RequestItem[]      @relation("RequestItemPic")
   ownedFindings          Finding[]          @relation("FindingOwner")
   ownedRemediations      Remediation[]      @relation("RemediationOwner")
+
+  // Modul C (docs/04-TRD.md Sec 3.4) back-relations.
+  ownedDocuments         Document[]         @relation("DocumentOwner")
 
   @@index([orgUnitId], map: "idx_employee_org_unit_id")
   @@index([managerId], map: "idx_employee_manager_id")
@@ -178,6 +184,13 @@ model AppUser {
   verifiedRemediations      Remediation[]      @relation("RemediationVerifier")
   externalAccessGrants      ExternalAccess[]   @relation("ExternalAccessUser")
   externalAccessInvited     ExternalAccess[]   @relation("ExternalAccessInviter")
+
+  // Modul C (docs/04-TRD.md Sec 3.4) back-relations.
+  authoredDocuments         Document[]            @relation("DocumentAuthor")
+  authoredDocumentVersions  DocumentVersion[]     @relation("DocumentVersionAuthor")
+  grantedDocumentAccess     DocumentAccess[]      @relation("DocumentAccessGranter")
+  linkedDocumentControls    DocumentControlLink[] @relation("DocumentControlLinker")
+  documentSearchMisses      DocumentSearchMiss[]  @relation("DocumentSearchMissUser")
 
   @@index([isActive], map: "idx_app_user_is_active")
   @@map("app_user")
@@ -1195,6 +1208,7 @@ model Control {
   executingOrgUnit OrganizationUnit? @relation("ControlExecutingUnit", fields: [executingOrgUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   versions         ControlVersion[]
   mappings         ControlMapping[]
+  documentLinks    DocumentControlLink[]
   engagementScopes EngagementControl[]
   requestItems     RequestItem[]
 
@@ -1542,4 +1556,219 @@ model ExternalAccess {
   @@index([userId], map: "idx_external_access_user_id")
   @@index([status], map: "idx_external_access_status")
   @@map("external_access")
+}
+
+// ---------------------------------------------------------------------------
+// Modul C -- Policy Hub (docs/04-TRD.md Sec 3.4)
+//
+// Mirrors migrations/20260828170000_module_c/migration.sql. The migration is
+// the authority: it carries constraints Prisma cannot express (the partial
+// unique index that allows only one BERLAKU version per document, the
+// generated tsvector column, the HNSW index, and check_document_access).
+// ---------------------------------------------------------------------------
+
+/// FR-C-001 · the eight normative document types.
+enum DocumentType {
+  KEBIJAKAN
+  PEDOMAN
+  SOP
+  INSTRUKSI_KERJA
+  SURAT_EDARAN
+  MEMO_INTERNAL
+  FORMULIR
+  LAMPIRAN_TEKNIS
+
+  @@map("document_type")
+}
+
+/// FR-C-004 · the document lifecycle state machine.
+enum DocumentStatus {
+  DRAF
+  DALAM_PENELAAHAN
+  MENUNGGU_PENGESAHAN
+  DISAHKAN
+  BERLAKU
+  DALAM_REVISI
+  DIGANTIKAN
+  DITARIK
+
+  @@map("document_status")
+}
+
+/// FR-C-002 · process areas of a securities company.
+enum ProcessArea {
+  DEALING
+  SETTLEMENT
+  KUSTODIAN
+  RISET
+  PEMASARAN
+  KEUANGAN_AKUNTANSI
+  SDM
+  TI
+  KEPATUHAN
+  MANAJEMEN_RISIKO
+  AUDIT_INTERNAL
+  UMUM
+
+  @@map("process_area")
+}
+
+/// FR-C-010 aturan 2 · what an explicit document grant is addressed to.
+enum DocumentAccessSubject {
+  UNIT
+  JABATAN
+  PERAN
+  KARYAWAN
+
+  @@map("document_access_subject")
+}
+
+enum DocumentAccessLevel {
+  BACA
+  UNDUH
+
+  @@map("document_access_level")
+}
+
+/// FR-C-001/002/003 · a normative document. Content lives on DocumentVersion.
+model Document {
+  id                String         @id @db.Uuid
+  documentNo        String?        @unique(map: "document_document_no_key") @map("document_no") @db.VarChar(100)
+  title             String         @db.VarChar(300)
+  documentType      DocumentType   @map("document_type")
+  ownerOrgUnitId    String         @map("owner_org_unit_id") @db.Uuid
+  ownerEmployeeId   String         @map("owner_employee_id") @db.Uuid
+  /// FR-X-018 aturan 1 & FR-C-003 aturan 1: no default, on purpose.
+  classification    Classification
+  processArea       ProcessArea    @map("process_area")
+  tags              String[]       @default([])
+  summary           String?
+  reviewCycleMonths Int            @map("review_cycle_months")
+  nextReviewDate    DateTime?      @map("next_review_date") @db.Date
+  status            DocumentStatus @default(DRAF)
+  supersededById    String?        @map("superseded_by_id") @db.Uuid
+  withdrawnReason   String?        @map("withdrawn_reason")
+  withdrawnAt       DateTime?      @map("withdrawn_at") @db.Timestamptz(6)
+  createdBy         String         @map("created_by") @db.Uuid
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  ownerOrgUnit  OrganizationUnit @relation("DocumentOwnerUnit", fields: [ownerOrgUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ownerEmployee Employee         @relation("DocumentOwner", fields: [ownerEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  supersededBy  Document?        @relation("DocumentSupersession", fields: [supersededById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  supersedes    Document[]       @relation("DocumentSupersession")
+  createdByUser AppUser          @relation("DocumentAuthor", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  versions      DocumentVersion[]
+  accessGrants  DocumentAccess[]
+  controlLinks  DocumentControlLink[]
+
+  @@index([tags], map: "idx_document_tags", type: Gin)
+  @@index([status, classification, ownerOrgUnitId], map: "idx_document_status_classification_unit")
+  @@index([ownerEmployeeId], map: "idx_document_owner_employee_id")
+  @@index([nextReviewDate], map: "idx_document_next_review_date")
+  @@index([documentType, processArea], map: "idx_document_type_process_area")
+  @@map("document")
+}
+
+/// FR-C-006/007 · one version of a document plus its force window.
+model DocumentVersion {
+  id             String         @id @db.Uuid
+  documentId     String         @map("document_id") @db.Uuid
+  versionMajor   Int            @map("version_major")
+  versionMinor   Int            @map("version_minor")
+  storageKey     String?        @map("storage_key") @db.VarChar(500)
+  extractedText  String?        @map("extracted_text")
+  body           String?
+  changeSummary  String         @map("change_summary")
+  effectiveFrom  DateTime?      @map("effective_from") @db.Date
+  effectiveUntil DateTime?      @map("effective_until") @db.Date
+  approvedAt     DateTime?      @map("approved_at") @db.Timestamptz(6)
+  status         DocumentStatus @default(DRAF)
+  createdBy      String         @map("created_by") @db.Uuid
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  document      Document        @relation(fields: [documentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdByUser AppUser         @relation("DocumentVersionAuthor", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  chunks        DocumentChunk[]
+
+  @@unique([documentId, versionMajor, versionMinor], map: "uq_document_version_no")
+  @@index([documentId], map: "idx_document_version_document_id")
+  @@index([status], map: "idx_document_version_status")
+  @@index([documentId, effectiveFrom, effectiveUntil], map: "idx_document_version_effective")
+  @@map("document_version")
+}
+
+/// 04-TRD Sec 4.1 · a structure-aware chunk of one version.
+///
+/// `content_tsv` (generated) and `content_embedding` (vector(768)) exist in the
+/// database but not here: Prisma models neither type. Search therefore runs as
+/// raw SQL in the repository, which is where it belongs anyway -- the ranking
+/// query in 04-TRD Sec 4.2 is not expressible through the query builder.
+model DocumentChunk {
+  id                String   @id @db.Uuid
+  documentVersionId String   @map("document_version_id") @db.Uuid
+  chunkIndex        Int      @map("chunk_index")
+  sectionRef        String?  @map("section_ref") @db.VarChar(200)
+  content           String
+  tokenCount        Int?     @map("token_count")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  version DocumentVersion @relation(fields: [documentVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([documentVersionId, chunkIndex], map: "uq_document_chunk_version_index")
+  @@index([documentVersionId], map: "idx_document_chunk_version_id")
+  @@map("document_chunk")
+}
+
+/// FR-C-010 aturan 2 · an explicit grant on a document.
+model DocumentAccess {
+  id          String                @id @db.Uuid
+  documentId  String                @map("document_id") @db.Uuid
+  subjectType DocumentAccessSubject @map("subject_type")
+  subjectId   String?               @map("subject_id") @db.Uuid
+  subjectName String?               @map("subject_name") @db.VarChar(200)
+  accessLevel DocumentAccessLevel   @default(BACA) @map("access_level")
+  grantedBy   String                @map("granted_by") @db.Uuid
+  grantedAt   DateTime              @default(now()) @map("granted_at") @db.Timestamptz(6)
+
+  document      Document @relation(fields: [documentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  grantedByUser AppUser  @relation("DocumentAccessGranter", fields: [grantedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([documentId], map: "idx_document_access_document_id")
+  @@index([subjectType, subjectId], map: "idx_document_access_subject")
+  @@map("document_access")
+}
+
+/// FR-C-022 · a document underpinning a Modul A audit control.
+model DocumentControlLink {
+  id         String   @id @db.Uuid
+  documentId String   @map("document_id") @db.Uuid
+  controlId  String   @map("control_id") @db.Uuid
+  note       String?
+  linkedBy   String   @map("linked_by") @db.Uuid
+  linkedAt   DateTime @default(now()) @map("linked_at") @db.Timestamptz(6)
+
+  document     Document @relation(fields: [documentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  control      Control  @relation(fields: [controlId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  linkedByUser AppUser  @relation("DocumentControlLinker", fields: [linkedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([documentId, controlId], map: "uq_document_control_link")
+  @@index([controlId], map: "idx_document_control_link_control_id")
+  @@map("document_control_link")
+}
+
+/// FR-C-012 aturan 4 · a search that returned nothing, kept for content-gap
+/// analysis. Not an audit event, so deliberately not in audit_log.
+model DocumentSearchMiss {
+  id         BigInt   @id @default(autoincrement())
+  queryText  String   @map("query_text")
+  userId     String?  @map("user_id") @db.Uuid
+  filters    Json     @default("{}")
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  user AppUser? @relation("DocumentSearchMissUser", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([occurredAt(sort: Desc)], map: "idx_document_search_miss_occurred_at")
+  @@map("document_search_miss")
 }
