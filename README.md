@@ -24,7 +24,14 @@ Yang dikerjakan sekarang adalah **fondasi lintas modul (FR-X) dari Fase 1**, lal
 | Riwayat objek | FR-X-009 | **Belum** |
 | Notifikasi | FR-X-010, FR-X-011 | **Belum** |
 | Unggahan berkas & pemindaian | FR-X-013 | Skema saja |
-| Modul C · Policy Hub | FR-C-* | **Belum** — sisa Fase 1 |
+| Modul C · Jenis, taksonomi, siklus hidup dokumen | FR-C-001 s.d. FR-C-004 | Jalan — mesin status penuh; supersesi tanpa jeda dijaga indeks unik parsial |
+| Modul C · Versi & jendela berlaku | FR-C-006, FR-C-007 | Jalan — mayor.minor, dan "versi mana yang berlaku pada tanggal X" |
+| Modul C · Tinjauan berkala | FR-C-008 | Jalan — pernyataan tetap berlaku + daftar terlambat ditinjau (tidak pernah mencabut otomatis) |
+| Modul C · Pencarian hibrida & hak akses | FR-C-009 s.d. FR-C-012 | Jalan — RRF di dalam PostgreSQL, penyaringan hak akses sebelum pemeringkatan, penyaring berhitung, pencarian nihil tercatat |
+| Modul C · Penautan dokumen ke kontrol | FR-C-022 | Jalan lewat API |
+| Modul C · Alur persetujuan berjenjang | FR-C-005 | **Belum** |
+| Modul C · Jawaban berbasis dokumen + gerbang klasifikasi | FR-C-013 s.d. FR-C-018 | **Belum** — seluruhnya lewat LLM Gateway (ADR-03) |
+| Modul C · Kampanye attestation | FR-C-019 s.d. FR-C-021 | **Belum** |
 | Modul B · Item review & keputusan | FR-B-011 s.d. FR-B-013 | Jalan — K-2, K-3, K-4 |
 | Modul B · Sign-off kampanye | FR-B-015 | Jalan — K-9, dengan sidik jari isi |
 | Modul B · Pemantauan kampanye | FR-B-016 | Jalan |
@@ -40,8 +47,8 @@ Yang dikerjakan sekarang adalah **fondasi lintas modul (FR-X) dari Fase 1**, lal
 
 Layar yang sudah ada: masuk, beranda, jejak audit, **L-09 Penyusun Kampanye**,
 **L-10 Review Saya** (termasuk dialog sign-off L-11), daftar kampanye, registri
-aplikasi, dan tiket pencabutan. Sembilan pengguna benih dengan peran berbeda
-tersedia untuk mencoba.
+aplikasi, tiket pencabutan, serta **Pusat Kebijakan** (pencarian + detail
+dokumen). Sembilan pengguna benih dengan peran berbeda tersedia untuk mencoba.
 
 ### Alur demo Modul B
 
@@ -112,6 +119,35 @@ yang menghitung jumlah item, jumlah reviewer, dan sebaran bebannya sebelum
 apa pun diarahkan ke siapa pun — dan menonaktifkan tombol peluncuran selama
 masih ada snapshot yang lebih tua dari tujuh hari.
 
+### Alur demo Modul C
+
+Benihnya memuat empat dokumen normatif, dibentuk untuk menunjukkan hal yang
+sulit dipercaya kalau hanya dibaca di dokumen.
+
+1. Masuk sebagai `hendra.wijaya` (COMPLIANCE), buka **Pusat Kebijakan**, cari
+   `penyelesaian transaksi`. Hasilnya menunjuk **pasal**, bukan sekadar dokumen:
+   "Bab II PELAKSANAAN · Pasal 3". Itu yang membuat rujukan jawaban dapat
+   diperiksa.
+2. Buka **SOP Penyelesaian Transaksi Efek**. Riwayat versinya memperlihatkan
+   versi 1.0 berstatus Digantikan dengan jendela berlaku yang **tertutup pada
+   hari sebelum** versi 2.0 mulai berlaku. Tidak ada satu hari pun tanpa aturan.
+3. Masuk sebagai `fajar.nugroho` (Kepala Cabang, unit RTL) dan cari
+   `aksi korporasi`. Nol hasil, nol saran, dan **jumlah pada penyaring "Kebijakan"
+   ikut berkurang satu**. Dokumen RAHASIA milik Direksi itu tidak bocor lewat
+   celah mana pun — bandingkan dengan `direktur.utama`, yang melihatnya.
+4. Masih sebagai `fajar.nugroho`, cari `hak akses`: nol hasil. Masuk sebagai
+   `bayu.pratama` (SKAI): dokumen TERBATAS itu muncul, karena unit SKAI diberi
+   akses eksplisit.
+5. Buka **Pedoman Pengelolaan Hak Akses Aplikasi**. Dokumen ini sengaja
+   **terlambat ditinjau** dan tetap ditandai berlaku. SIGAP tidak pernah
+   mencabut prosedur otomatis karena keterlambatan administrasi; kekosongan
+   aturan lebih berbahaya daripada dokumen yang agak kedaluwarsa.
+
+Yang membuat butir 3 dan 4 dapat dipercaya: penyaringan hak akses berupa fungsi
+`check_document_access` di dalam PostgreSQL, dan **setiap** cabang kueri
+pencarian wajib mem-`JOIN` CTE yang memanggilnya. Penyaring di lapisan aplikasi
+bisa terlewat oleh satu jalur kueri; penyaring ini tidak bisa.
+
 ## Menjalankan
 
 Prasyarat: Node 22, pnpm 10, Docker.
@@ -125,7 +161,23 @@ pnpm db:generate          # bangkitkan Prisma Client
 pnpm db:seed              # data benih: peran, hak akses, sembilan pengguna
 ```
 
-Lalu, masing-masing di terminal sendiri:
+Lalu nyalakan aplikasinya. Cara yang disarankan adalah lewat pengelola proses,
+yang menjaga tepat satu instance tiap layanan dan membatasi memori Node — mesin
+pengembangan dengan RAM terbatas gampang kehabisan memori bila tiga proses
+`--watch` berjalan berlipat:
+
+```bash
+pnpm dev                  # nyalakan api + worker + web sekaligus
+pnpm dev:status           # tabel status: hidup/mati, porta, dan pemakaian RAM
+pnpm dev:logs web         # ikuti log satu layanan
+pnpm dev:restart api      # restart satu layanan
+pnpm dev:down             # matikan semuanya
+```
+
+Buka <http://localhost:3000>, masuk sebagai salah satu pengguna di tabel di
+bawah dengan kata sandi `demo`.
+
+Bila lebih suka satu terminal per layanan, tiga perintah ini setara:
 
 ```bash
 pnpm dev:api              # http://localhost:3001
@@ -133,8 +185,9 @@ pnpm dev:web              # http://localhost:3000
 pnpm dev:worker           # proses pekerja; belum mengonsumsi antrean apa pun
 ```
 
-Menghentikan: `Ctrl-C` di tiap terminal, lalu `pnpm infra:down`
-(tambahkan `-v` lewat `docker compose down -v` bila ingin membuang datanya).
+Menghentikan: `pnpm dev:down` (atau `Ctrl-C` di tiap terminal), lalu
+`pnpm infra:down` (tambahkan `-v` lewat `docker compose down -v` bila ingin
+membuang datanya).
 
 ### Masuk
 
@@ -148,6 +201,9 @@ Kata sandi seluruh pengguna benih: `demo` (ubah lewat `SEED_IDENTITY_PASSWORD`).
 | `hendra.wijaya` | COMPLIANCE | Kampanye, Review Saya, Jejak Audit, Registri |
 | `direktur.utama` | EXECUTIVE | Kampanye |
 | `admin.sigap` | SYS_ADMIN | Registri Aplikasi saja |
+| `fajar.nugroho` | LINE_MANAGER | Review Saya, Pusat Kebijakan |
+| `sari.dewi` | AUDITOR_INT | Kampanye, Review Saya, Pusat Kebijakan (mode audit) |
+| `dewi.lestari` | APP_OWNER, LINE_MANAGER | Review Saya, Kampanye, Tiket |
 
 `admin.sigap` sengaja tidak melihat satu pun layar keputusan. [FRD §1.4](docs/03-FRD.md) menyatakan administrator sistem tidak dapat menyetujui bukti, menandatangani review, atau mengesahkan dokumen — dan itu ditegakkan lewat hak akses, bukan lewat menu.
 

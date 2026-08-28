@@ -58,7 +58,65 @@ pintas yang sah bila yang diinginkan hanya benih yang segar.
 
 ---
 
-## 2. Yang berubah pada sesi ini
+## 1b. Sesi 28 Agustus 2026 (sore) — Modul C dan perbaikan UI
+
+**Modul C · Policy Hub kini punya tulang punggung yang jalan ujung ke ujung.**
+Dokumen dapat disusun, diversikan, diberlakukan, digantikan, ditarik, dan
+dicari — dengan penyaringan hak akses yang berada di dalam basis data.
+
+| Butir | Keadaan |
+|---|---|
+| FR-C-001 s.d. FR-C-004 | Jalan · hierarki normatif, taksonomi, mesin status penuh |
+| FR-C-006, FR-C-007 | Jalan · versi mayor.minor, jendela berlaku, kueri "berlaku pada tanggal X" |
+| FR-C-008 | Jalan · pernyataan tetap berlaku, daftar terlambat ditinjau; tidak pernah mencabut otomatis |
+| FR-C-009 s.d. FR-C-012 | Jalan · RRF di PostgreSQL, penyaringan hak akses sebelum pemeringkatan, penyaring berhitung, pencatatan pencarian nihil |
+| FR-C-022 | Jalan · penautan dokumen ke kontrol Modul A |
+| FR-C-005, FR-C-013 s.d. FR-C-021 | Belum · alur persetujuan berjenjang, jawaban berbasis dokumen, attestation |
+
+Satu migrasi (`20260828170000_module_c`), enam tabel, satu konfigurasi pencarian
+teks `indonesian_simple`, dan satu fungsi `check_document_access`. 32 tes baru
+(22 murni aturan, 10 integrasi), **162 total lulus**. Empat gerbang mutu hijau.
+
+**Dua keputusan yang perlu diketahui sebelum melanjutkan.**
+
+Pertama, **penyaringan hak akses adalah fungsi basis data, bukan kode aplikasi.**
+`check_document_access(document_id, user_id)` dipanggil dari CTE `accessible`
+yang wajib di-`JOIN` oleh setiap cabang setiap kueri pencarian. Alasannya
+FR-C-010 aturan 1: dokumen terlarang tidak boleh muncul di hasil, di **jumlah
+hasil**, maupun di saran. Tiga kueri berbeda tidak mungkin konsisten kalau
+penyaringnya diserahkan ke lapisan servis. Tes integrasinya memeriksa ketiganya,
+termasuk membandingkan angka pada penyaring "Kebijakan" antara dua pengguna.
+
+Kedua, **vektor makna belum aktif.** Kolom `content_embedding vector(768)` dan
+indeks HNSW-nya sudah ada, tapi seluruh barisnya NULL sampai model embedding
+lokal dipasang (ADR-03: embedding selalu lokal). Cabang kata kunci dan cabang
+judul sudah berjalan dan menghasilkan peringkat yang masuk akal; menambahkan
+cabang makna nanti tidak memerlukan perubahan skema, hanya satu CTE tambahan di
+`document-search.repository.ts`.
+
+**Perbaikan antarmuka lintas layar**, dari audit UI/UX:
+
+- `loading.tsx` dan `error.tsx` untuk setiap segmen rute, plus `global-error.tsx`
+  dan dua `not-found.tsx`. Sebelumnya kegagalan menampilkan layar bawaan Next.js
+  berbahasa Inggris — cacat nyata untuk aplikasi berbahasa Indonesia, dan
+  `notFound()` di sini bersifat menanggung beban karena kode aturan #3.
+- Beranda kini membedakan "gagal dimuat" dari "tidak ada tugas". Sebelumnya
+  keduanya tampil sebagai tanda hubung, dan reviewer bisa menyimpulkan antreannya
+  kosong padahal API-nya yang gagal.
+- Seluruh kendali interaktif minimal 44×44 px, tabel punya cadangan kartu di
+  layar sempit, tersedia tautan lewati-ke-konten, slide-over mobile mengunci
+  fokus dan tertutup dengan Esc, dan `role="tablist"` yang keliru diganti
+  `aria-pressed`.
+- `bg-white/10` dan `bg-white/5` di bilah sisi diganti token `tri-navy-hover` /
+  `tri-navy-line` (aturan kode #6 berlaku juga untuk putih beropasitas).
+
+**Cara menjalankannya sekarang** ada di [README §Menjalankan](README.md#menjalankan);
+ringkasnya `pnpm dev` menyalakan ketiga layanan lewat pengelola proses, dan
+`pnpm dev:status` menunjukkan porta serta pemakaian RAM.
+
+---
+
+## 2. Yang berubah pada sesi sebelumnya
 
 **Paket bukti kampanye dan jembatan lintas modul (FR-B-022/023) — butir empat
 daftar "berikutnya", kini tertutup.** Inilah diferensiator produk: kampanye yang
