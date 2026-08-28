@@ -25,6 +25,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-sg-neutral-100">
+      {/*
+       * Skip-link: the sidebar carries a dozen-plus links that a keyboard or
+       * screen-reader user would otherwise traverse on every single page. It is
+       * visually hidden until focused, which is the point -- it costs sighted
+       * users nothing and saves everyone else a dozen tab presses per navigation.
+       */}
+      <a
+        href="#konten-utama"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-tri-navy focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-tri-on-primary focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-tri-gold"
+      >
+        Lewati ke konten utama
+      </a>
+
       <AppSidebar
         items={visible}
         userName={user.full_name}
@@ -33,7 +46,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       />
 
       <div className="md:pl-64">
-        <main className="mx-auto min-w-0 max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
+        <main
+          id="konten-utama"
+          tabIndex={-1}
+          className="mx-auto min-w-0 max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10"
+        >
           {children}
         </main>
       </div>

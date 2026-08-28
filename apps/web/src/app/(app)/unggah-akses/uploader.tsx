@@ -225,7 +225,7 @@ export function AccessUploader({ applications }: { applications: ApplicationRow[
               name="file"
               accept=".csv,text/csv"
               onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
-              className="block text-sm text-sg-neutral-700 file:mr-3 file:rounded-md file:border file:border-sg-neutral-300 file:bg-sg-neutral-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-sg-neutral-800 hover:file:bg-sg-neutral-100"
+              className="block text-sm text-sg-neutral-700 file:mr-3 file:rounded-md file:border file:border-sg-neutral-300 file:bg-sg-neutral-50 file:min-h-11 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-sg-neutral-800 hover:file:bg-sg-neutral-100"
             />
             <button
               type="submit"
@@ -316,7 +316,7 @@ export function AccessUploader({ applications }: { applications: ApplicationRow[
                 <button
                   type="button"
                   onClick={downloadErrorFile}
-                  className="rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-1.5 text-sm font-medium text-sg-neutral-800 hover:bg-sg-neutral-50"
+                  className="inline-flex min-h-11 items-center rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-4 text-sm font-medium text-sg-neutral-800 hover:bg-sg-neutral-50"
                 >
                   Unduh berkas koreksi
                 </button>

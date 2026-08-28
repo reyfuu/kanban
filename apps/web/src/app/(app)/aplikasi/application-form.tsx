@@ -182,7 +182,7 @@ export function ApplicationRowActions(props: { app: EditableApp; employees: Empl
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="rounded-md border border-sg-neutral-300 px-2.5 py-1 text-xs font-medium text-sg-neutral-700 hover:bg-sg-neutral-50"
+          className="inline-flex min-h-11 items-center rounded-md border border-sg-neutral-300 px-3 text-sm font-medium text-sg-neutral-700 hover:bg-sg-neutral-50"
         >
           Sunting
         </button>
@@ -196,7 +196,7 @@ export function ApplicationRowActions(props: { app: EditableApp; employees: Empl
             })
           }
           disabled={pending}
-          className="rounded-md border border-sg-danger-500 px-2.5 py-1 text-xs font-medium text-sg-danger-700 hover:bg-sg-danger-50 disabled:opacity-50"
+          className="inline-flex min-h-11 items-center rounded-md border border-sg-danger-500 px-3 text-sm font-medium text-sg-danger-700 hover:bg-sg-danger-50 disabled:opacity-50"
         >
           {pending ? '…' : 'Nonaktifkan'}
         </button>
@@ -207,7 +207,7 @@ export function ApplicationRowActions(props: { app: EditableApp; employees: Empl
 }
 
 const inputCls =
-  'mt-1 w-full rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-2 py-1.5 text-sm text-sg-neutral-900 placeholder:text-sg-neutral-400 focus:border-sg-accent-600 focus:outline focus:outline-2 focus:outline-sg-accent-600'
+  'mt-1 min-h-11 w-full rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-2 text-sm text-sg-neutral-900 placeholder:text-sg-neutral-400 focus:border-sg-accent-600 focus:outline focus:outline-2 focus:outline-sg-accent-600'
 
 function Labeled(props: { label: string; children: React.ReactNode }) {
   return (

@@ -3,6 +3,7 @@ import { requireUser, hasPermission } from '@/lib/session'
 import { apiFetch } from '@/lib/api'
 import { formatNumber } from '@/lib/format'
 import { NavIcon, type IconName } from '@/components/nav-icons'
+import { PartialFailureNotice } from '@/components/feedback'
 
 /**
  * Beranda — the landing surface, and the reviewer's starting point for the day.
@@ -31,6 +32,16 @@ export default async function BerandaPage() {
   const stats = buildStats(review, tickets, campaigns)
   const hasAny = review !== null || tickets !== null || campaigns !== null
 
+  // A section the signed-in person is entitled to see, but whose fetch failed.
+  // Kept apart from "no permission" on purpose: both used to render as a dash,
+  // and a reviewer who reads a failed queue as an empty one stops working on
+  // items that are in fact waiting for them.
+  const failed = [
+    hasPermission(user, 'review:read') && review === null ? 'Review' : null,
+    hasPermission(user, 'ticket:read') && tickets === null ? 'Tiket' : null,
+    hasPermission(user, 'campaign:read') && campaigns === null ? 'Kampanye' : null,
+  ].filter((x): x is string => x !== null)
+
   return (
     <div className="space-y-8">
       <header className="border-b border-sg-neutral-200 pb-5">
@@ -50,7 +61,14 @@ export default async function BerandaPage() {
         </p>
       )}
 
-      {!hasAny && (
+      {failed.length > 0 && (
+        <PartialFailureNotice>
+          Data {failed.join(', ')} gagal dimuat, jadi angkanya belum tentu nol. Muat ulang halaman
+          ini, atau buka layarnya langsung lewat menu di samping.
+        </PartialFailureNotice>
+      )}
+
+      {!hasAny && failed.length === 0 && (
         <p className="rounded-lg border border-dashed border-sg-neutral-300 bg-sg-neutral-0 px-4 py-10 text-center text-sm text-sg-neutral-600">
           Tidak ada antrean tugas untuk peran Anda saat ini.
         </p>

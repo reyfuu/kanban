@@ -74,6 +74,13 @@
   --color-tri-red: #e31d2b;
   --color-tri-gold: #c5a059;
   --color-tri-on-primary: #ffffff;
+
+  /* Keadaan interaktif di atas permukaan navy (bilah sisi). Ada sebagai token
+   * karena aturan kode #6 berlaku juga untuk putih beropasitas: `bg-white/10`
+   * yang ditulis langsung di komponen adalah nilai warna yang lolos dari
+   * sistem token dan mulai bercabang antar berkas. */
+  --color-tri-navy-hover: #16345c;
+  --color-tri-navy-line: #24456e;
 }
 
 /*

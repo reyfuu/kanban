@@ -79,7 +79,7 @@ export function TicketActions(props: { ticketId: string; status: string; canExec
             onChange={(e) => setNote(e.target.value)}
             rows={2}
             placeholder="Keterangan pelaksanaan (min. 10 karakter)"
-            className="w-full rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-2 py-1 text-xs text-sg-neutral-900 placeholder:text-sg-neutral-400 focus:border-sg-accent-600 focus:outline focus:outline-2 focus:outline-sg-accent-600"
+            className="min-h-11 w-full rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-2 text-sm text-sg-neutral-900 placeholder:text-sg-neutral-400 focus:border-sg-accent-600 focus:outline focus:outline-2 focus:outline-sg-accent-600"
           />
           <ActionButton type="submit" disabled={pending || note.trim().length < 10}>
             {pending ? 'Menyimpan…' : 'Kirim'}
@@ -100,7 +100,7 @@ export function TicketActions(props: { ticketId: string; status: string; canExec
             onChange={(e) => setReason(e.target.value)}
             rows={2}
             placeholder="Alasan pengecualian (min. 10 karakter)"
-            className="w-full rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-2 py-1 text-xs text-sg-neutral-900 placeholder:text-sg-neutral-400 focus:border-sg-accent-600 focus:outline focus:outline-2 focus:outline-sg-accent-600"
+            className="min-h-11 w-full rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-2 text-sm text-sg-neutral-900 placeholder:text-sg-neutral-400 focus:border-sg-accent-600 focus:outline focus:outline-2 focus:outline-sg-accent-600"
           />
           <ActionButton tone="muted" type="submit" disabled={pending || reason.trim().length < 10}>
             {pending ? 'Menyimpan…' : 'Kecualikan'}
@@ -134,7 +134,7 @@ function ActionButton(props: {
       type={props.type ?? 'button'}
       onClick={props.onClick}
       disabled={props.disabled}
-      className={`whitespace-nowrap rounded-md border px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sg-accent-600 disabled:opacity-50 ${cls}`}
+      className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-md border px-3 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sg-accent-600 disabled:opacity-50 ${cls}`}
     >
       {props.children}
     </button>

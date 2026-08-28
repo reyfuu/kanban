@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { NavItem } from './nav-items'
@@ -28,7 +28,49 @@ export function AppSidebar({
   logout: () => void
 }) {
   const [open, setOpen] = useState(false)
+  const panelRef = useRef<HTMLElement>(null)
   const pathname = usePathname()
+
+  /*
+   * While the mobile slide-over is open it is a modal surface, so it has to
+   * behave like one: Escape closes it, focus moves into it, and Tab cycles
+   * inside it. Without this the keyboard focus stays on the page behind an
+   * opaque overlay -- the user tabs through controls they cannot see and
+   * cannot tell where they are. The listener is removed when it closes, and
+   * on desktop (where the sidebar is permanent) it never runs at all.
+   */
+  useEffect(() => {
+    if (!open) return
+
+    const panel = panelRef.current
+    panel?.querySelector<HTMLElement>('a, button')?.focus()
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setOpen(false)
+        return
+      }
+      if (event.key !== 'Tab' || !panel) return
+
+      const focusables = panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      )
+      const first = focusables[0]
+      const last = focusables[focusables.length - 1]
+      if (!first || !last) return
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [open])
   const initials = initialsOf(userName)
 
   const isActive = (item: NavItem) =>
@@ -53,7 +95,7 @@ export function AppSidebar({
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Buka navigasi"
-          className="flex h-9 w-9 items-center justify-center rounded-md text-tri-on-primary hover:bg-tri-navy-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tri-gold"
+          className="flex h-11 w-11 items-center justify-center rounded-md text-tri-on-primary hover:bg-tri-navy-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tri-gold"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden>
             <path d="M4 6h16M4 12h16M4 18h16" />
@@ -69,15 +111,22 @@ export function AppSidebar({
 
       {/* Scrim for the mobile slide-over. */}
       {open && (
-        <button
-          type="button"
-          aria-label="Tutup navigasi"
+        /* A click-catcher, not a control: aria-hidden and out of the tab order
+           because the panel already offers a real "Tutup navigasi" button and
+           Escape. A full-screen <button> would otherwise be one more tab stop
+           between the user and the navigation. */
+        <div
+          aria-hidden
           onClick={() => setOpen(false)}
           className="fixed inset-0 z-40 bg-tri-navy-dark/60 md:hidden"
         />
       )}
 
       <aside
+        ref={panelRef}
+        aria-modal={open ? true : undefined}
+        role={open ? 'dialog' : undefined}
+        aria-label="Navigasi utama"
         className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-tri-navy transition-transform duration-200 md:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
@@ -104,7 +153,7 @@ export function AppSidebar({
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Tutup navigasi"
-            className="flex h-8 w-8 items-center justify-center rounded-md text-sg-neutral-300 hover:bg-tri-navy-dark hover:text-tri-on-primary md:hidden"
+            className="flex h-11 w-11 items-center justify-center rounded-md text-sg-neutral-300 hover:bg-tri-navy-dark hover:text-tri-on-primary md:hidden"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden>
               <path d="M6 6l12 12M18 6L6 18" />
@@ -130,8 +179,8 @@ export function AppSidebar({
                           onClick={() => setOpen(false)}
                           className={
                             active
-                              ? 'relative flex items-center gap-3 rounded-lg bg-white/10 py-2 pl-3 pr-3 text-sm font-medium text-tri-on-primary'
-                              : 'relative flex items-center gap-3 rounded-lg py-2 pl-3 pr-3 text-sm text-sg-neutral-300 transition-colors hover:bg-white/5 hover:text-tri-on-primary'
+                              ? 'relative flex min-h-11 items-center gap-3 rounded-lg bg-tri-navy-hover py-2 pl-3 pr-3 text-sm font-medium text-tri-on-primary'
+                              : 'relative flex min-h-11 items-center gap-3 rounded-lg py-2 pl-3 pr-3 text-sm text-sg-neutral-300 transition-colors hover:bg-tri-navy-hover hover:text-tri-on-primary'
                           }
                         >
                           {active && (
@@ -149,11 +198,11 @@ export function AppSidebar({
           </div>
         </nav>
 
-        <div className="border-t border-white/10 p-3">
+        <div className="border-t border-tri-navy-line p-3">
           <div className="flex items-center gap-3 rounded-lg px-2 py-2">
             <span
               aria-hidden
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-tri-navy-dark text-2xs font-semibold text-tri-on-primary ring-1 ring-white/15"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-tri-navy-dark text-2xs font-semibold text-tri-on-primary ring-1 ring-tri-navy-line"
             >
               {initials}
             </span>
@@ -165,7 +214,7 @@ export function AppSidebar({
           <form action={logout}>
             <button
               type="submit"
-              className="mt-1 flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-sg-neutral-300 transition-colors hover:bg-tri-navy-dark hover:text-tri-on-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tri-gold"
+              className="mt-1 flex min-h-11 w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-sg-neutral-300 transition-colors hover:bg-tri-navy-dark hover:text-tri-on-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tri-gold"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M15 17l5-5-5-5" />

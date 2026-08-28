@@ -131,18 +131,24 @@ export function ReviewBoard(props: { initialItems: ReviewItem[]; canSignoff: boo
         </p>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Penyaring item review">
+      {/*
+       * A filter group, not tabs. The earlier role="tablist" promised a
+       * tabpanel relationship that does not exist here (the results are one
+       * live region, not four panels), and a screen reader announcing
+       * "tab 2 of 4" for a filter misleads more than it helps. aria-pressed
+       * describes what these buttons actually are: toggles over one list.
+       */}
+      <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Penyaring item review">
         {(['all', 'pending', 'attention', 'done'] as const).map((key) => (
           <button
             key={key}
             type="button"
-            role="tab"
-            aria-selected={filter === key}
+            aria-pressed={filter === key}
             onClick={() => setFilter(key)}
             className={
               filter === key
-                ? 'rounded-md border border-sg-accent-600 bg-sg-accent-50 px-3 py-1.5 text-sm font-medium text-sg-accent-700'
-                : 'rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-1.5 text-sm text-sg-neutral-700 hover:bg-sg-neutral-50'
+                ? 'inline-flex min-h-11 items-center rounded-md border border-sg-accent-600 bg-sg-accent-50 px-4 text-sm font-medium text-sg-accent-700'
+                : 'inline-flex min-h-11 items-center rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-4 text-sm text-sg-neutral-700 hover:bg-sg-neutral-50'
             }
           >
             {REVIEW_TEXT.filters[key]} {formatNumber(counts[key])}

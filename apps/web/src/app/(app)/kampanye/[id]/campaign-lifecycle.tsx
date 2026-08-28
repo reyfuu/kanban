@@ -75,7 +75,7 @@ export function CampaignLifecycle(props: {
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="mt-1 block rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-2 py-1 text-sm text-sg-neutral-900 focus:border-sg-accent-600 focus:outline focus:outline-2 focus:outline-sg-accent-600"
+              className="mt-1 block min-h-11 rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-2 text-sm text-sg-neutral-900 focus:border-sg-accent-600 focus:outline focus:outline-2 focus:outline-sg-accent-600"
             />
           </label>
           <textarea
@@ -83,7 +83,7 @@ export function CampaignLifecycle(props: {
             onChange={(e) => setReason(e.target.value)}
             rows={2}
             placeholder="Alasan perpanjangan (min. 10 karakter)"
-            className="w-full rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-2 py-1 text-sm text-sg-neutral-900 placeholder:text-sg-neutral-400 focus:border-sg-accent-600 focus:outline focus:outline-2 focus:outline-sg-accent-600"
+            className="min-h-11 w-full rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-2 text-sm text-sg-neutral-900 placeholder:text-sg-neutral-400 focus:border-sg-accent-600 focus:outline focus:outline-2 focus:outline-sg-accent-600"
           />
           <Btn tone="muted" type="submit" disabled={pending || reason.trim().length < 10}>
             {pending ? 'Menyimpan…' : 'Perpanjang'}
@@ -107,7 +107,7 @@ export function CampaignLifecycle(props: {
             onChange={(e) => setReason(e.target.value)}
             rows={2}
             placeholder="Alasan pembatalan (min. 10 karakter)"
-            className="w-full rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-2 py-1 text-sm text-sg-neutral-900 placeholder:text-sg-neutral-400 focus:border-sg-danger-500 focus:outline focus:outline-2 focus:outline-sg-danger-500"
+            className="min-h-11 w-full rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-2 text-sm text-sg-neutral-900 placeholder:text-sg-neutral-400 focus:border-sg-danger-500 focus:outline focus:outline-2 focus:outline-sg-danger-500"
           />
           <Btn tone="danger" type="submit" disabled={pending || reason.trim().length < 10}>
             {pending ? 'Membatalkan…' : 'Konfirmasi pembatalan'}
@@ -143,7 +143,7 @@ function Btn(props: {
       type={props.type ?? 'button'}
       onClick={props.onClick}
       disabled={props.disabled}
-      className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sg-accent-600 disabled:opacity-50 ${cls}`}
+      className={`inline-flex min-h-11 items-center rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sg-accent-600 disabled:opacity-50 ${cls}`}
     >
       {props.children}
     </button>
