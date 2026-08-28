@@ -211,6 +211,22 @@ pnpm dev:web              # http://localhost:3000
 pnpm dev:worker           # proses pekerja; belum mengonsumsi antrean apa pun
 ```
 
+Kompilasi pengembangan memakai **SWC**, bukan `tsc`. Mode watch `tsc` menahan
+seluruh program TypeScript di memori dan sendirian memakai sekitar 486MB; SWC
+mengompilasi per berkas, sehingga total proses API turun dari ~712MB ke ~320MB
+tanpa satu baris kode aplikasi berubah. Build produksi (`pnpm build`) tetap
+memakai `tsc`, sehingga pemeriksaan tipe pada artefak yang dikirim tidak
+berkurang.
+
+Runtime yang lebih ringan (Bun, atau `tsx`/esbuild) **tidak bisa dipakai** di
+sini, dan itu sudah diuji, bukan diasumsikan: NestJS bergantung pada
+`emitDecoratorMetadata` untuk injeksi dependensinya, sedangkan esbuild — mesin
+di balik tsx maupun Bun — tidak memancarkannya. Aplikasinya memang menyala dan
+seluruh 192 rutenya termuat di Bun, tetapi setiap controller melempar
+`Cannot read properties of undefined` begitu dipanggil, karena
+`design:paramtypes` tidak pernah ada. SWC memancarkannya, jadi ia satu-satunya
+jalur cepat yang benar untuk basis kode berdekorator.
+
 Menghentikan: `pnpm dev:down` (atau `Ctrl-C` di tiap terminal), lalu
 `pnpm infra:down` (tambahkan `-v` lewat `docker compose down -v` bila ingin
 membuang datanya).

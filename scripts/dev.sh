@@ -16,6 +16,18 @@
 #   ./scripts/dev.sh logs web      # ikuti log satu service (tail -f)
 #
 # Catatan hemat RAM:
+#   - Kompilasi memakai SWC (`nest start --builder swc`), bukan tsc. Mode watch
+#     tsc menahan seluruh program TypeScript di memori dan sendirian memakai
+#     ~486MB; SWC mengompilasi per berkas dan tidak menyimpannya. Total proses
+#     api turun dari ~712MB ke ~320MB tanpa mengubah kode aplikasi.
+#
+#     Kenapa bukan tsx/esbuild yang lebih ringan lagi: esbuild tidak memancarkan
+#     `emitDecoratorMetadata`, sehingga `design:paramtypes` hilang dan injeksi
+#     dependensi NestJS gagal saat runtime — dicoba, dan setiap controller
+#     langsung melempar "Cannot read properties of undefined". Alasan yang sama
+#     berlaku untuk Bun. SWC memancarkannya, jadi ia satu-satunya jalur cepat
+#     yang benar untuk basis kode berdekorator.
+#
 #   - Worker default TANPA watch (jarang diubah): build sekali lalu jalan dari
 #     dist. Set WORKER_WATCH=1 untuk mode watch.
 #   - Tiap proses Node dibatasi lewat NODE_OPTIONS=--max-old-space-size.

@@ -6,8 +6,8 @@
   "scripts": {
     "build": "nest build",
     "start": "node dist/main.js",
-    "start:dev": "nest start --watch",
-    "start:worker": "nest start --entryFile worker --watch",
+    "start:dev": "nest start --watch --builder swc",
+    "start:worker": "nest start --entryFile worker --watch --builder swc",
     "start:worker:prod": "node dist/worker.js",
     "typecheck": "tsc --noEmit"
   },
@@ -28,6 +28,7 @@
     "@nestjs/cli": "^11.0.13",
     "@nestjs/schematics": "^11.0.9",
     "@types/express": "^5.0.3",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   }
 }
