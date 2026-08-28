@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { apiFetch } from '@/lib/api'
 import { formatDate, formatDaysAgo, formatNumber } from '@/lib/format'
 import { hasPermission, requireUser } from '@/lib/session'
+import { Code, EmptyState, PageHeader, StatusBadge, TableFrame, Th, type BadgeTone } from '@/components/ui'
 
 export interface ApplicationRow {
   id: string
@@ -17,11 +18,11 @@ export interface ApplicationRow {
   snapshot_is_stale: boolean
 }
 
-const CRITICALITY_STYLE: Record<string, string> = {
-  KRITIS: 'bg-sg-danger-50 text-sg-danger-700',
-  TINGGI: 'bg-sg-warning-50 text-sg-warning-700',
-  SEDANG: 'bg-sg-info-50 text-sg-info-700',
-  RENDAH: 'bg-sg-neutral-100 text-sg-neutral-700',
+const CRITICALITY_TONE: Record<string, BadgeTone> = {
+  KRITIS: 'danger',
+  TINGGI: 'warning',
+  SEDANG: 'info',
+  RENDAH: 'neutral',
 }
 
 /**
@@ -40,45 +41,41 @@ export default async function AplikasiPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold text-sg-neutral-900">Registri Aplikasi</h1>
-      <p className="mt-1 max-w-3xl text-sm text-sg-neutral-600">
-        Aplikasi yang hak aksesnya ditinjau. Umur snapshot menentukan apakah aplikasi dapat
-        dimasukkan ke kampanye: snapshot yang lebih tua dari 7 hari menghalangi peluncuran.
-      </p>
+      <PageHeader
+        title="Registri Aplikasi"
+        description="Aplikasi yang hak aksesnya ditinjau. Umur snapshot menentukan apakah aplikasi dapat dimasukkan ke kampanye: snapshot yang lebih tua dari 7 hari menghalangi peluncuran."
+      />
 
       {applications.length === 0 ? (
-        <p className="mt-6 rounded-lg border border-dashed border-sg-neutral-300 bg-sg-neutral-0 px-4 py-10 text-center text-sm text-sg-neutral-600">
-          Belum ada aplikasi terdaftar.
-        </p>
+        <div className="mt-6">
+          <EmptyState>Belum ada aplikasi terdaftar.</EmptyState>
+        </div>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-lg border border-sg-neutral-200 bg-sg-neutral-0">
-          <table className="w-full min-w-[60rem] text-sm">
-            <caption className="sr-only">Daftar aplikasi terdaftar</caption>
-            <thead className="border-b border-sg-neutral-200 bg-sg-neutral-50 text-left text-xs uppercase tracking-wide text-sg-neutral-600">
+        <div className="mt-6">
+          <TableFrame caption="Daftar aplikasi terdaftar" minWidth="min-w-[60rem]">
+            <thead className="border-b border-sg-neutral-200 bg-sg-neutral-50 text-left">
               <tr>
-                <th scope="col" className="px-3 py-2 font-medium">Kode</th>
-                <th scope="col" className="px-3 py-2 font-medium">Nama</th>
-                <th scope="col" className="px-3 py-2 font-medium">Kekritisan</th>
-                <th scope="col" className="px-3 py-2 font-medium">Pemilik</th>
-                <th scope="col" className="px-3 py-2 font-medium">Pemilik teknis</th>
-                <th scope="col" className="px-3 py-2 font-medium">Hak akses</th>
-                <th scope="col" className="px-3 py-2 font-medium">Frekuensi</th>
-                <th scope="col" className="px-3 py-2 font-medium">Snapshot terakhir</th>
+                <Th>Kode</Th>
+                <Th>Nama</Th>
+                <Th>Kekritisan</Th>
+                <Th>Pemilik</Th>
+                <Th>Pemilik teknis</Th>
+                <Th>Hak akses</Th>
+                <Th>Frekuensi</Th>
+                <Th>Snapshot terakhir</Th>
               </tr>
             </thead>
             <tbody className="divide-y divide-sg-neutral-100">
               {applications.map((a) => (
-                <tr key={a.id}>
-                  <td className="whitespace-nowrap px-3 py-2 font-medium text-sg-neutral-900">{a.code}</td>
+                <tr key={a.id} className="hover:bg-sg-neutral-50">
+                  <td className="whitespace-nowrap px-3 py-2">
+                    <Code className="font-medium text-sg-neutral-900">{a.code}</Code>
+                  </td>
                   <td className="px-3 py-2 text-sg-neutral-800">{a.name}</td>
                   <td className="px-3 py-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        CRITICALITY_STYLE[a.criticality] ?? 'bg-sg-neutral-100 text-sg-neutral-700'
-                      }`}
-                    >
+                    <StatusBadge tone={CRITICALITY_TONE[a.criticality] ?? 'neutral'}>
                       {a.criticality}
-                    </span>
+                    </StatusBadge>
                   </td>
                   <td className="px-3 py-2 text-sg-neutral-700">{a.owner.full_name}</td>
                   <td className="px-3 py-2 text-sg-neutral-700">{a.tech_owner?.full_name ?? '—'}</td>
@@ -101,7 +98,7 @@ export default async function AplikasiPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </TableFrame>
         </div>
       )}
     </div>
