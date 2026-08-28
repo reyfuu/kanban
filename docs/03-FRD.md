@@ -625,13 +625,15 @@ stateDiagram-v2
 **Deskripsi.** Sistem HARUS menerima data akses melalui unggahan berkas CSV atau XLSX bertemplat.
 **Aturan bisnis.**
 1. Templat dapat diunduh per aplikasi, memuat kolom wajib, penjelasan tiap kolom, dan contoh baris.
-2. Kolom wajib: pengenal akun, nama akun, kode hak akses, status akun. Kolom opsional: nama tampilan, surel, waktu akses terakhir, tanggal pemberian akses, pemberi akses.
+2. Kolom wajib: pengenal akun, nama akun, kode hak akses, status akun. Kolom opsional: nomor induk karyawan, nama tampilan, surel, waktu akses terakhir, tanggal pemberian akses, pemberi akses.
 3. Validasi dilakukan sebelum penyimpanan; sistem menampilkan pratinjau berisi jumlah baris valid, jumlah bermasalah, dan daftar masalah beserta nomor barisnya.
 4. Pengunggah DAPAT melanjutkan hanya dengan baris valid; baris bermasalah tersedia untuk diunduh dalam berkas terpisah berisi kolom keterangan kesalahan.
 5. Unggahan menghasilkan snapshot bertanggal dengan penanda sumber manual beserta identitas pengunggah.
 6. Sistem HARUS mendeteksi bila unggahan menyebabkan penurunan jumlah baris lebih dari 30% dibanding snapshot sebelumnya, dan meminta konfirmasi eksplisit sebelum menyimpan.
 
-**Alasan rancangan.** Penurunan drastis jumlah baris hampir selalu menandakan ekspor yang tidak lengkap. Bila diterima diam-diam, banyak hak akses menghilang dari cakupan review dan luput dari peninjauan.
+**Alasan rancangan.** Nomor induk karyawan bersifat opsional tetapi disebut lebih dulu karena FR-B-006 aturan 1 menjadikannya langkah pertama pemetaan akun ke karyawan; tanpa kolom itu, langkah tersebut tidak pernah dapat berjalan untuk data yang masuk lewat unggahan.
+
+Penurunan drastis jumlah baris hampir selalu menandakan ekspor yang tidak lengkap. Bila diterima diam-diam, banyak hak akses menghilang dari cakupan review dan luput dari peninjauan.
 **Trace.** US-B-03
 
 #### FR-B-005 · Snapshot akses

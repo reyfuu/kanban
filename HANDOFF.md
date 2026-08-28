@@ -8,7 +8,7 @@ Status per **28 Agustus 2026**. Untuk orang berikutnya yang melanjutkan, termasu
 
 **Proyek:** SIGAP — Sistem Integrasi Governance, Akses, dan Prosedur, untuk PT Trimegah Sekuritas Indonesia Tbk.
 
-**Tahap:** dokumentasi lengkap, fondasi lintas modul berjalan, dan **alur demo Modul B kini utuh dari ujung ke ujung** — reviewer memutuskan, menandatangani, tiket pencabutan terbentuk, dan tiket hanya tertutup oleh bukti snapshot.
+**Tahap:** dokumentasi lengkap, fondasi lintas modul berjalan, dan **alur demo Modul B kini utuh dari ujung ke ujung, termasuk sumber datanya** — data akses masuk lewat unggahan bertemplat, reviewer memutuskan, menandatangani, tiket pencabutan terbentuk, dan tiket hanya tertutup oleh snapshot berikutnya yang membuktikan aksesnya hilang.
 
 ```
 docs/          11 dokumen · sumber kebenaran · verify-docs LULUS
@@ -34,11 +34,73 @@ Alur demonya ada di [README](README.md#alur-demo-modul-b). Ringkasnya: masuk seb
 `dewi.lestari`, buka **Review Saya**, putuskan, tanda tangani; lalu masuk sebagai
 `rina.kusuma` untuk melihat tiket yang terbentuk dan mencoba menutupnya secara manual.
 
+**Dua hal yang perlu diketahui sebelum mendemokan.**
+
+Pertama, alurnya **sekali jalan per benih**. Sign-off mengunci keputusan (K-9,
+memang begitu maksudnya), jadi setelah didemokan sekali, layar `dewi.lestari`
+akan tampil terkunci. Benihnya idempoten dan **tidak** mengulang kampanye yang
+sudah ada, jadi untuk mengulang demo dari awal, buang basis datanya:
+
+```bash
+docker compose down -v && pnpm infra:up && pnpm db:setup && pnpm db:seed
+```
+
+Kedua, benihnya **peka tanggal**. Snapshot demo diberi tanggal 27 Agustus 2026,
+dan FR-B-008 aturan 3 menolak peluncuran kampanye atas snapshot berumur lebih
+dari 7 hari. Setelah awal September 2026, penyusun kampanye akan menolak seluruh
+aplikasi demo dengan alasan yang benar.
+
+Ini **tidak lagi buntu**: unggah data akses untuk aplikasi itu dan snapshot yang
+dihasilkan bertanggal hari ini, sehingga penyusun kampanye langsung menerimanya
+lagi. Caranya ada di [README](README.md#menutup-lingkaran-k-1-dengan-data-akses-sungguhan).
+Memajukan `capturedAt` di `packages/db/seed/module-b.ts` tetap merupakan jalan
+pintas yang sah bila yang diinginkan hanya benih yang segar.
+
 ---
 
 ## 2. Yang berubah pada sesi ini
 
-Empat butir pertama dari daftar "berikutnya" di handoff sebelumnya, ditambah dua layar.
+**Pengambilan data akses lewat unggahan bertemplat — butir nomor satu daftar
+"berikutnya" sebelumnya, sebagian.** Sampai sesi ini satu-satunya sumber data
+akses adalah benih, sehingga K-1 berhenti pada "tiket menunggu snapshot
+berikutnya" dan snapshot itu tidak pernah datang. Kini datang.
+
+| Butir | Keadaan |
+|---|---|
+| FR-B-004 · unggahan berkas bertemplat | Jalan · templat per aplikasi, validasi, berkas baris bermasalah, konfirmasi penurunan baris |
+| FR-B-005 · snapshot akses | Jalan · daftar per aplikasi, rincian, baris, perbandingan |
+| FR-B-006 · pemetaan akun ke karyawan | Aturan 1 dan 4 · nomor induk → surel → akun direktori; sisanya Tanpa Pemilik |
+| FR-B-003 · konektor otomatis | **Belum** · tetap skema saja |
+| Lingkaran K-1 | **Tertutup** · snapshot yang diunggah memverifikasi tiket yang menunggu |
+
+Delapan titik akhir baru, seluruhnya di `SnapshotController`. Tidak ada layar
+baru — alurnya lewat API, dan itu disengaja: unggahan tanpa layar tetap menutup
+lingkaran K-1 untuk demo, sedangkan layar tanpa unggahan tidak menutup apa pun.
+
+```
+templat → validasi (nol tulisan) → simpan (satu transaksi) → verifikasi K-1
+```
+
+Yang paling layak diperiksa ulang oleh orang berikutnya:
+
+- **Validasi dan penyimpanan berbagi satu jalur.** `validate` menjalankan aturan
+  baris, peringatan penurunan, dan kaskade pemetaan yang sama persis dengan yang
+  dijalankan `commit`. Pratinjau yang dihitung kode berbeda adalah janji yang
+  tidak ditepati sistem.
+- **Snapshot lahir berstatus `SELESAI`, bukan `MEMPROSES`.** Barisnya mendarat di
+  transaksi yang sama, jadi tidak ada jendela ketika snapshot ada tetapi barisnya
+  belum. K-1 dan cakupan kampanye hanya membaca `SELESAI`, dan snapshot separuh
+  jadi yang terbaca keduanya adalah persis "aksesnya sudah hilang" yang palsu.
+- **Verifikasi K-1 berjalan di luar transaksi penyimpanan.** Snapshot adalah
+  fakta; verifikasi adalah pembacaan atasnya. Kegagalan membaca tidak boleh
+  membatalkan pengambilan data yang sudah benar.
+- **Sidik jari isi diurutkan sebelum di-hash.** Ekspor ulang dengan urutan baris
+  berbeda menghasilkan sidik jari yang sama — kalau tidak, setiap ekspor terlihat
+  seperti perubahan dan sidik jarinya tidak menjawab pertanyaan apa pun.
+
+Sisa daftar "berikutnya" sebelumnya tidak disentuh.
+
+### Masih berlaku dari sesi-sesi sebelumnya
 
 | Butir | Keadaan |
 |---|---|
@@ -63,9 +125,12 @@ K-4  massal memuat item istimewa → diterapkan 1, ditolak 1, dengan seluruh ala
 K-9  sign-off tanpa X-Step-Up-Token → 401 · token palsu → 401 · ubah keputusan setelah tanda tangan → 409
 K-1  minta TERVERIFIKASI_TERTUTUP → 400 (DTO menolaknya) · pelaksana klaim selesai + akses masih
      ada pada snapshot → GAGAL_DIVERIFIKASI · akses benar-benar hilang → tertutup, distempel snapshot
+K-1  lewat unggahan: snapshot memuat hak aksesnya → GAGAL_DIVERIFIKASI · snapshot tanpa hak akses
+     itu → TERVERIFIKASI_TERTUTUP dengan verified_by_snapshot_id terisi. Diikat sebagai tes.
+K-7  rantai audit diverifikasi ulang setelah seluruh perubahan: 180 baris, is_valid = t, tanpa putus
 ```
 
-Gerbang mutu: lint, typecheck, **37 tes**, `verify:docs` — keempatnya lulus.
+Gerbang mutu: lint, typecheck, **82 tes**, `verify:docs` — keempatnya lulus.
 
 ---
 
@@ -134,7 +199,43 @@ Token `--tri-*` di [tokens.css](apps/web/src/styles/tokens.css) sengaja dikosong
 
 Seluruh layar memakai netral. **Jangan menebak warna merek dari tangkapan layar situs.**
 
-### 5.3 Basis data sistem kemungkinan tercemar
+### 5.3 Laporan "hanya direktur utama yang bisa masuk" — belum dapat direproduksi
+
+Dilaporkan pada akhir sesi ini. **Tidak berhasil direproduksi di sini**, dan
+belum terjawab — dicatat supaya tidak hilang, bukan karena sudah selesai.
+
+Yang sudah diperiksa, seluruhnya lulus:
+
+| Lapisan | Hasil |
+|---|---|
+| `POST /auth/login` untuk kesembilan pengguna benih | 9/9 berhasil |
+| Halaman `/` untuk kesembilan pengguna | 9/9 HTTP 200 |
+| Basis data | 9 pengguna aktif, peran dan cakupan benar |
+| `SeedIdentityProvider.authenticate` | satu kata sandi bersama, tanpa percabangan per pengguna |
+| Log peladen web | tanpa kesalahan |
+
+`direktur.utama` memang berbeda dari delapan lainnya dalam satu hal: ia satu-satunya
+yang **tanpa cakupan**, karena unitnya `DIR` (lihat `seed.ts`). Itu petunjuk yang
+menggoda dan sudah ditelusuri — tetapi cakupan sama sekali tidak disentuh jalur
+autentikasi. Ia hanya menentukan baris mana yang terlihat **setelah** masuk.
+
+Yang perlu ditanyakan ke pelapor sebelum menebak lebih jauh: **pesan apa yang muncul.**
+Ketiganya menunjuk ke tempat yang sangat berbeda:
+
+- "Nama pengguna atau kata sandi salah" → API menolak; periksa `SEED_IDENTITY_PASSWORD`
+  di `.env` dan apakah benihnya sudah dijalankan.
+- "Sistem tidak dapat dihubungi" → `pnpm dev:api` tidak berjalan, atau `API_BASE_URL`
+  tidak menunjuk ke porta 3001.
+- Berhasil masuk tetapi layarnya kosong atau salah → bukan masalah login sama sekali,
+  melainkan hak akses per layar. `admin.sigap` dan `direktur.utama` memang **seharusnya**
+  melihat sedikit sekali layar (lihat tabel pengguna di README), dan itu ditegakkan
+  lewat hak akses, bukan lewat menu.
+
+Sebelum menelusuri lebih jauh, jalankan `pnpm db:seed` — sesi ini menambahkan garis
+pelaporan atasan yang dibutuhkan RA-01, dan basis data yang belum diperbarui akan
+berperilaku berbeda dari yang dijelaskan di sini.
+
+### 5.4 Basis data sistem kemungkinan tercemar
 
 Pada sesi lama, migrasi kemungkinan mendarat di PostgreSQL sistem di porta 5432. Porta pengembangan sudah dipindah ke 5442/6389/9010. Pembersihan basis data `sigap` dan peran `sigap_app` di instalasi sistem belum dilakukan.
 
@@ -174,18 +275,35 @@ Ini yang tidak terlihat dari membaca kode saja. Yang baru ada di bagian bawah.
 
 **`packages/db` kini ikut di-typecheck, termasuk `seed/`.** Sebelumnya `tsconfig.json`-nya hanya memuat `src`, sehingga nilai enum yang salah di benih baru ketahuan saat benihnya dijalankan. Gerbangnya langsung menemukan satu kesalahan tipe lama pada `seed.ts` begitu dinyalakan.
 
+**Pratinjau dan peluncuran kampanye memakai satu jalur resolusi yang sama.** `CampaignBuilderService.resolveScope` dipanggil keduanya. Ini bukan penghematan kode: pratinjau yang dihitung oleh kode berbeda dari peluncuran adalah janji yang tidak ditepati sistem — penyusun mengambil keputusan atas angka yang tidak akan berlaku, dan baru tahu setelah empat ribu item terlanjur diarahkan ke orang yang salah.
+
+**Pembekuan snapshot terjadi karena bentuknya, bukan karena penanda.** FR-B-008 aturan 1 menuntut snapshot dibekukan untuk kampanye. Tidak ada kolom `is_frozen` di mana pun: setiap `review_item` menunjuk satu baris `snapshot_line` tertentu, jadi kampanye meninjau persis baris yang ada saat peluncuran, dan snapshot berikutnya membuat baris baru tanpa menyentuh yang lama. Tidak ada penanda yang bisa lupa dipasang, dan tidak ada cara kampanye melayang ke data yang lebih baru.
+
+**RA-04 sengaja tidak berfungsi.** Ia mengarah ke "pemilik hak akses", sedangkan `entitlement_catalog` tidak punya kolom pemilik. Ia menghasilkan nol reviewer sehingga seluruh itemnya jatuh ke cadangan — **terlihat di pratinjau**. Membuatnya diam-diam berperilaku seperti RA-02 akan membuat penyusun mengira ia mengatur sesuatu yang sebenarnya tidak diaturnya.
+
+**Satu penghubung Redis dipakai dua kali, jadi logika penyambungannya dijadikan satu fungsi.** `ensureRedisReady` di `shared/redis/` menangani kasus yang membuat unggahan pertama gagal pada sesi ini: klien `lazyConnect` dengan `enableOfflineQueue: false` menolak perintah pertamanya, dan dua permintaan yang datang bersamaan sama-sama memanggil `connect()` sehingga yang kedua melempar "Redis is already connecting". Duplikat kedua dari lima belas baris siklus hidup koneksi adalah yang biasanya diperbaiki hanya di salah satu salinannya.
+
+**Berkas ekspor sungguhan tidak seragam.** Penguraiannya menerima penanda urutan bita, CRLF, dan **pemisah titik koma** — yang ditulis Excel pada lokal Indonesia, dan penyebab keluhan "berkasnya kelihatan benar tapi semua barisnya ditolak". Baris penjelasan pada templat diawali `#` supaya pengunggah yang tidak menghapusnya tidak mengubah petunjuk menjadi baris data.
+
+**Validasi memeriksa seluruh baris, bukan berhenti pada yang pertama.** Berhenti di baris bermasalah pertama menghasilkan putaran terburuk bagi pemilik aplikasi: perbaiki satu baris, unggah ulang, tunggu, temukan yang berikutnya.
+
+**Tes integrasi kini membersihkan fixture-nya, kecuali yang ditolak jejak audit.** Sebelumnya baris "Aplikasi Uji" menumpuk di basis data pengembangan dan **muncul di registri aplikasi produk**, tanpa pembeda dari data asli. Pembersihannya membiarkan `app_user` gagal dihapus bila `audit_log.actor_id` merujuknya — penolakan itu adalah K-7 yang bekerja, bukan halangan yang perlu diakali. Baris `application`-lah yang wajib hilang, karena itu yang bocor ke antarmuka.
+
+**Pembatalan kampanye berjalan menerima dua wewenang yang berbeda.** `campaign:write` **atau** peran COMPLIANCE cukup untuk masuk; servisnya tetap menuntut COMPLIANCE untuk kampanye yang sudah berjalan. Menuntut keduanya di titik masuk membuat jalur ini **mati** — tidak ada peran yang punya keduanya, dan aturan yang terbaca benar berubah menjadi jalur yang tidak pernah bisa dilalui siapa pun. Itu bug yang sungguh terjadi di sesi ini, bukan kehati-hatian teoretis.
+
 **`ScopeFilter` membedakan "tanpa batasan" dari "dibatasi menjadi kosong".** Dimensi yang tidak ada berarti tidak dibatasi — keadaan sah bagi `COMPLIANCE` dan `AUDIT_LEAD`. Larik kosong berarti dibatasi menjadi tidak apa pun, dan harus cocok dengan nol baris. Menyamakan keduanya mengubah cakupan yang menyempit menjadi cakupan yang membuka semuanya.
 
 ---
 
 ## 7. Berikutnya, berurutan
 
-1. **Snapshot & konektor (FR-B-003 s.d. FR-B-006).** Satu-satunya sumber data akses saat ini adalah benih. Ini penghalang terbesar yang tersisa: penyusun kampanye sudah menolak snapshot berumur lebih dari 7 hari, dan verifikasi pencabutan (K-1) sudah siap menerima snapshot baru — keduanya hanya perlu snapshot yang sungguh masuk. Tanpa ini, demo hanya dapat dijalankan pada tanggal yang benihnya masih segar.
-2. **Deteksi anomali dan SoD (FR-B-007, FR-B-024).** Temuan SoD pada demo ditanam. Mesin deteksinya belum ada, padahal `sod_rule.group_a`/`group_b` sudah menyimpan aturannya.
-3. **Paket bukti kampanye (FR-B-022, FR-B-023).** Penanda keputusan massal sudah tercatat di jejak audit dan diminta muncul di paket bukti (FR-B-013 aturan 5) — paketnya sendiri belum ada.
-4. **Pekerjaan terjadwal.** Dua fungsi menunggu pemanggil: `ensure_snapshot_line_partitions_ahead()` dan `RevocationService.markUnverifiable()` (FR-B-020 aturan 3). Keduanya benar; keduanya belum pernah berjalan.
-5. **Direktori pengguna (FR-X-014).** Wisaya kampanye hanya dapat menawarkan pengguna yang sedang masuk sebagai reviewer cadangan, karena tidak ada titik akhir yang mendaftar pengguna. FR-B-009 aturan 1 mewajibkan cadangan, jadi ini membatasi siapa yang dapat menyusun kampanye untuk orang lain.
-6. **Modul C · Policy Hub** — sisa Fase 1.
+1. **Layar L-14 unggahan data akses (FR-B-004).** Backend-nya lengkap dan teruji; yang tidak ada adalah layarnya. Alur wisayanya sudah jelas karena titik akhirnya sudah menentukannya: pilih aplikasi → unduh templat → unggah → pratinjau berisi jumlah baris sah, baris bermasalah, dan jumlah akun Tanpa Pemilik → konfirmasi peringatan → simpan. Ini butir nomor satu karena tanpa layar, kemampuan yang sudah ada hanya dapat didemokan lewat `curl`.
+2. **Konektor otomatis (FR-B-003).** LDAP, JDBC, REST, SFTP. Modelnya sudah ada beserta `encrypted_credentials`, penjadwalan, dan penghitung kegagalan beruntun; tidak ada satu pun kodenya. Perlu sistem sungguhan untuk diuji, jadi nilainya untuk demo lebih rendah daripada butir 1 meskipun lingkupnya lebih besar.
+3. **Deteksi anomali dan SoD (FR-B-007, FR-B-024).** Temuan SoD pada demo ditanam. Mesin deteksinya belum ada, padahal `sod_rule.group_a`/`group_b` sudah menyimpan aturannya.
+4. **Paket bukti kampanye (FR-B-022, FR-B-023).** Penanda keputusan massal sudah tercatat di jejak audit dan diminta muncul di paket bukti (FR-B-013 aturan 5) — paketnya sendiri belum ada.
+5. **Pekerjaan terjadwal.** Dua fungsi menunggu pemanggil: `ensure_snapshot_line_partitions_ahead()` dan `RevocationService.markUnverifiable()` (FR-B-020 aturan 3). Keduanya benar; keduanya belum pernah berjalan.
+6. **Direktori pengguna (FR-X-014).** Wisaya kampanye hanya dapat menawarkan pengguna yang sedang masuk sebagai reviewer cadangan, karena tidak ada titik akhir yang mendaftar pengguna. FR-B-009 aturan 1 mewajibkan cadangan, jadi ini membatasi siapa yang dapat menyusun kampanye untuk orang lain.
+7. **Modul C · Policy Hub** — sisa Fase 1.
 
 Setelah menyentuh kontrol kritis mana pun: jalankan skill `critical-controls`, lalu subagent `security-reviewer`. Daftar periksa menangkap pelanggaran yang terlihat; review adversarial menangkap yang tersembunyi — kebocoran cakupan di §4 tidak akan tertangkap oleh daftar periksa.
 
@@ -207,10 +325,16 @@ Setelah menyentuh kontrol kritis mana pun: jalankan skill `critical-controls`, l
 | Satu token buram, bukan JWT + refresh | Menyimpang dari [07-API-CONTRACT §2.1](docs/07-API-CONTRACT.md). Alasannya di badan `31c8c01`. Perlu `doc-sync` |
 | Kolom tambahan `audit_log` belum masuk TRD | `actor_role_at_action`, `session_id`, `request_id` dituntut FR-X-008 tapi tidak ada di ERD TRD §3.1 |
 | Aturan ADR-03 di ESLint mudah dilewati | Tidak menangkap `import()` dinamis, `require()`, maupun `fetch` langsung |
+| `docs/DEV-CREDENTIALS.md` tidak ikut di-commit | Berkas tak terlacak yang akan muncul di `git status`. Isinya hanya kata sandi demo yang sudah tertulis di README, dan tajuknya sendiri menyatakan jangan di-commit — jadi ia sengaja dibiarkan di luar repo, bukan terlupakan |
 | Kata sandi bawaan `docker-compose` memakai `:-` | `.env` yang hilang menghasilkan tumpukan yang berjalan mulus dengan kredensial tertulis di git |
 | Model `Connector` dan `AccessAnomaly` belum punya kode pemakai | Dipertahankan karena TRD §3.3 menyebutnya eksplisit di ERD. Membuangnya menciptakan penyimpangan dokumen-kode |
 | **RA-04 tidak dapat diterapkan** | FR-B-009 mendefinisikan "pemilik hak akses", tetapi `entitlement_catalog` tidak punya kolom pemilik (TRD §3.3). Aturannya sengaja menghasilkan nol reviewer sehingga seluruh item jatuh ke cadangan secara **terlihat** di pratinjau, alih-alih diam-diam berperilaku seperti RA-02. Perlu kolom baru atau penghapusan RA-04 dari FRD |
 | **Snapshot bertanggal masa depan tidak ditolak** | Umur snapshot dihitung `now - captured_at`, jadi snapshot bertanggal besok berumur negatif dan lolos batas 7 hari. Data konektor sungguhan tidak akan begitu, tetapi unggahan manual (FR-B-006) bisa |
+| **XLSX belum didukung** | FR-B-004 menyebut CSV **atau** XLSX. Hanya CSV yang dibaca; `.xlsx` ditolak dengan pesan yang menyebutkan alasannya, bukan gagal sebagai kesalahan penguraian. Berkas baris bermasalah karenanya juga CSV, bukan `errors.xlsx` seperti pada contoh kontrak lama. Kontraknya sudah disesuaikan |
+| **FR-B-006 aturan 2 dan 3 belum ada** | Pemetaan berbasis kemiripan nama menuntut konfirmasi manusia (aturan 2) dan pemetaan manual harus tersimpan permanen (aturan 3). Keduanya butuh tabel pemetaan yang belum ada di skema. Kaskadenya karena itu berhenti pada tiga langkah deterministik, dan sisanya menjadi Tanpa Pemilik — **terlihat**, alih-alih ditebak diam-diam |
+| **Retensi snapshot belum ditegakkan** | FR-B-005 aturan 3 menuntut minimal 24 snapshot per aplikasi atau seluruhnya dalam 3 tahun. Tidak ada yang membuang apa pun, jadi saat ini sistem menyimpan lebih banyak daripada yang diminta — arah yang aman, tetapi bukan yang tertulis |
+| **Siapa pun yang dapat menulis snapshot dapat menutup tiket** | Sifat rancangan, bukan cacat: snapshot **adalah** buktinya (K-1), dan FRD §1.4 memberi `snapshot:upload` hanya kepada `SEC_OFFICER`. Yang menjaganya adalah jejak audit — nama pengunggah, nama berkas, sidik jari isi, dan alasan konfirmasi tercatat pada setiap unggahan. Perlu diketahui sebelum hak itu diberikan ke peran lain |
+| **Ambang penurunan baris membandingkan snapshot terbaru menurut `captured_at`** | Snapshot bertanggal masa depan karenanya menjadi pembanding. Basis data pengembangan saat ini memuat satu (bertanggal 28 Agustus 09:00 UTC, dibuat manual pada sesi sebelumnya) dan **tidak boleh dihapus** — ia adalah bukti yang menutup tiket TKT-2026-000001 |
 | **Pembatalan kampanye berjalan menuntut dua hal berbeda** | Titik akhirnya menerima `campaign:write` **atau** peran COMPLIANCE, karena tidak ada peran yang punya keduanya — menuntut keduanya membuat jalur ini mati. Servisnya tetap menuntut COMPLIANCE untuk kampanye berjalan. Bila FRD §1.4 kelak memberi COMPLIANCE `campaign:write`, gerbang ganda ini dapat disederhanakan |
 
 ---

@@ -24,7 +24,7 @@ Platform tata kelola internal untuk Trimegah Sekuritas, terdiri atas tiga modul 
 | 04 | [TRD — Technical Requirements](04-TRD.md) | Arsitektur, 8 keputusan arsitektur (ADR), model data & ERD, keamanan & model ancaman, NFR, sizing, penempatan | Arsitek, DevOps, DBA, IT Security |
 | 05 | [UI/UX Flow](05-UIUX-FLOW.md) | Peta situs, 4 alur pengguna utama, 16 wireframe naratif, keadaan antarmuka, aksesibilitas | Designer, Frontend Developer |
 | 06 | [DESIGN — Design System](06-DESIGN.md) | Token desain, semantik warna lintas modul, inventaris komponen, ikonografi, microcopy Bahasa Indonesia | Designer, Frontend Developer |
-| 07 | [API Contract](07-API-CONTRACT.md) | Konvensi REST, autentikasi, 188 titik akhir dengan contoh muatan konkret, kerangka OpenAPI 3.1 | Pengembang Backend & Frontend, Integrator |
+| 07 | [API Contract](07-API-CONTRACT.md) | Konvensi REST, autentikasi, 189 titik akhir dengan contoh muatan konkret, kerangka OpenAPI 3.1 | Pengembang Backend & Frontend, Integrator |
 | 08 | [Agent Spec](08-AGENT-SPEC.md) | 6 agent AI, pola Usulan Agent, inventaris tool baca-saja, matriks rute model, model data & API tambahan | AI Engineer, Arsitek, Kepatuhan |
 | 09 | [Guardrails](09-GUARDRAILS.md) | 33 guardrail dalam 8 lapis, 14 mode kegagalan, vektor penyisipan instruksi, penanganan insiden | AI Engineer, IT Security, Kepatuhan |
 | 10 | [Test Plan](10-TEST-PLAN.md) | Piramida uji, 10 kontrol kritis, uji keamanan & penetrasi, 20 dimensi eval AI, 36 kasus uji guardrail, kinerja, UAT | QA Lead, Tim Pengembang, SKAI |
@@ -195,7 +195,7 @@ Rantai penuh: **sasaran bisnis → user story → requirement fungsional → tit
 |---|---|---|---|---|
 | REG-03 | US-B-01 | FR-B-001, FR-B-002 | `POST /applications` | L-13 |
 | OBJ-04 | US-B-02 | FR-B-003, FR-B-005 | `/connectors`, `POST /connectors/{id}/run` | L-13 |
-| OBJ-04 | US-B-03 | FR-B-004 | `POST /snapshots/upload/validate` | L-14 |
+| OBJ-04 | US-B-03 | FR-B-004, FR-B-005, FR-B-006 | `POST /snapshots/upload/validate`, `POST /snapshots/upload`, `GET /snapshots/compare` | L-14 |
 | OBJ-06 | US-B-04 | FR-B-006, FR-B-007 | `GET /access-anomalies?type=AN-01` | — |
 | OBJ-06 | US-B-05 | FR-B-006, FR-B-007 | `GET /access-anomalies` | — |
 | OBJ-04 | US-B-06 | FR-B-008 s.d. FR-B-010 | `POST /campaigns`, `POST /campaigns/{id}/preview` | L-09 |

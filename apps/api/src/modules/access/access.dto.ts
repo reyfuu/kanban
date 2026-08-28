@@ -1,5 +1,6 @@
 import {
   ArrayMaxSize,
+  IsBoolean,
   ArrayMinSize,
   ArrayNotEmpty,
   IsArray,
@@ -175,4 +176,32 @@ export class CancelCampaignDto {
   @MinLength(10, { message: 'Alasan pembatalan wajib diisi minimal 10 karakter.' })
   @MaxLength(2000)
   reason!: string
+}
+
+/**
+ * FR-B-004 aturan 4 and 6 · continuing a validated upload.
+ *
+ * `skip_invalid_rows` and `confirm_warnings` are both required decisions with
+ * no server-side default that means "yes". An omitted flag leaves the upload
+ * refused, which is the safe direction: the failure mode this rule exists to
+ * prevent is an incomplete export entering silently.
+ */
+export class CommitUploadDto {
+  @IsUUID()
+  validation_id!: string
+
+  @IsOptional()
+  @IsBoolean()
+  skip_invalid_rows?: boolean
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(50, { each: true })
+  confirm_warnings?: string[]
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  confirmation_note?: string
 }

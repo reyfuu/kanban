@@ -7,6 +7,10 @@ import { ReviewItemController } from './review-item.controller.js'
 import { ReviewItemRepository } from './review-item.repository.js'
 import { ReviewerResolver } from './reviewer-resolver.js'
 import { RevocationService } from './revocation.service.js'
+import { SnapshotController } from './snapshot.controller.js'
+import { SnapshotService } from './snapshot.service.js'
+import { SnapshotStagingStore } from './snapshot-staging.store.js'
+import { SnapshotUploadService } from './snapshot-upload.service.js'
 
 /**
  * Modul B · Access Review — review hak akses lintas aplikasi.
@@ -19,11 +23,12 @@ import { RevocationService } from './revocation.service.js'
  * pemakaian `applicationScope` di dalam servis — aturan kode #1, bukan di
  * controller.
  *
- * Belum dibangun: konektor & snapshot (FR-B-003..006), deteksi anomali
- * (FR-B-007), paket bukti (FR-B-022..023).
+ * Pengambilan data akses ada lewat unggahan bertemplat (FR-B-004..006).
+ * Belum dibangun: konektor otomatis (FR-B-003), deteksi anomali (FR-B-007),
+ * paket bukti (FR-B-022..023).
  */
 @Module({
-  controllers: [ReviewItemController, CampaignController],
+  controllers: [ReviewItemController, CampaignController, SnapshotController],
   providers: [
     ReviewItemRepository,
     ReviewDecisionService,
@@ -31,6 +36,9 @@ import { RevocationService } from './revocation.service.js'
     CampaignBuilderService,
     ReviewerResolver,
     RevocationService,
+    SnapshotUploadService,
+    SnapshotService,
+    SnapshotStagingStore,
   ],
   exports: [RevocationService],
 })

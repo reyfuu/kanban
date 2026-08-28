@@ -1172,8 +1172,14 @@ GET  /api/v1/snapshots/{id}
 GET  /api/v1/snapshots/{id}/lines?q=...&entitlement_id=...&employee_id=...
 POST /api/v1/snapshots/upload
 POST /api/v1/snapshots/upload/validate
+GET  /api/v1/snapshots/upload/{validationId}/errors.csv
 GET  /api/v1/snapshots/compare?from={id}&to={id}
 ```
+
+Unggahan menerima **CSV UTF-8**. XLSX ada pada FR-B-004 tetapi belum
+terimplementasi; berkas `.xlsx` ditolak dengan `400` dan pesan yang menyebutkan
+alasannya, bukan gagal sebagai kesalahan penguraian. Berkas baris bermasalah
+karenanya juga CSV.
 
 **Validasi sebelum unggah** — mendukung FR-B-004 aturan 3.
 
@@ -1207,11 +1213,18 @@ file=@daftar-akses-agustus.xlsx
       { "row": 112, "column": "account_status", "code": "INVALID_ENUM", "message": "Nilai harus AKTIF atau NONAKTIF.", "value": "active" },
       { "row": 803, "column": "account_id", "code": "REQUIRED", "message": "Kolom wajib tidak boleh kosong.", "value": null }
     ],
-    "error_file_url": "/api/v1/snapshots/upload/0192f9cd-.../errors.xlsx",
+    "mapping": { "mapped_accounts": 1188, "unowned_accounts": 51 },
+    "error_file_url": "/api/v1/snapshots/upload/0192f9cd-.../errors.csv",
     "expires_at": "2026-08-27T11:30:00+07:00"
   }
 }
 ```
+
+`mapping` menjalankan kaskade FR-B-006 aturan 1 tanpa menyimpan apa pun, supaya
+jumlah akun Tanpa Pemilik terlihat selagi ekspornya masih dapat diperbaiki.
+Validasi ditahan sementara pada penyimpanan berumur pendek; `expires_at`
+menyatakan kapan `validation_id` berhenti berlaku, dan hanya pengguna yang
+memvalidasi yang dapat melanjutkannya.
 
 **Melanjutkan unggahan**
 
@@ -1224,7 +1237,21 @@ file=@daftar-akses-agustus.xlsx
 }
 ```
 
-Bila `confirm_warnings` tidak menyertakan peringatan berkategori `requires_confirmation`, sistem menolak dengan `422`.
+Bila `confirm_warnings` tidak menyertakan peringatan berkategori `requires_confirmation`, sistem menolak dengan `422`. Begitu pula bila masih ada baris bermasalah dan `skip_invalid_rows` tidak bernilai `true` — tidak ada nilai bawaan yang berarti "lanjutkan saja".
+
+**`201 Created`**
+
+```json
+{
+  "data": {
+    "snapshot_id": "0192fa38-...",
+    "line_count": 1239,
+    "revocation_verification": { "checked": 4, "closed": 3, "failed": 1 }
+  }
+}
+```
+
+Verifikasi pencabutan (FR-B-020, K-1) berjalan atas snapshot yang baru mendarat, di luar transaksi penyimpanannya: snapshot adalah fakta, verifikasi adalah pembacaan atasnya, dan kegagalan membaca tidak boleh membatalkan pengambilan data yang sudah benar.
 
 **Perbandingan snapshot**
 

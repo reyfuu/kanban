@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { Injectable, type OnModuleDestroy, ServiceUnavailableException } from '@nestjs/common'
 import Redis from 'ioredis'
+import { ensureRedisReady } from '../redis/redis.connect.js'
 
 /** FR-X-003: "berlaku maksimal 5 menit". Configurable downwards, never upwards. */
 const MAX_TTL_SECONDS = 300
@@ -60,7 +61,7 @@ export class StepUpService implements OnModuleDestroy {
     const expiresIn = ttlSeconds()
 
     try {
-      await this.connect()
+      await ensureRedisReady(this.redis)
       await this.redis.set(
         StepUpService.key(token),
         StepUpService.binding(input.userId, input.sessionId),
@@ -84,24 +85,12 @@ export class StepUpService implements OnModuleDestroy {
    */
   async verify(input: { token: string; userId: string; sessionId: string }): Promise<boolean> {
     try {
-      await this.connect()
+      await ensureRedisReady(this.redis)
       const stored = await this.redis.get(StepUpService.key(input.token))
       return stored === StepUpService.binding(input.userId, input.sessionId)
     } catch {
       return false
     }
-  }
-
-  private async connect(): Promise<void> {
-    if (this.redis.status === 'ready') return
-    if (this.redis.status === 'connecting' || this.redis.status === 'connect') {
-      await new Promise<void>((resolve, reject) => {
-        this.redis.once('ready', resolve)
-        this.redis.once('error', reject)
-      })
-      return
-    }
-    await this.redis.connect()
   }
 
   async onModuleDestroy(): Promise<void> {

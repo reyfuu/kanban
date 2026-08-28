@@ -7,6 +7,7 @@
  */
 export { SharedModule } from './shared.module.js'
 export { PrismaService, type TransactionClient } from './prisma/prisma.service.js'
+export { ensureRedisReady } from './redis/redis.connect.js'
 export { UnitOfWork } from './audit/unit-of-work.js'
 export { AuditService, type ChainVerification } from './audit/audit.service.js'
 export type { AuditRecorder } from './audit/audit.recorder.js'

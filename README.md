@@ -32,7 +32,8 @@ Yang dikerjakan sekarang adalah **fondasi lintas modul (FR-X) dari Fase 1**, lal
 | Modul B · Penyusun kampanye | FR-B-008 s.d. FR-B-010 | Jalan — susun, pratinjau, luncurkan, perpanjang, batalkan |
 | Modul B · Penugasan reviewer | FR-B-009 | Jalan — RA-01, RA-02, RA-03, RA-05; RA-04 belum didukung |
 | Modul B · Registri aplikasi | FR-B-001 | Baca saja; pengelolaannya **belum** |
-| Modul B · Konektor & snapshot | FR-B-003 s.d. FR-B-006 | Skema saja; snapshot demo dari benih |
+| Modul B · Unggahan data akses & snapshot | FR-B-004 s.d. FR-B-006 | Jalan lewat API — templat, validasi, snapshot, perbandingan, pemetaan akun |
+| Modul B · Konektor otomatis | FR-B-003 | Skema saja; belum ada layar unggahan |
 | Modul B · Deteksi anomali & SoD | FR-B-007, FR-B-024 | Skema saja; temuan demo dari benih |
 | Modul B · Paket bukti kampanye | FR-B-022, FR-B-023 | **Belum** |
 | Modul A · Evidence Vault | FR-A-* | **Belum** — Fase 2 |
@@ -63,6 +64,47 @@ Masuk sebagai `dewi.lestari` (pemilik Back Office & Trading) lalu buka **Review 
    untuk membuktikan K-1: tiket **tidak dapat** ditutup dengan menyatakan
    pekerjaan selesai. Hanya snapshot baru yang membuktikan akses telah hilang
    dapat menutupnya; bila akses masih ada, tiket menjadi Gagal Diverifikasi.
+
+### Menutup lingkaran K-1 dengan data akses sungguhan
+
+Sampai sesi ini, satu-satunya sumber data akses adalah benih, jadi langkah 6 di
+atas berhenti pada "tiket menunggu snapshot berikutnya". Snapshot itu kini dapat
+dimasukkan. Belum ada layarnya — alurnya lewat API, sebagai `rina.kusuma`
+(hanya `SEC_OFFICER` yang memegang `snapshot:upload`):
+
+```bash
+T=$(curl -s -X POST localhost:3001/api/v1/auth/login \
+      -H 'Content-Type: application/json' \
+      -d '{"username":"rina.kusuma","password":"demo"}' \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["data"]["access_token"])')
+APP=$(curl -s localhost:3001/api/v1/applications -H "Authorization: Bearer $T" \
+    | python3 -c 'import sys,json;print(next(a["id"] for a in json.load(sys.stdin)["data"] if a["code"]=="BACKOFFICE"))')
+
+# 1. Templat berisi kode hak akses aplikasi ini, bukan contoh karangan.
+curl -s "localhost:3001/api/v1/applications/$APP/upload-template" -H "Authorization: Bearer $T"
+
+# 2. Validasi menulis nol baris dan melaporkan seluruh masalah sekaligus.
+curl -s -X POST localhost:3001/api/v1/snapshots/upload/validate \
+  -H "Authorization: Bearer $T" -F "application_id=$APP" -F "file=@akses.csv"
+
+# 3. Simpan. Verifikasi pencabutan berjalan atas snapshot ini juga.
+curl -s -X POST localhost:3001/api/v1/snapshots/upload -H "Authorization: Bearer $T" \
+  -H 'Content-Type: application/json' \
+  -d '{"validation_id":"...","skip_invalid_rows":true}'
+```
+
+Yang layak ditunjukkan pada demo:
+
+- Validasi memeriksa **seluruh** baris, bukan berhenti pada yang pertama, dan
+  mengembalikan berkas berisi baris bermasalah beserta alasannya.
+- Buang lebih dari 30% baris dari berkasnya dan penyimpanan **ditolak** sampai
+  penurunan itu dikonfirmasi dengan alasan tertulis — alasan itu masuk ke jejak
+  audit bersama nama pengunggah dan sidik jari isi berkas (FR-B-004 aturan 6).
+- Hilangkan hak akses yang tiketnya sedang menunggu, lalu simpan: tiket menutup
+  sendiri dan menyebut snapshot yang membuktikannya. Biarkan hak aksesnya, dan
+  tiket menjadi **Gagal Diverifikasi**. Tidak ada tombol yang mengubah keduanya.
+- `GET /snapshots/compare?from=…&to=…` menunjukkan apa yang bertambah,
+  berkurang, dan berubah statusnya di antara dua pengambilan data.
 
 Untuk menyusun kampanye sendiri, masuk sebagai `rina.kusuma` lalu
 **Kampanye → Susun kampanye**. Wisaya empat langkahnya berakhir pada pratinjau
