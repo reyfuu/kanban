@@ -369,8 +369,10 @@ export async function seedModuleB(ctx: Ctx): Promise<void> {
   }
 
   // The SoD conflict FR-B-024 detects: Rudi holds Order Entry (group A) and
-  // Settlement Approver (group B). Detection itself is not built yet, so the
-  // finding is seeded -- the screen must show the reviewer a real conflict.
+  // Settlement Approver (group B). Detection (DetectionService) now runs for
+  // real when a snapshot lands, but the demo campaign's snapshot predates it,
+  // so the finding is seeded here to guarantee the review screen shows a real
+  // conflict from the first launch without depending on an upload.
   const sodRule = await prisma.sodRule.findUniqueOrThrow({ where: { code: 'SOD-01' } })
   const existingViolation = await prisma.sodViolation.findFirst({
     where: { ruleId: sodRule.id, employeeId: employeeIds.get('EMP-00341')!, status: 'TERBUKA' },
