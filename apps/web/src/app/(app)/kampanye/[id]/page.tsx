@@ -4,6 +4,7 @@ import { apiFetch, ApiError } from '@/lib/api'
 import { daysUntil, formatDate, formatDateTime, formatNumber, formatPercent } from '@/lib/format'
 import { hasPermission, requireUser } from '@/lib/session'
 import { Code, PageHeader, StatusBadge, type BadgeTone } from '@/components/ui'
+import { CampaignLifecycle } from './campaign-lifecycle'
 import { EvidencePackagePanel } from './evidence-package-panel'
 import type { CampaignProgress, EvidencePackage, Signoff } from './types'
 
@@ -155,6 +156,13 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
           )}
         </section>
       </div>
+
+      <CampaignLifecycle
+        campaignId={id}
+        status={progress.status}
+        currentDueDate={progress.due_date}
+        canWrite={hasPermission(user, 'campaign:write') || user.roles.includes('COMPLIANCE')}
+      />
 
       <EvidencePackagePanel
         campaignId={id}

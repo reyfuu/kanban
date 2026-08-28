@@ -71,6 +71,7 @@ beforeAll(async () => {
     externalId: `auditor-${suffix}`,
     employeeId: ids.owner,
     fullName: 'Pemilik Kontrol Uji',
+    jobTitle: null,
     roles: ['AUDITOR_INT'],
     permissions: ['control:read', 'control:write'],
     scopes: {},

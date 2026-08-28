@@ -68,6 +68,7 @@ export class AuthController {
         id: p.userId,
         external_id: p.externalId,
         full_name: p.fullName,
+        job_title: p.jobTitle,
         roles: p.roles,
         permissions: p.permissions,
         scopes: p.scopes,

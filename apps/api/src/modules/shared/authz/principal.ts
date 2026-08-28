@@ -12,6 +12,13 @@ export interface Principal {
   readonly externalId: string
   readonly employeeId: string | null
   readonly fullName: string
+  /**
+   * The person's job title, e.g. "IT Security Officer". Every user is also an
+   * EMPLOYEE, so the role list alone is noisy for identifying who someone is;
+   * the job title is what a person recognises. Null for a user with no employee
+   * record (e.g. an external auditor account).
+   */
+  readonly jobTitle: string | null
   readonly roles: readonly string[]
   readonly permissions: readonly string[]
   /** Scope values keyed by dimension, e.g. `{ org_units: ['SKAI'] }`. */

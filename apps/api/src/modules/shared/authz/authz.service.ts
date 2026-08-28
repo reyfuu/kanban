@@ -78,6 +78,7 @@ export class AuthzService {
       externalId: user.externalId,
       employeeId: user.employeeId,
       fullName: user.employee?.fullName ?? user.externalId,
+      jobTitle: user.employee?.jobTitle ?? null,
       roles: [...roles],
       permissions: [...permissions],
       scopes: Object.fromEntries(Object.entries(scopes).map(([k, v]) => [k, [...v]])),

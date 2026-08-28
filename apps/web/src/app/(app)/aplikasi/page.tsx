@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api'
 import { formatDate, formatDaysAgo, formatNumber } from '@/lib/format'
 import { hasPermission, requireUser } from '@/lib/session'
 import { Code, EmptyState, PageHeader, StatusBadge, TableFrame, Th, type BadgeTone } from '@/components/ui'
+import { ApplicationForm, ApplicationRowActions, type Employee } from './application-form'
 
 export interface ApplicationRow {
   id: string
@@ -38,12 +39,16 @@ export default async function AplikasiPage() {
   if (!hasPermission(user, 'application:read')) notFound()
 
   const applications = await apiFetch<ApplicationRow[]>('/applications')
+  const canWrite = hasPermission(user, 'application:write')
+  // The owner picker only matters to a writer; fetch it only then.
+  const employees = canWrite ? await apiFetch<Employee[]>('/employees').catch(() => []) : []
 
   return (
     <div>
       <PageHeader
         title="Registri Aplikasi"
         description="Aplikasi yang hak aksesnya ditinjau. Umur snapshot menentukan apakah aplikasi dapat dimasukkan ke kampanye: snapshot yang lebih tua dari 7 hari menghalangi peluncuran."
+        action={canWrite ? <ApplicationForm employees={employees} /> : undefined}
       />
 
       {applications.length === 0 ? (
@@ -63,6 +68,7 @@ export default async function AplikasiPage() {
                 <Th>Hak akses</Th>
                 <Th>Frekuensi</Th>
                 <Th>Snapshot terakhir</Th>
+                {canWrite && <Th>Aksi</Th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-sg-neutral-100">
@@ -95,6 +101,23 @@ export default async function AplikasiPage() {
                       </span>
                     )}
                   </td>
+                  {canWrite && (
+                    <td className="px-3 py-2 align-top">
+                      <ApplicationRowActions
+                        app={{
+                          id: a.id,
+                          code: a.code,
+                          name: a.name,
+                          criticality: a.criticality,
+                          hosting_type: a.hosting_type,
+                          review_frequency: a.review_frequency,
+                          owner: a.owner,
+                          tech_owner: a.tech_owner,
+                        }}
+                        employees={employees}
+                      />
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

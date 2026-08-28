@@ -1053,11 +1053,18 @@ GET   /api/v1/applications?criticality=KRITIS&is_active=true
 POST  /api/v1/applications
 GET   /api/v1/applications/{id}
 PATCH /api/v1/applications/{id}
+POST  /api/v1/applications/{id}/deactivate
 GET   /api/v1/applications/{id}/entitlements
 PATCH /api/v1/entitlements/{id}
 GET   /api/v1/applications/{id}/snapshots
 GET   /api/v1/applications/{id}/upload-template
+GET   /api/v1/employees
 ```
+
+`POST /applications/{id}/deactivate` menonaktifkan aplikasi (penghapusan lunak
+sesuai FR-X-019, tidak pernah dihapus permanen). `GET /employees` mengembalikan
+daftar karyawan aktif untuk pemilih pemilik/pemilik teknis pada formulir
+registri. Keduanya digerbang `application:write`.
 
 **Mendaftarkan aplikasi**
 

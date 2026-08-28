@@ -202,6 +202,7 @@ beforeAll(async () => {
     externalId: `uji.paket.${suffix}`,
     employeeId: ids.employee,
     fullName: 'Penguji Paket Bukti',
+    jobTitle: null,
     roles: ['SEC_OFFICER'],
     permissions: ['campaign:read', 'campaign:write', 'campaign:signoff'],
     scopes: {},

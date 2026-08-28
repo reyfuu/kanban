@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common'
 import { AnomalyController } from './anomaly.controller.js'
 import { AnomalyService } from './anomaly.service.js'
+import { ApplicationController } from './application.controller.js'
+import { ApplicationService } from './application.service.js'
 import { CampaignController } from './campaign.controller.js'
 import { CampaignBuilderService } from './campaign-builder.service.js'
 import { CampaignService } from './campaign.service.js'
@@ -35,12 +37,13 @@ import { SodService } from './sod.service.js'
  * (FR-B-003).
  */
 @Module({
-  controllers: [ReviewItemController, CampaignController, SnapshotController, AnomalyController],
+  controllers: [ReviewItemController, CampaignController, SnapshotController, AnomalyController, ApplicationController],
   providers: [
     ReviewItemRepository,
     ReviewDecisionService,
     CampaignService,
     CampaignBuilderService,
+    ApplicationService,
     ReviewerResolver,
     RevocationService,
     SnapshotUploadService,

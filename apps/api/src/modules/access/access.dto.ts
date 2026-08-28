@@ -17,7 +17,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator'
-import { CampaignType, ReviewDecisionType } from '@prisma/client'
+import { CampaignType, HostingType, ReviewDecisionType, ReviewFrequency, RiskLevel } from '@prisma/client'
 import { BULK_MAX_ITEMS } from './review-rules.js'
 
 /**
@@ -262,4 +262,62 @@ export class SodSimulateDto {
 
   @IsObject()
   group_b!: Record<string, unknown>
+}
+
+/** FR-B-001 · register an application in the registry. */
+export class CreateApplicationDto {
+  @IsString()
+  @MinLength(2)
+  @MaxLength(50)
+  code!: string
+
+  @IsString()
+  @MinLength(3)
+  @MaxLength(200)
+  name!: string
+
+  @IsUUID()
+  owner_employee_id!: string
+
+  @IsOptional()
+  @IsUUID()
+  tech_owner_employee_id?: string
+
+  @IsEnum(RiskLevel, { message: 'Kekritisan tidak sah.' })
+  criticality!: RiskLevel
+
+  @IsEnum(HostingType, { message: 'Jenis hosting tidak sah.' })
+  hosting_type!: HostingType
+
+  @IsEnum(ReviewFrequency, { message: 'Frekuensi review tidak sah.' })
+  review_frequency!: ReviewFrequency
+}
+
+/** FR-B-001 · edit an application. Code is immutable; everything else optional. */
+export class UpdateApplicationDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(200)
+  name?: string
+
+  @IsOptional()
+  @IsUUID()
+  owner_employee_id?: string
+
+  @IsOptional()
+  @IsUUID()
+  tech_owner_employee_id?: string
+
+  @IsOptional()
+  @IsEnum(RiskLevel)
+  criticality?: RiskLevel
+
+  @IsOptional()
+  @IsEnum(HostingType)
+  hosting_type?: HostingType
+
+  @IsOptional()
+  @IsEnum(ReviewFrequency)
+  review_frequency?: ReviewFrequency
 }

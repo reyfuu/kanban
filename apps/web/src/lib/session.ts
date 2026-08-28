@@ -6,6 +6,7 @@ export interface CurrentUser {
   id: string
   external_id: string
   full_name: string
+  job_title: string | null
   roles: string[]
   permissions: string[]
   scopes: Record<string, string[]>

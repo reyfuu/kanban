@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api'
 import { formatDate } from '@/lib/format'
 import { hasPermission, requireUser } from '@/lib/session'
 import { Code, EmptyState, PageHeader, StatusBadge, TableFrame, Th, type BadgeTone } from '@/components/ui'
+import { TicketActions } from './ticket-actions'
 
 interface Ticket {
   id: string
@@ -52,6 +53,7 @@ export default async function TiketPage() {
   if (!hasPermission(user, 'ticket:read')) notFound()
 
   const tickets = await apiFetch<Ticket[]>('/revocation-tickets')
+  const canExecute = hasPermission(user, 'ticket:execute')
 
   return (
     <div>
@@ -78,6 +80,7 @@ export default async function TiketPage() {
                 <Th>Tenggat SLA</Th>
                 <Th>Status</Th>
                 <Th>Bukti</Th>
+                {canExecute && <Th>Aksi</Th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-sg-neutral-100">
@@ -119,6 +122,11 @@ export default async function TiketPage() {
                       '—'
                     )}
                   </td>
+                  {canExecute && (
+                    <td className="px-3 py-2 align-top">
+                      <TicketActions ticketId={t.id} status={t.status} canExecute={canExecute} />
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

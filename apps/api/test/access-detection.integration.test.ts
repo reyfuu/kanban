@@ -226,6 +226,7 @@ beforeAll(async () => {
     externalId: `sec-${suffix}`,
     employeeId: ids.activeEmp,
     fullName: 'Karyawan Aktif',
+    jobTitle: null,
     roles: ['SEC_OFFICER'],
     permissions: ['snapshot:upload', 'application:read'],
     scopes: {},

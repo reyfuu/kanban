@@ -49,7 +49,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               </span>
               <span className="hidden text-right leading-tight sm:block">
                 <span className="block text-sm font-medium text-sg-neutral-0">{user.full_name}</span>
-                <span className="block text-2xs text-sg-neutral-400">{user.roles.join(' · ')}</span>
+                <span className="block text-2xs text-sg-neutral-400">
+                  {user.job_title ?? user.roles.join(' · ')}
+                </span>
               </span>
             </div>
             <form action={logout}>

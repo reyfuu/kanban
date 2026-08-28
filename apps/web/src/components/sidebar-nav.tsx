@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { NavItem } from './nav-items'
+import { NavIcon } from './nav-icons'
 
 /**
  * The sidebar link list. A client component only so it can read the current
@@ -45,10 +46,14 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
                     aria-current={active ? 'page' : undefined}
                     className={
                       active
-                        ? 'flex items-center gap-2 rounded-md border-l-2 border-sg-accent-600 bg-sg-accent-50 py-2 pl-3 pr-3 text-sm font-medium text-sg-accent-700'
-                        : 'flex items-center gap-2 rounded-md border-l-2 border-transparent py-2 pl-3 pr-3 text-sm text-sg-neutral-600 transition-colors hover:bg-sg-neutral-100 hover:text-sg-neutral-900'
+                        ? 'flex items-center gap-2.5 rounded-md border-l-2 border-sg-accent-600 bg-sg-accent-50 py-2 pl-3 pr-3 text-sm font-medium text-sg-accent-700'
+                        : 'flex items-center gap-2.5 rounded-md border-l-2 border-transparent py-2 pl-3 pr-3 text-sm text-sg-neutral-600 transition-colors hover:bg-sg-neutral-100 hover:text-sg-neutral-900'
                     }
                   >
+                    <NavIcon
+                      name={item.icon}
+                      className={active ? 'text-sg-accent-600' : 'text-sg-neutral-400'}
+                    />
                     {item.label}
                   </Link>
                 </li>

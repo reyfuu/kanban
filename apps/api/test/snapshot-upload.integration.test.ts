@@ -124,6 +124,7 @@ beforeAll(async () => {
     externalId: accountName,
     employeeId: ids.employee,
     fullName: 'Penguji Unggahan',
+    jobTitle: null,
     roles: ['SEC_OFFICER'],
     permissions: ['snapshot:upload', 'application:read'],
     scopes: {},
