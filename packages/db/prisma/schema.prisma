@@ -89,6 +89,7 @@ model OrganizationUnit {
   children  OrganizationUnit[] @relation("OrgUnitHierarchy")
   employees Employee[]
   executedControls Control[]   @relation("ControlExecutingUnit")
+  ownedEvidence    Evidence[]   @relation("EvidenceOwnerUnit")
 
   @@index([parentId], map: "idx_organization_unit_parent_id")
   @@map("organization_unit")
@@ -123,6 +124,9 @@ model Employee {
 
   // Modul A (docs/04-TRD.md Sec 3.2) back-relations.
   ownedControls          Control[]          @relation("ControlOwner")
+  requestItemsAsPic      RequestItem[]      @relation("RequestItemPic")
+  ownedFindings          Finding[]          @relation("FindingOwner")
+  ownedRemediations      Remediation[]      @relation("RemediationOwner")
 
   @@index([orgUnitId], map: "idx_employee_org_unit_id")
   @@index([managerId], map: "idx_employee_manager_id")
@@ -165,6 +169,12 @@ model AppUser {
   // Modul A (docs/04-TRD.md Sec 3.2) back-relations.
   authoredControlVersions   ControlVersion[]   @relation("ControlVersionAuthor")
   authoredControlMappings   ControlMapping[]   @relation("ControlMappingAuthor")
+  ledEngagements            Engagement[]       @relation("EngagementLead")
+  engagementMemberships     EngagementMember[] @relation("EngagementMemberUser")
+  createdEvidence           Evidence[]         @relation("EvidenceCreator")
+  uploadedEvidenceVersions  EvidenceVersion[]  @relation("EvidenceVersionUploader")
+  authoredEvidenceLinks     EvidenceLink[]     @relation("EvidenceLinkAuthor")
+  verifiedRemediations      Remediation[]      @relation("RemediationVerifier")
 
   @@index([isActive], map: "idx_app_user_is_active")
   @@map("app_user")
@@ -621,6 +631,103 @@ enum CoverageLevel {
   @@map("coverage_level")
 }
 
+/// FR-X-018 · four-level information classification. No default (aturan 1).
+enum Classification {
+  PUBLIK
+  INTERNAL
+  TERBATAS
+  RAHASIA
+
+  @@map("classification")
+}
+
+/// FR-A-004 · engagement types.
+enum EngagementType {
+  AUDIT_INTERNAL
+  AUDIT_EKSTERNAL
+  PEMERIKSAAN_REGULATOR
+  SELF_ASSESSMENT
+  SERTIFIKASI
+  AUDIT_INDUK
+  TINJAUAN_MANAJEMEN
+
+  @@map("engagement_type")
+}
+
+/// FR-A-005 · engagement lifecycle.
+enum EngagementStatus {
+  PERENCANAAN
+  BERJALAN
+  PELAPORAN
+  SELESAI
+  PEMANTAUAN
+  DITUTUP
+  DITANGGUHKAN
+  DIBATALKAN
+
+  @@map("engagement_status")
+}
+
+/// FR-A-007 · evidence-request lifecycle.
+enum RequestItemStatus {
+  DRAF
+  TERBIT
+  DISERAHKAN
+  DALAM_PENELAAHAN
+  INFO_TAMBAHAN
+  SELESAI
+  TIDAK_BERLAKU
+
+  @@map("request_item_status")
+}
+
+/// FR-A-013 · evidence lifecycle.
+enum EvidenceStatus {
+  DRAF
+  DISERAHKAN
+  DITERIMA
+  DITOLAK
+  KEDALUWARSA
+  DIARSIPKAN
+
+  @@map("evidence_status")
+}
+
+/// FR-A-010 · where a piece of evidence came from.
+enum EvidenceSource {
+  UNGGAHAN_MANUAL
+  KONEKTOR
+  DIBANGKITKAN_SISTEM
+
+  @@map("evidence_source")
+}
+
+/// FR-A-010 aturan 1 · what a piece of evidence can be linked to.
+enum EvidenceLinkTarget {
+  REQUEST_ITEM
+  CONTROL
+  FINDING
+  ENGAGEMENT
+  CAMPAIGN
+
+  @@map("evidence_link_target")
+}
+
+/// FR-A-017 · finding lifecycle.
+enum FindingLifecycle {
+  DRAF
+  DIKOMUNIKASIKAN
+  DISEPAKATI
+  DISANGGAH
+  DALAM_PERBAIKAN
+  MENUNGGU_VERIFIKASI
+  DITUTUP
+  DITERIMA_SEBAGAI_RISIKO
+  DIBATALKAN
+
+  @@map("finding_lifecycle")
+}
+
 /// Application registry subject to access review (FR-B-001). See
 /// packages/db/README.md for the documented gap between this column list and
 /// the FR-B-001 prose "Atribut" list (uraian/data classification/retrieval
@@ -1048,6 +1155,8 @@ model Control {
   executingOrgUnit OrganizationUnit? @relation("ControlExecutingUnit", fields: [executingOrgUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   versions         ControlVersion[]
   mappings         ControlMapping[]
+  engagementScopes EngagementControl[]
+  requestItems     RequestItem[]
 
   @@index([ownerEmployeeId], map: "idx_control_owner_employee_id")
   @@index([isActive], map: "idx_control_is_active")
@@ -1136,4 +1245,217 @@ model ControlMapping {
   @@index([controlId], map: "idx_control_mapping_control_id")
   @@index([frameworkItemId], map: "idx_control_mapping_framework_item_id")
   @@map("control_mapping")
+}
+
+// ============================================================================
+// Modul A — Evidence Vault stage 2: engagements, evidence, request items,
+// findings. FR-A-004..017; docs/04-TRD.md Sec 3.2 ERD.
+// ============================================================================
+
+/// FR-A-004 · an audit/assessment engagement.
+model Engagement {
+  id               String           @id @db.Uuid
+  code             String           @unique(map: "uq_engagement_code") @db.VarChar(50)
+  title            String           @db.VarChar(300)
+  engagementType   EngagementType   @map("engagement_type")
+  periodFrom       DateTime         @map("period_from") @db.Date
+  periodTo         DateTime         @map("period_to") @db.Date
+  fieldworkStart   DateTime?        @map("fieldwork_start") @db.Date
+  fieldworkEnd     DateTime?        @map("fieldwork_end") @db.Date
+  leadAuditorId    String           @map("lead_auditor_id") @db.Uuid
+  status           EngagementStatus @default(PERENCANAAN)
+  legalHold        Boolean          @default(false) @map("legal_hold")
+  cancelReason     String?          @map("cancel_reason")
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  leadAuditor  AppUser              @relation("EngagementLead", fields: [leadAuditorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  members      EngagementMember[]
+  controls     EngagementControl[]
+  requestItems RequestItem[]
+  findings     Finding[]
+
+  @@index([status], map: "idx_engagement_status")
+  @@index([leadAuditorId], map: "idx_engagement_lead_auditor_id")
+  @@map("engagement")
+}
+
+/// FR-A-004 aturan 3 · team membership; a member only sees their engagements.
+model EngagementMember {
+  id           String   @id @db.Uuid
+  engagementId String   @map("engagement_id") @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user       AppUser    @relation("EngagementMemberUser", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([engagementId, userId], map: "uq_engagement_member")
+  @@index([userId], map: "idx_engagement_member_user_id")
+  @@map("engagement_member")
+}
+
+/// FR-A-004 · controls in scope of an engagement.
+model EngagementControl {
+  id           String   @id @db.Uuid
+  engagementId String   @map("engagement_id") @db.Uuid
+  controlId    String   @map("control_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  control    Control    @relation(fields: [controlId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([engagementId, controlId], map: "uq_engagement_control")
+  @@index([controlId], map: "idx_engagement_control_control_id")
+  @@map("engagement_control")
+}
+
+/// FR-A-010 · evidence as a first-class entity, not an attachment.
+model Evidence {
+  id               String         @id @db.Uuid
+  title            String         @db.VarChar(300)
+  description      String?
+  evidenceType     String         @map("evidence_type") @db.VarChar(100)
+  validityFrom     DateTime?      @map("validity_from") @db.Date
+  validityTo       DateTime?      @map("validity_to") @db.Date
+  ownerOrgUnitId   String?        @map("owner_org_unit_id") @db.Uuid
+  classification   Classification
+  source           EvidenceSource
+  systemGenerated  Boolean        @default(false) @map("system_generated")
+  status           EvidenceStatus @default(DRAF)
+  currentVersionNo Int            @default(0) @map("current_version_no")
+  createdBy        String         @map("created_by") @db.Uuid
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  ownerOrgUnit  OrganizationUnit? @relation("EvidenceOwnerUnit", fields: [ownerOrgUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdByUser AppUser           @relation("EvidenceCreator", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  versions      EvidenceVersion[]
+  links         EvidenceLink[]
+
+  @@index([classification], map: "idx_evidence_classification")
+  @@index([status], map: "idx_evidence_status")
+  @@map("evidence")
+}
+
+/// FR-A-011 · an immutable version of an evidence file — critical control K-8.
+model EvidenceVersion {
+  id           String         @id @db.Uuid
+  evidenceId   String         @map("evidence_id") @db.Uuid
+  versionNo    Int            @map("version_no")
+  storageKey   String         @map("storage_key") @db.VarChar(500)
+  fileName     String         @map("file_name") @db.VarChar(300)
+  fileSize     BigInt         @map("file_size")
+  mimeType     String         @map("mime_type") @db.VarChar(200)
+  sha256       String         @db.VarChar(64)
+  uploadedBy   String         @map("uploaded_by") @db.Uuid
+  uploadedAt   DateTime       @default(now()) @map("uploaded_at") @db.Timestamptz(6)
+  supersededAt DateTime?      @map("superseded_at") @db.Timestamptz(6)
+  scanStatus   FileScanStatus @default(MENUNGGU_PEMINDAIAN) @map("scan_status")
+
+  evidence       Evidence @relation(fields: [evidenceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  uploadedByUser AppUser  @relation("EvidenceVersionUploader", fields: [uploadedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([evidenceId, versionNo], map: "uq_evidence_version_no")
+  @@unique([evidenceId, sha256], map: "uq_evidence_version_sha256")
+  @@index([evidenceId], map: "idx_evidence_version_evidence_id")
+  @@map("evidence_version")
+}
+
+/// FR-A-010/012 · a link from a piece of evidence to something it supports.
+model EvidenceLink {
+  id         String             @id @db.Uuid
+  evidenceId String             @map("evidence_id") @db.Uuid
+  targetType EvidenceLinkTarget @map("target_type")
+  targetId   String             @map("target_id") @db.Uuid
+  note       String?
+  linkedBy   String             @map("linked_by") @db.Uuid
+  linkedAt   DateTime           @default(now()) @map("linked_at") @db.Timestamptz(6)
+
+  evidence     Evidence @relation(fields: [evidenceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  linkedByUser AppUser  @relation("EvidenceLinkAuthor", fields: [linkedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([evidenceId, targetType, targetId], map: "uq_evidence_link_target")
+  @@index([targetType, targetId], map: "idx_evidence_link_target")
+  @@map("evidence_link")
+}
+
+/// FR-A-006 · an evidence request (PBC item) within an engagement.
+model RequestItem {
+  id                   String            @id @db.Uuid
+  engagementId         String            @map("engagement_id") @db.Uuid
+  sequenceNo           Int               @map("sequence_no")
+  description          String
+  controlId            String?           @map("control_id") @db.Uuid
+  evidencePeriodFrom   DateTime?         @map("evidence_period_from") @db.Date
+  evidencePeriodTo     DateTime?         @map("evidence_period_to") @db.Date
+  responsibleOrgUnitId String?           @map("responsible_org_unit_id") @db.Uuid
+  picEmployeeId        String            @map("pic_employee_id") @db.Uuid
+  dueDate              DateTime          @map("due_date") @db.Date
+  expectedEvidenceType String?           @map("expected_evidence_type") @db.VarChar(100)
+  isMandatory          Boolean           @default(true) @map("is_mandatory")
+  status               RequestItemStatus @default(DRAF)
+  reviewNote           String?           @map("review_note")
+  createdAt            DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  engagement  Engagement @relation(fields: [engagementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  control     Control?   @relation(fields: [controlId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  picEmployee Employee   @relation("RequestItemPic", fields: [picEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([engagementId, sequenceNo], map: "uq_request_item_sequence")
+  @@index([engagementId], map: "idx_request_item_engagement_id")
+  @@index([picEmployeeId], map: "idx_request_item_pic_employee_id")
+  @@index([status], map: "idx_request_item_status")
+  @@map("request_item")
+}
+
+/// FR-A-016 · an audit finding.
+model Finding {
+  id             String           @id @db.Uuid
+  engagementId   String           @map("engagement_id") @db.Uuid
+  code           String           @unique(map: "uq_finding_code") @db.VarChar(50)
+  title          String           @db.VarChar(300)
+  conditionText  String           @map("condition_text")
+  criteriaText   String?          @map("criteria_text")
+  causeText      String?          @map("cause_text")
+  effectText     String?          @map("effect_text")
+  recommendation String?
+  riskLevel      RiskLevel        @map("risk_level")
+  ownerEmployeeId String?         @map("owner_employee_id") @db.Uuid
+  dueDate        DateTime?        @map("due_date") @db.Date
+  status         FindingLifecycle @default(DRAF)
+  recurringOfId  String?          @map("recurring_of_id") @db.Uuid
+  riskAcceptedBy String?          @map("risk_accepted_by") @db.Uuid
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  engagement    Engagement    @relation(fields: [engagementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ownerEmployee Employee?     @relation("FindingOwner", fields: [ownerEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  recurringOf   Finding?      @relation("FindingRecurrence", fields: [recurringOfId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  recurrences   Finding[]     @relation("FindingRecurrence")
+  remediations  Remediation[]
+
+  @@index([engagementId], map: "idx_finding_engagement_id")
+  @@index([status], map: "idx_finding_status")
+  @@map("finding")
+}
+
+/// FR-A-017 · a remediation action tracked against a finding.
+model Remediation {
+  id           String    @id @db.Uuid
+  findingId    String    @map("finding_id") @db.Uuid
+  description  String
+  ownerEmployeeId String @map("owner_employee_id") @db.Uuid
+  dueDate      DateTime  @map("due_date") @db.Date
+  verifiedBy   String?   @map("verified_by") @db.Uuid
+  verifiedAt   DateTime? @map("verified_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  finding       Finding  @relation(fields: [findingId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ownerEmployee Employee @relation("RemediationOwner", fields: [ownerEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  verifiedByUser AppUser? @relation("RemediationVerifier", fields: [verifiedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([findingId], map: "idx_remediation_finding_id")
+  @@map("remediation")
 }
