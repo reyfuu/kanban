@@ -48,3 +48,6 @@ test-results/
 
 # Claude Code — setelan lokal per pengembang
 .claude/settings.local.json
+
+# Dev process manager runtime (scripts/dev.sh)
+.dev/
