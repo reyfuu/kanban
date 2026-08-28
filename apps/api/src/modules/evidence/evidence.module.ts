@@ -5,6 +5,8 @@ import { EngagementService } from './engagement.service.js'
 import { EvidenceController } from './evidence.controller.js'
 import { EvidenceItemController } from './evidence-item.controller.js'
 import { EvidenceService } from './evidence-item.service.js'
+import { ExternalAccessController } from './external-access.controller.js'
+import { ExternalAccessService } from './external-access.service.js'
 import { FindingService } from './finding.service.js'
 import { FrameworkService } from './framework.service.js'
 import { RequestItemService } from './request-item.service.js'
@@ -19,15 +21,20 @@ import { RequestItemService } from './request-item.service.js'
  *  - FR-A-010..014 · bukti sebagai entitas mandiri, versi + integritas (K-8).
  *  - FR-A-015 · retensi + penahanan hukum (legal hold) + antrean penghapusan.
  *  - FR-A-016..017 · temuan + tindak lanjut.
+ *  - FR-A-018 · portal auditor eksternal + usulan permintaan bukti.
  *
- * Menyusul: portal auditor eksternal (FR-A-018) dan object-lock penyimpanan
- * yang membuat K-8 rule 3 bersifat fisik.
+ * Menyusul: object-lock penyimpanan yang membuat K-8 rule 3 bersifat fisik.
  *
  * Setiap tulis lewat UnitOfWork + jejak audit (aturan kode #2). Penyaringan
  * visibilitas penugasan (FR-A-004 aturan 3) ada di lapisan servis.
  */
 @Module({
-  controllers: [EvidenceController, EngagementController, EvidenceItemController],
+  controllers: [
+    EvidenceController,
+    EngagementController,
+    EvidenceItemController,
+    ExternalAccessController,
+  ],
   providers: [
     ControlService,
     FrameworkService,
@@ -35,6 +42,7 @@ import { RequestItemService } from './request-item.service.js'
     RequestItemService,
     FindingService,
     EvidenceService,
+    ExternalAccessService,
   ],
   exports: [],
 })

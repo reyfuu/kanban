@@ -8,6 +8,7 @@ import { EngagementService } from '../src/modules/evidence/engagement.service.js
 import { RequestItemService } from '../src/modules/evidence/request-item.service.js'
 import { EvidenceService } from '../src/modules/evidence/evidence-item.service.js'
 import { FindingService } from '../src/modules/evidence/finding.service.js'
+import { ExternalAccessService } from '../src/modules/evidence/external-access.service.js'
 
 /**
  * Modul A stage 2 (FR-A-004..017), against the real database.
@@ -26,6 +27,7 @@ const engagements = new EngagementService(prisma, uow)
 const requestItems = new RequestItemService(prisma, uow)
 const evidence = new EvidenceService(prisma, uow)
 const findings = new FindingService(prisma, uow)
+const externalAccess = new ExternalAccessService(prisma, uow)
 
 const suffix = randomUUID().slice(0, 8)
 const ids = {
@@ -42,6 +44,7 @@ let auditor: Principal
 let lead: Principal
 const createdEngagementIds: string[] = []
 const createdEvidenceIds: string[] = []
+const createdExternalUserIds: string[] = []
 
 function ctx(userId: string, roles: string[]) {
   return {
@@ -114,6 +117,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
+  await prisma.externalAccess.deleteMany({ where: { engagementId: { in: createdEngagementIds } } })
   await prisma.evidenceLink.deleteMany({ where: { evidenceId: { in: createdEvidenceIds } } })
   await prisma.evidenceVersion.deleteMany({ where: { evidenceId: { in: createdEvidenceIds } } })
   for (const eid of createdEngagementIds) {
@@ -128,11 +132,14 @@ afterAll(async () => {
   await prisma.evidence.deleteMany({ where: { id: { in: createdEvidenceIds } } })
   await prisma.control.deleteMany({ where: { id: ids.control } })
   try {
+    await prisma.userRole.deleteMany({ where: { userId: { in: createdExternalUserIds } } })
+    await prisma.appUser.deleteMany({ where: { id: { in: createdExternalUserIds } } })
     await prisma.appUser.deleteMany({ where: { id: { in: [ids.auditor, ids.lead] } } })
     await prisma.employee.deleteMany({ where: { id: { in: [ids.auditorEmp, ids.leadEmp, ids.picEmp] } } })
     await prisma.organizationUnit.deleteMany({ where: { id: ids.orgUnit } })
   } catch {
-    // Referenced by audit trail; stays (K-7).
+    // Referenced by audit trail; stays (K-7). External auditors that performed
+    // an audited portal read cannot be deleted either -- the same control.
   }
   await prisma.$disconnect()
 })
@@ -382,5 +389,127 @@ describe('FR-A-015 · retention and legal hold', () => {
     })
     expect(after?.deletionApprovedAt).not.toBeNull()
     expect(after?.status).toBe('DIARSIPKAN')
+  })
+})
+
+describe('FR-A-018 · external auditor portal', () => {
+  it('TC-IN-A-070 · an external auditor sees only invited engagements and DITERIMA evidence', async () => {
+    const eid = await newEngagement()
+
+    // Two pieces of evidence linked to the engagement: one DITERIMA, one DRAF.
+    const accepted = await asAuditor(() =>
+      evidence.create(auditor, {
+        title: 'Bukti diterima',
+        evidenceType: 'LAPORAN_SISTEM',
+        classification: 'TERBATAS',
+        source: 'UNGGAHAN_MANUAL',
+      }),
+    )
+    createdEvidenceIds.push(accepted.id)
+    const draft = await asAuditor(() =>
+      evidence.create(auditor, {
+        title: 'Bukti draf',
+        evidenceType: 'LAPORAN_SISTEM',
+        classification: 'TERBATAS',
+        source: 'UNGGAHAN_MANUAL',
+      }),
+    )
+    createdEvidenceIds.push(draft.id)
+    await prisma.evidence.update({ where: { id: accepted.id }, data: { status: 'DITERIMA' } })
+    await asAuditor(() => evidence.createLink(auditor, accepted.id, { targetType: 'ENGAGEMENT', targetId: eid }))
+    await asAuditor(() => evidence.createLink(auditor, draft.id, { targetType: 'ENGAGEMENT', targetId: eid }))
+
+    // Invite an external auditor (as AUDIT_LEAD).
+    const accessUntil = new Date()
+    accessUntil.setDate(accessUntil.getDate() + 30)
+    const invite = await asLead(() =>
+      externalAccess.invite(lead, eid, {
+        email: `ext-${suffix}@kap.example`,
+        fullName: 'Auditor Eksternal Uji',
+        accessUntil,
+      }),
+    )
+    createdExternalUserIds.push(invite.userId)
+
+    const extPrincipal: Principal = {
+      userId: invite.userId,
+      externalId: `ext-${suffix}@kap.example`,
+      fullName: 'Auditor Eksternal Uji',
+      roles: ['AUDITOR_EXT'],
+      permissions: [],
+      scopes: {},
+      delegatedFrom: [],
+    }
+    async function asExternal<T>(fn: () => Promise<T>): Promise<T> {
+      return runWithRequestContext(ctx(invite.userId, ['AUDITOR_EXT']), fn)
+    }
+
+    // Portal shows the invited engagement.
+    const engs = await asExternal(() => externalAccess.portalEngagements(extPrincipal))
+    expect(engs.map((e) => e.id)).toContain(eid)
+
+    // Portal evidence is DITERIMA only.
+    const ev = await asExternal(() => externalAccess.portalEvidence(extPrincipal, eid))
+    const evIds = ev.map((e) => e.id)
+    expect(evIds).toContain(accepted.id)
+    expect(evIds).not.toContain(draft.id)
+
+    // A non-invited external cannot see it: revoke, then the engagement drops.
+    await asLead(() => externalAccess.revoke(lead, invite.id))
+    const afterRevoke = await asExternal(() => externalAccess.portalEngagements(extPrincipal))
+    expect(afterRevoke.map((e) => e.id)).not.toContain(eid)
+  })
+
+  it('TC-IN-A-071 · an external proposal is a DRAF request only AUDITOR_INT can publish', async () => {
+    const eid = await newEngagement()
+    const accessUntil = new Date()
+    accessUntil.setDate(accessUntil.getDate() + 30)
+    const invite = await asLead(() =>
+      externalAccess.invite(lead, eid, {
+        email: `ext2-${suffix}@kap.example`,
+        fullName: 'Auditor Eksternal Dua',
+        accessUntil,
+      }),
+    )
+    createdExternalUserIds.push(invite.userId)
+    const extPrincipal: Principal = {
+      userId: invite.userId,
+      externalId: `ext2-${suffix}@kap.example`,
+      fullName: 'Auditor Eksternal Dua',
+      roles: ['AUDITOR_EXT'],
+      permissions: [],
+      scopes: {},
+      delegatedFrom: [],
+    }
+    async function asExternal<T>(fn: () => Promise<T>): Promise<T> {
+      return runWithRequestContext(ctx(invite.userId, ['AUDITOR_EXT']), fn)
+    }
+
+    const dueDate = new Date()
+    dueDate.setDate(dueDate.getDate() + 14)
+    const proposal = await asExternal(() =>
+      externalAccess.portalProposeRequest(extPrincipal, eid, {
+        description: 'Mohon lampirkan rekening koran bank kustodian periode audit.',
+        picEmployeeId: ids.picEmp,
+        dueDate,
+      }),
+    )
+
+    // The proposal exists as a DRAF request tagged with the external proposer.
+    const created = await prisma.requestItem.findUnique({
+      where: { id: proposal.id },
+      select: { status: true, proposedByExternalId: true },
+    })
+    expect(created?.status).toBe('DRAF')
+    expect(created?.proposedByExternalId).toBe(invite.userId)
+
+    // The external auditor holds no permission to publish it; publishing is an
+    // internal action. AUDITOR_INT publishes the whole engagement's drafts.
+    await asAuditor(() => requestItems.publish(auditor, eid))
+    const published = await prisma.requestItem.findUnique({
+      where: { id: proposal.id },
+      select: { status: true },
+    })
+    expect(published?.status).toBe('TERBIT')
   })
 })

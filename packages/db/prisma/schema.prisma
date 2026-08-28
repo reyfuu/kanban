@@ -175,6 +175,8 @@ model AppUser {
   uploadedEvidenceVersions  EvidenceVersion[]  @relation("EvidenceVersionUploader")
   authoredEvidenceLinks     EvidenceLink[]     @relation("EvidenceLinkAuthor")
   verifiedRemediations      Remediation[]      @relation("RemediationVerifier")
+  externalAccessGrants      ExternalAccess[]   @relation("ExternalAccessUser")
+  externalAccessInvited     ExternalAccess[]   @relation("ExternalAccessInviter")
 
   @@index([isActive], map: "idx_app_user_is_active")
   @@map("app_user")
@@ -728,6 +730,16 @@ enum FindingLifecycle {
   @@map("finding_lifecycle")
 }
 
+/// FR-A-018 · external-auditor access grant lifecycle.
+enum ExternalAccessStatus {
+  MENUNGGU_AKTIVASI
+  AKTIF
+  KEDALUWARSA
+  DICABUT
+
+  @@map("external_access_status")
+}
+
 /// Application registry subject to access review (FR-B-001). See
 /// packages/db/README.md for the documented gap between this column list and
 /// the FR-B-001 prose "Atribut" list (uraian/data classification/retrieval
@@ -1274,6 +1286,7 @@ model Engagement {
   controls     EngagementControl[]
   requestItems RequestItem[]
   findings     Finding[]
+  externalAccess ExternalAccess[]
 
   @@index([status], map: "idx_engagement_status")
   @@index([leadAuditorId], map: "idx_engagement_lead_auditor_id")
@@ -1403,6 +1416,10 @@ model RequestItem {
   isMandatory          Boolean           @default(true) @map("is_mandatory")
   status               RequestItemStatus @default(DRAF)
   reviewNote           String?           @map("review_note")
+  /// FR-A-018 aturan 3 · when an external auditor proposed this item, the
+  /// EXTERNAL AppUser who did. A proposal starts DRAF and needs AUDITOR_INT to
+  /// publish it, exactly like an internally authored request.
+  proposedByExternalId String?           @map("proposed_by_external_id") @db.Uuid
   createdAt            DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -1465,4 +1482,35 @@ model Remediation {
 
   @@index([findingId], map: "idx_remediation_finding_id")
   @@map("remediation")
+}
+
+/// FR-A-018 · an external auditor's time-boxed access to one engagement.
+///
+/// Bridges an engagement to an EXTERNAL AppUser. The grant carries its own
+/// access-until date (rule 7) independent of the AppUser.expiresAt, so an
+/// auditor invited to two engagements can have different end dates for each.
+/// Status is the lifecycle; revocation and expiry both close access.
+model ExternalAccess {
+  id            String               @id @db.Uuid
+  engagementId  String               @map("engagement_id") @db.Uuid
+  userId        String               @map("user_id") @db.Uuid
+  email         String               @db.VarChar(320)
+  fullName      String               @map("full_name") @db.VarChar(200)
+  organization  String?              @db.VarChar(200)
+  scopeNote     String?              @map("scope_note")
+  accessUntil   DateTime             @map("access_until") @db.Date
+  status        ExternalAccessStatus @default(MENUNGGU_AKTIVASI)
+  invitedBy     String               @map("invited_by") @db.Uuid
+  invitedAt     DateTime             @default(now()) @map("invited_at") @db.Timestamptz(6)
+  revokedAt     DateTime?            @map("revoked_at") @db.Timestamptz(6)
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  engagement  Engagement @relation(fields: [engagementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user        AppUser    @relation("ExternalAccessUser", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  invitedByUser AppUser  @relation("ExternalAccessInviter", fields: [invitedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([engagementId, userId], map: "uq_external_access_engagement_user")
+  @@index([userId], map: "idx_external_access_user_id")
+  @@index([status], map: "idx_external_access_status")
+  @@map("external_access")
 }

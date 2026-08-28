@@ -292,3 +292,46 @@ export class ApproveDeletionDto {
   @MaxLength(2000)
   reason!: string
 }
+
+export class InviteExternalDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(320)
+  email!: string
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  full_name!: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  organization?: string
+
+  @IsDateString()
+  access_until!: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  scope_note?: string
+}
+
+export class ExtendExternalDto {
+  @IsDateString()
+  access_until!: string
+}
+
+export class PortalProposeRequestDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(4000)
+  description!: string
+
+  @IsUUID()
+  pic_employee_id!: string
+
+  @IsDateString()
+  due_date!: string
+}
