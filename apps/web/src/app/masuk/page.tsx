@@ -14,14 +14,17 @@ export default async function MasukPage() {
         {/* Brand chrome belongs here per 06-DESIGN Sec 2.0, but --tri-* values are
             deliberately empty until the brand guideline arrives. Neutral until then;
             guessing the corporate navy from a screenshot is worse than plain. */}
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold text-sg-neutral-900">SIGAP</h1>
+        <div className="mb-8 flex flex-col items-center text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-sg-neutral-900 text-md font-bold tracking-tight text-sg-neutral-0 shadow-sm">
+            SG
+          </span>
+          <h1 className="mt-4 text-2xl font-semibold tracking-tight text-sg-neutral-900">SIGAP</h1>
           <p className="mt-1 text-sm text-sg-neutral-600">
             Sistem Integrasi Governance, Akses, dan Prosedur
           </p>
         </div>
 
-        <div className="rounded-lg border border-sg-neutral-200 bg-sg-neutral-0 p-6 shadow-sm">
+        <div className="rounded-lg border border-sg-neutral-200 bg-sg-neutral-0 p-6 shadow-md">
           <LoginForm />
         </div>
 
