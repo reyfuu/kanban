@@ -28,11 +28,14 @@ Platform tata kelola internal untuk Trimegah Sekuritas, terdiri atas tiga modul 
 | 08 | [Agent Spec](08-AGENT-SPEC.md) | 6 agent AI, pola Usulan Agent, inventaris tool baca-saja, matriks rute model, model data & API tambahan | AI Engineer, Arsitek, Kepatuhan |
 | 09 | [Guardrails](09-GUARDRAILS.md) | 33 guardrail dalam 8 lapis, 14 mode kegagalan, vektor penyisipan instruksi, penanganan insiden | AI Engineer, IT Security, Kepatuhan |
 | 10 | [Test Plan](10-TEST-PLAN.md) | Piramida uji, 10 kontrol kritis, uji keamanan & penetrasi, 20 dimensi eval AI, 36 kasus uji guardrail, kinerja, UAT | QA Lead, Tim Pengembang, SKAI |
-| 11 | [Alur Sistem](11-ALUR-SISTEM.md) | Perjalanan data end-to-end: asal pengguna dan data akses, alur tiap modul, titik temu ketiganya, posisi agent AI, tabel rujukan cepat | **Titik masuk bagi pembaca baru** — seluruh audiens |
+| 11 | [Alur Sistem](11-ALUR-SISTEM.md) | Perjalanan data end-to-end: asal pengguna dan data akses, alur tiap modul, titik temu ketiganya, posisi agent AI, tabel rujukan cepat | Seluruh audiens |
+| 12 | [Panduan Sederhana](12-PANDUAN-SEDERHANA.md) | Penjelasan tanpa istilah teknis: SIGAP itu apa, 13 peran dan tugasnya, panduan langkah per peran, tiket pencabutan dijelaskan pelan-pelan | **Titik masuk bagi pembaca baru** — pengguna akhir, calon pengguna, orientasi tim |
 
 ### Urutan membaca yang disarankan
 
-**Bila ini kali pertama Anda membaca:** mulai dari `11-ALUR-SISTEM`. Dokumen itu menjelaskan dari mana pengguna dan data berasal, bagaimana keduanya bergerak melalui ketiga modul, dan mengapa ketiganya menjadi satu sistem. Setelah itu barulah urutan sesuai peran di bawah menjadi mudah diikuti.
+**Bila ini kali pertama Anda membaca:** mulai dari `12-PANDUAN-SEDERHANA`, yang menjelaskan sistem ini tanpa istilah teknis, lengkap dengan panduan langkah per peran. Setelah itu `11-ALUR-SISTEM` untuk melihat perjalanan datanya secara utuh. Barulah urutan sesuai peran di bawah menjadi mudah diikuti.
+
+**Untuk pengguna akhir dan orientasi tim baru:** cukup `12-PANDUAN-SEDERHANA`. Bagian 6 memuat panduan langkah untuk tiap peran.
 
 **Untuk pengambil keputusan (Direksi, Komite Audit):** baca `01-BRD` seluruhnya. Cukup untuk menilai apakah investasi ini layak.
 
