@@ -199,6 +199,22 @@ export default async function DokumenPage({ params }: { params: Promise<{ id: st
           ))}
         </ul>
 
+        {/*
+         * FR-C-006 aturan 3 · one-click comparison against the version
+         * immediately before. That is the comparison people actually want:
+         * "what changed in this revision". Arbitrary pairs are reachable by
+         * editing the URL, which is enough for the rare case.
+         */}
+        {doc.versions.length > 1 && (
+          <Link
+            href={`/kebijakan/${doc.id}/bandingkan?dari=${doc.versions[1]!.id}&ke=${doc.versions[0]!.id}`}
+            className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-sg-neutral-300 bg-sg-neutral-0 px-4 text-sm font-medium text-sg-accent-700 hover:bg-sg-neutral-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sg-accent-600"
+          >
+            Bandingkan versi {doc.versions[1]!.versionMajor}.{doc.versions[1]!.versionMinor} dengan{' '}
+            {doc.versions[0]!.versionMajor}.{doc.versions[0]!.versionMinor}
+          </Link>
+        )}
+
         <div className="mt-3 hidden overflow-x-auto rounded-lg border border-sg-neutral-200 bg-sg-neutral-0 sm:block">
           <table className="w-full text-sm">
             <caption className="sr-only">Riwayat versi dokumen</caption>

@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService, UnitOfWork, hasAnyRole, type Principal } from '../shared/index.js'
+import { collapseUnchanged, diffDocuments } from './document-diff.js'
 import { AUDIT_MODE_ROLES, searchableStatuses } from './document-rules.js'
 import {
   DocumentSearchRepository,
@@ -185,6 +186,50 @@ export class DocumentSearchService {
     return doc
   }
 
+  /**
+   * FR-C-006 aturan 3 · compare two versions.
+   *
+   * Entitlement is checked once, on the document, using the same database
+   * predicate the search uses. Both versions belong to that one document, so a
+   * single check covers both -- and checking the versions individually would
+   * invent a per-version access rule the FRD does not define.
+   */
+  async compareVersions(principal: Principal, documentId: string, fromId: string, toId: string) {
+    const allowed = await this.repo.canAccess(principal.userId, documentId)
+    if (!allowed) throw new NotFoundException('Dokumen tidak ditemukan.')
+
+    const versions = await this.prisma.documentVersion.findMany({
+      where: { id: { in: [fromId, toId] }, documentId },
+      select: {
+        id: true,
+        versionMajor: true,
+        versionMinor: true,
+        status: true,
+        changeSummary: true,
+        body: true,
+        extractedText: true,
+        effectiveFrom: true,
+      },
+    })
+    const from = versions.find((v) => v.id === fromId)
+    const to = versions.find((v) => v.id === toId)
+    // Both must belong to THIS document. Without the documentId filter above, a
+    // caller could diff a version of a document they may see against one they
+    // may not, and read the second one out of the diff.
+    if (!from || !to) {
+      throw new NotFoundException('Versi yang dibandingkan tidak ditemukan pada dokumen ini.')
+    }
+
+    const diff = diffDocuments(from.body ?? from.extractedText ?? '', to.body ?? to.extractedText ?? '')
+
+    return {
+      from: versionLabel(from),
+      to: versionLabel(to),
+      summary: diff.summary,
+      hunks: collapseUnchanged(diff.lines),
+    }
+  }
+
   /** FR-C-007 aturan 3 · which version was in force on a given date. */
   async versionInForceOn(principal: Principal, documentId: string, on: Date) {
     const version = await this.repo.versionInForceOn({
@@ -207,5 +252,22 @@ export class DocumentSearchService {
       select: { orgUnitId: true },
     })
     return employee?.orgUnitId ?? null
+  }
+}
+
+function versionLabel(v: {
+  id: string
+  versionMajor: number
+  versionMinor: number
+  status: string
+  changeSummary: string
+  effectiveFrom: Date | null
+}) {
+  return {
+    id: v.id,
+    version: `${v.versionMajor}.${v.versionMinor}`,
+    status: v.status,
+    change_summary: v.changeSummary,
+    effective_from: v.effectiveFrom,
   }
 }

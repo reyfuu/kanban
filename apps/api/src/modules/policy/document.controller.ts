@@ -91,6 +91,21 @@ export class DocumentController {
     return { data: await this.search.versionInForceOn(req.principal!, id, new Date(tanggal)) }
   }
 
+  /** FR-C-006 aturan 3 · `GET /documents/:id/bandingkan?dari=...&ke=...`. */
+  @Get('documents/:id/bandingkan')
+  async compare(
+    @Req() req: SigapRequest,
+    @Param('id') id: string,
+    @Query('dari') dari: string,
+    @Query('ke') ke: string,
+  ) {
+    this.require(req, 'document:read')
+    if (!dari || !ke) {
+      throw new BadRequestException('Sertakan parameter "dari" dan "ke" berisi id versi.')
+    }
+    return { data: await this.search.compareVersions(req.principal!, id, dari, ke) }
+  }
+
   @Post('documents')
   @HttpCode(201)
   async create(@Req() req: SigapRequest, @Body() dto: CreateDocumentDto) {

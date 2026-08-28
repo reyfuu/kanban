@@ -25,7 +25,7 @@ Yang dikerjakan sekarang adalah **fondasi lintas modul (FR-X) dari Fase 1**, lal
 | Notifikasi | FR-X-010, FR-X-011 | **Belum** |
 | Unggahan berkas & pemindaian | FR-X-013 | Skema saja |
 | Modul C · Jenis, taksonomi, siklus hidup dokumen | FR-C-001 s.d. FR-C-004 | Jalan — mesin status penuh; supersesi tanpa jeda dijaga indeks unik parsial |
-| Modul C · Versi & jendela berlaku | FR-C-006, FR-C-007 | Jalan — mayor.minor, dan "versi mana yang berlaku pada tanggal X" |
+| Modul C · Versi, perbandingan & jendela berlaku | FR-C-006, FR-C-007 | Jalan — mayor.minor, perbandingan isi antar versi, dan "versi mana yang berlaku pada tanggal X" |
 | Modul C · Tinjauan berkala | FR-C-008 | Jalan — pernyataan tetap berlaku + daftar terlambat ditinjau (tidak pernah mencabut otomatis) |
 | Modul C · Pencarian hibrida & hak akses | FR-C-009 s.d. FR-C-012 | Jalan — RRF di dalam PostgreSQL, penyaringan hak akses sebelum pemeringkatan, penyaring berhitung, pencarian nihil tercatat |
 | Modul C · Penautan dokumen ke kontrol | FR-C-022 | Jalan lewat API |
@@ -151,6 +151,13 @@ sulit dipercaya kalau hanya dibaca di dokumen.
    `BUAT_DOKUMEN → AJUKAN_TELAAH_DOKUMEN → SETUJUI_TELAAH_DOKUMEN →
    SAHKAN_DOKUMEN → BERLAKUKAN_DOKUMEN`, dan seluruh langkahnya tampil pada
    halaman detail dokumen.
+7. Pada **SOP Penyelesaian Transaksi Efek**, klik **Bandingkan versi 1.0 dengan
+   2.0**. Perbedaannya ditampilkan baris demi baris, dan perubahan itu ditandai
+   **substansial** — angkanya diletakkan di depan pengesah justru untuk menangkap
+   penulisan ulang yang diajukan sebagai perubahan minor demi melewati sebagian
+   jenjang pengesahan. Penandaan itu memberi tahu, tidak pernah memblokir:
+   substansi versus redaksional adalah penilaian atas makna, dan tidak ada
+   hitungan baris yang bisa memutuskannya.
 
 Yang membuat butir 3 dan 4 dapat dipercaya: penyaringan hak akses berupa fungsi
 `check_document_access` di dalam PostgreSQL, dan **setiap** cabang kueri
