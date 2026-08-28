@@ -2,6 +2,7 @@ import { Global, type MiddlewareConsumer, Module, type NestModule } from '@nestj
 import { PrismaService } from './prisma/prisma.service.js'
 import { UnitOfWork } from './audit/unit-of-work.js'
 import { AuditService } from './audit/audit.service.js'
+import { AuditController } from './audit/audit.controller.js'
 import { AuthzService } from './authz/authz.service.js'
 import { IdentityProvider, assertProviderAllowed } from './identity/identity-provider.js'
 import { SeedIdentityProvider } from './identity/seed-identity.provider.js'
@@ -24,7 +25,7 @@ import { ContextMiddleware } from './http/context.middleware.js'
  */
 @Global()
 @Module({
-  controllers: [AuthController],
+  controllers: [AuthController, AuditController],
   providers: [
     PrismaService,
     UnitOfWork,
