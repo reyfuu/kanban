@@ -12,12 +12,14 @@ import {
   Res,
 } from '@nestjs/common'
 import type { Response } from 'express'
-import { hasPermission, type SigapRequest } from '../shared/index.js'
+import { hasPermission, RequiresStepUp, type SigapRequest } from '../shared/index.js'
 import { EvidenceService } from './evidence-item.service.js'
 import {
   AddEvidenceVersionDto,
+  ApproveDeletionDto,
   CreateEvidenceDto,
   CreateEvidenceLinkDto,
+  EvidenceLegalHoldDto,
 } from './evidence-stage2.dto.js'
 
 const DEFAULT_TAKE = 100
@@ -139,6 +141,44 @@ export class EvidenceItemController {
   async deleteLink(@Req() req: SigapRequest, @Param('id') id: string) {
     this.require(req, 'control:write')
     await this.evidence.deleteLink(req.principal!, id)
+    return { data: { id, deleted: true } }
+  }
+
+  // --- Retention & legal hold (FR-A-015) ---
+
+  /** FR-A-015 rule 3 · legal hold on one evidence. Step-up (FR-X-003). */
+  @Post('evidence/:id/legal-hold')
+  @HttpCode(200)
+  @RequiresStepUp()
+  async setLegalHold(@Req() req: SigapRequest, @Param('id') id: string, @Body() dto: EvidenceLegalHoldDto) {
+    this.require(req, 'control:write')
+    await this.evidence.setLegalHold(req.principal!, id, true, dto.reason)
+    return { data: { id, legal_hold: true } }
+  }
+
+  @Post('evidence/:id/legal-hold/release')
+  @HttpCode(200)
+  @RequiresStepUp()
+  async releaseLegalHold(@Req() req: SigapRequest, @Param('id') id: string, @Body() dto: EvidenceLegalHoldDto) {
+    this.require(req, 'control:write')
+    await this.evidence.setLegalHold(req.principal!, id, false, dto.reason)
+    return { data: { id, legal_hold: false } }
+  }
+
+  /** FR-A-015 rule 2 · the deletion queue (COMPLIANCE only). */
+  @Get('evidence-deletion-queue')
+  async deletionQueue(@Req() req: SigapRequest) {
+    this.require(req, 'control:read')
+    return { data: await this.evidence.deletionQueue(req.principal!) }
+  }
+
+  /** FR-A-015 rule 2 · approve deletion. COMPLIANCE + step-up. */
+  @Post('evidence/:id/approve-deletion')
+  @HttpCode(200)
+  @RequiresStepUp()
+  async approveDeletion(@Req() req: SigapRequest, @Param('id') id: string, @Body() dto: ApproveDeletionDto) {
+    this.require(req, 'control:write')
+    await this.evidence.approveDeletion(req.principal!, id, dto.reason)
     return { data: { id, deleted: true } }
   }
 

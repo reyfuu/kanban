@@ -324,3 +324,63 @@ describe('FR-A-016 / FR-A-017 · findings', () => {
     expect(closed.status).toBe('DITUTUP')
   })
 })
+
+describe('FR-A-015 · retention and legal hold', () => {
+  it('TC-IN-A-060 · deletion is refused before retention and under legal hold, allowed after', async () => {
+    const { id } = await asAuditor(() =>
+      evidence.create(auditor, {
+        title: 'Bukti uji retensi',
+        evidenceType: 'LAPORAN_SISTEM',
+        classification: 'INTERNAL',
+        source: 'UNGGAHAN_MANUAL',
+      }),
+    )
+    createdEvidenceIds.push(id)
+    const compliance: Principal = {
+      userId: ids.lead,
+      externalId: `lead-${suffix}`,
+      employeeId: ids.leadEmp,
+      fullName: 'Compliance Uji',
+      roles: ['COMPLIANCE'],
+      permissions: ['control:read', 'control:write'],
+      scopes: {},
+      delegatedFrom: [],
+    }
+    async function asCompliance<T>(fn: () => Promise<T>): Promise<T> {
+      return runWithRequestContext(ctx(ids.lead, ['COMPLIANCE']), fn)
+    }
+
+    // Not past retention (retentionUntil is null) -> refused.
+    await expect(
+      asCompliance(() => evidence.approveDeletion(compliance, id, 'Sudah tidak diperlukan lagi.')),
+    ).rejects.toThrow(/belum melewati masa retensi/i)
+
+    // Backdate retention to the past to simulate an engagement closed long ago.
+    await prisma.evidence.update({
+      where: { id },
+      data: { retentionUntil: new Date('2020-01-01') },
+    })
+
+    // Now it appears in the deletion queue.
+    const queue = await asCompliance(() => evidence.deletionQueue(compliance))
+    expect(queue.some((q) => q.id === id)).toBe(true)
+
+    // Put it under legal hold -> deletion refused, and it leaves the queue.
+    await asCompliance(() => evidence.setLegalHold(compliance, id, true, 'Terkait sengketa hukum berjalan.'))
+    await expect(
+      asCompliance(() => evidence.approveDeletion(compliance, id, 'Sudah tidak diperlukan lagi.')),
+    ).rejects.toThrow(/legal hold/i)
+    const queueUnderHold = await asCompliance(() => evidence.deletionQueue(compliance))
+    expect(queueUnderHold.some((q) => q.id === id)).toBe(false)
+
+    // Lift the hold, then deletion is approved and tombstoned.
+    await asCompliance(() => evidence.setLegalHold(compliance, id, false, 'Sengketa telah selesai.'))
+    await asCompliance(() => evidence.approveDeletion(compliance, id, 'Melewati masa retensi 10 tahun.'))
+    const after = await prisma.evidence.findUnique({
+      where: { id },
+      select: { deletionApprovedAt: true, status: true },
+    })
+    expect(after?.deletionApprovedAt).not.toBeNull()
+    expect(after?.status).toBe('DIARSIPKAN')
+  })
+})

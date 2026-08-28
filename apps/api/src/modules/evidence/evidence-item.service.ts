@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common'
 import type { Classification, EvidenceLinkTarget, EvidenceSource, Prisma } from '@prisma/client'
-import { PrismaService, UnitOfWork, type Principal } from '../shared/index.js'
+import { PrismaService, UnitOfWork, hasAnyRole, type Principal } from '../shared/index.js'
 
 export interface EvidenceInput {
   readonly title: string
@@ -378,6 +378,118 @@ export class EvidenceService {
         objectType: 'EVIDENCE',
         objectId: link.evidenceId,
         before: { target_type: link.targetType, target_id: link.targetId },
+      })
+    })
+  }
+
+  /**
+   * FR-A-015 rule 3/4 · legal hold on one piece of evidence.
+   *
+   * A hold overrides retention: while held, the evidence cannot enter the
+   * deletion queue and cannot be deleted. Only COMPLIANCE/AUDIT_LEAD may set it,
+   * and it needs a recorded reason (rule 5). Step-up is enforced at the
+   * controller (FR-X-003).
+   */
+  async setLegalHold(principal: Principal, evidenceId: string, on: boolean, reason: string): Promise<void> {
+    if (!hasAnyRole(principal, 'COMPLIANCE', 'AUDIT_LEAD')) {
+      throw new ForbiddenException('Legal hold hanya oleh COMPLIANCE atau AUDIT_LEAD.')
+    }
+    if (!reason || reason.trim().length < 10) {
+      throw new BadRequestException('Legal hold memerlukan alasan minimal 10 karakter.')
+    }
+    const evidence = await this.prisma.evidence.findUnique({
+      where: { id: evidenceId },
+      select: { id: true, legalHold: true },
+    })
+    if (!evidence) throw new NotFoundException('Bukti tidak ditemukan.')
+    if (evidence.legalHold === on) {
+      throw new ConflictException(`Legal hold sudah ${on ? 'aktif' : 'nonaktif'}.`)
+    }
+    await this.uow.write(async (tx, audit) => {
+      await tx.evidence.update({ where: { id: evidenceId }, data: { legalHold: on } })
+      await audit.record({
+        action: on ? 'BERLAKUKAN_LEGAL_HOLD_BUKTI' : 'CABUT_LEGAL_HOLD_BUKTI',
+        objectType: 'EVIDENCE',
+        objectId: evidenceId,
+        before: { legal_hold: evidence.legalHold },
+        after: { legal_hold: on, reason },
+      })
+    })
+  }
+
+  /**
+   * FR-A-015 rule 1, 2 · the deletion queue.
+   *
+   * Evidence whose retention date has passed and which is not under legal hold
+   * is eligible for deletion. It is listed, never removed automatically: the
+   * removal is a COMPLIANCE decision (`approveDeletion`). Held evidence is
+   * excluded even if its retention date passed, because the hold overrides
+   * retention (rule 4).
+   */
+  async deletionQueue(principal: Principal) {
+    if (!hasAnyRole(principal, 'COMPLIANCE')) {
+      throw new ForbiddenException('Antrean penghapusan hanya dapat dilihat oleh COMPLIANCE.')
+    }
+    const today = new Date()
+    const rows = await this.prisma.evidence.findMany({
+      where: {
+        legalHold: false,
+        deletionApprovedAt: null,
+        retentionUntil: { not: null, lte: today },
+      },
+      select: {
+        id: true,
+        title: true,
+        classification: true,
+        retentionUntil: true,
+      },
+      orderBy: [{ retentionUntil: 'asc' }],
+    })
+    return rows.map((e) => ({
+      id: e.id,
+      title: e.title,
+      classification: e.classification,
+      eligible_for_deletion_at: e.retentionUntil?.toISOString().slice(0, 10) ?? null,
+    }))
+  }
+
+  /**
+   * FR-A-015 rule 2 · approve deletion of an eligible piece of evidence.
+   *
+   * COMPLIANCE only, step-up at the controller. Refuses anything under legal
+   * hold or not yet past retention. The row is tombstoned (deletionApprovedAt,
+   * status DIARSIPKAN) rather than hard-deleted, so the audit trail keeps a
+   * record that it existed and who removed it.
+   */
+  async approveDeletion(principal: Principal, evidenceId: string, reason: string): Promise<void> {
+    if (!hasAnyRole(principal, 'COMPLIANCE')) {
+      throw new ForbiddenException('Penghapusan bukti hanya dapat disetujui oleh COMPLIANCE.')
+    }
+    if (!reason || reason.trim().length < 10) {
+      throw new BadRequestException('Persetujuan penghapusan memerlukan alasan minimal 10 karakter.')
+    }
+    const evidence = await this.prisma.evidence.findUnique({
+      where: { id: evidenceId },
+      select: { id: true, legalHold: true, retentionUntil: true, deletionApprovedAt: true },
+    })
+    if (!evidence) throw new NotFoundException('Bukti tidak ditemukan.')
+    if (evidence.deletionApprovedAt) throw new ConflictException('Bukti ini sudah dihapus.')
+    if (evidence.legalHold) {
+      throw new ConflictException('Bukti di bawah legal hold tidak dapat dihapus sampai holdnya dicabut.')
+    }
+    if (!evidence.retentionUntil || evidence.retentionUntil > new Date()) {
+      throw new ConflictException('Bukti belum melewati masa retensi.')
+    }
+    await this.uow.write(async (tx, audit) => {
+      await tx.evidence.update({
+        where: { id: evidenceId },
+        data: { deletionApprovedAt: new Date(), status: 'DIARSIPKAN' },
+      })
+      await audit.record({
+        action: 'SETUJUI_PENGHAPUSAN_BUKTI',
+        objectType: 'EVIDENCE',
+        objectId: evidenceId,
+        after: { reason },
       })
     })
   }

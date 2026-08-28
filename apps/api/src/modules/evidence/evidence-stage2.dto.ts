@@ -278,3 +278,17 @@ export class CreateRemediationDto {
   @IsDateString()
   due_date!: string
 }
+
+export class EvidenceLegalHoldDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
+  reason!: string
+}
+
+export class ApproveDeletionDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
+  reason!: string
+}

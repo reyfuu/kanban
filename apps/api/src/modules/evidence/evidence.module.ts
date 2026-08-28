@@ -17,11 +17,11 @@ import { RequestItemService } from './request-item.service.js'
  *  - FR-A-004..005 · penugasan + siklus hidup.
  *  - FR-A-006..009 · permintaan bukti (PBC) + daftar tugas PIC.
  *  - FR-A-010..014 · bukti sebagai entitas mandiri, versi + integritas (K-8).
+ *  - FR-A-015 · retensi + penahanan hukum (legal hold) + antrean penghapusan.
  *  - FR-A-016..017 · temuan + tindak lanjut.
  *
- * Menyusul: retensi/penahanan hukum penuh (FR-A-015), portal auditor eksternal
- * (FR-A-018), dan object-lock penyimpanan yang membuat K-8 rule 3 bersifat
- * fisik.
+ * Menyusul: portal auditor eksternal (FR-A-018) dan object-lock penyimpanan
+ * yang membuat K-8 rule 3 bersifat fisik.
  *
  * Setiap tulis lewat UnitOfWork + jejak audit (aturan kode #2). Penyaringan
  * visibilitas penugasan (FR-A-004 aturan 3) ada di lapisan servis.

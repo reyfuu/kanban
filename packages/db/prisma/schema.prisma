@@ -1324,6 +1324,13 @@ model Evidence {
   systemGenerated  Boolean        @default(false) @map("system_generated")
   status           EvidenceStatus @default(DRAF)
   currentVersionNo Int            @default(0) @map("current_version_no")
+  /// FR-A-015 · retention. legalHold overrides all retention rules (rule 4).
+  /// retentionUntil is set when the evidence's engagement closes; null means
+  /// not yet subject to a retention clock. deletionApprovedAt records the
+  /// COMPLIANCE approval that actually removed the object.
+  legalHold        Boolean        @default(false) @map("legal_hold")
+  retentionUntil   DateTime?      @map("retention_until") @db.Date
+  deletionApprovedAt DateTime?    @map("deletion_approved_at") @db.Timestamptz(6)
   createdBy        String         @map("created_by") @db.Uuid
   createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)

@@ -28,6 +28,9 @@ export interface EngagementListFilter {
  */
 const FIRM_WIDE_ROLES = ['AUDIT_LEAD', 'COMPLIANCE'] as const
 
+/** FR-A-015 rule 1 · default retention: 10 years from engagement closure. */
+const RETENTION_YEARS = 10
+
 /**
  * FR-A-005 · the engagement lifecycle, as an allowed-transition table.
  *
@@ -243,6 +246,26 @@ export class EngagementService {
           ...(effectiveTo === 'DIBATALKAN' ? { cancelReason: reason ?? null } : {}),
         },
       })
+      // FR-A-015 rule 1: closing an engagement starts the retention clock on its
+      // evidence -- default 10 years from closure. Evidence already under a
+      // legal hold keeps null until the hold path decides, since a hold
+      // overrides retention (rule 4). Evidence linked to this engagement is
+      // reached through evidence_link.
+      if (effectiveTo === 'DITUTUP') {
+        const retentionUntil = new Date()
+        retentionUntil.setFullYear(retentionUntil.getFullYear() + RETENTION_YEARS)
+        const links = await tx.evidenceLink.findMany({
+          where: { targetType: 'ENGAGEMENT', targetId: id },
+          select: { evidenceId: true },
+        })
+        const evidenceIds = links.map((l) => l.evidenceId)
+        if (evidenceIds.length > 0) {
+          await tx.evidence.updateMany({
+            where: { id: { in: evidenceIds }, legalHold: false, retentionUntil: null },
+            data: { retentionUntil },
+          })
+        }
+      }
       await audit.record({
         action: 'PINDAH_STATUS_PENUGASAN',
         objectType: 'ENGAGEMENT',
