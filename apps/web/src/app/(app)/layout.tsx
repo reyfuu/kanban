@@ -30,10 +30,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
        * screen-reader user would otherwise traverse on every single page. It is
        * visually hidden until focused, which is the point -- it costs sighted
        * users nothing and saves everyone else a dozen tab presses per navigation.
+       *
+       * The reveal is a named class in globals.css, not `focus:not-sr-only`.
+       * That utility silently produced no CSS in this build, so the link stayed
+       * 1x1 pixels even while focused -- present in the accessibility tree,
+       * invisible to the sighted keyboard user it exists for, and passing every
+       * markup-level check because the class name was right there in the HTML.
+       * A browser check measuring the focused element is what caught it.
        */}
       <a
         href="#konten-utama"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-tri-navy focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-tri-on-primary focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-tri-gold"
+        className="sigap-skip-link"
       >
         Lewati ke konten utama
       </a>

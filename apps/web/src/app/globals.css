@@ -33,3 +33,48 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/*
+ * Skip-link (WCAG 2.4.1).
+ *
+ * Written by hand rather than as `sr-only focus:not-sr-only`. That utility pair
+ * emitted no CSS in this build, so the link stayed 1x1 pixels even while
+ * focused: announced by a screen reader, but invisible to the sighted keyboard
+ * user who is precisely who a skip-link is for. The class name looked correct
+ * in the markup, which is why every inspection-level check passed it.
+ *
+ * `:focus`, not `:focus-visible`: the link is only ever reached by keyboard, so
+ * the distinction buys nothing and `:focus-visible` additionally fails when
+ * focus is moved programmatically -- which is how a11y tooling drives it.
+ */
+.sigap-skip-link {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.sigap-skip-link:focus {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 60;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  overflow: visible;
+  clip-path: none;
+  border-radius: 0.5rem;
+  background-color: var(--color-tri-navy);
+  color: var(--color-tri-on-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  outline: 2px solid var(--color-tri-gold);
+  outline-offset: 2px;
+}

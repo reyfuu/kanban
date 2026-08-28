@@ -307,7 +307,10 @@ function Panel(props: { href: string; title: string; cta: string; children: Reac
       <div className="mt-4 flex-1">{props.children}</div>
       <Link
         href={props.href}
-        className="group mt-4 inline-flex items-center gap-1 text-sm font-medium text-sg-accent-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sg-accent-600"
+        // min-h-11 rather than padding: this is the panel's only action and it
+        // sits at the bottom of a card on a phone, where a 20px-tall text link
+        // is a genuinely hard target.
+        className="group mt-4 inline-flex min-h-11 items-center gap-1 text-sm font-medium text-sg-accent-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sg-accent-600"
       >
         {props.cta}
         <span aria-hidden className="transition-transform group-hover:translate-x-0.5">

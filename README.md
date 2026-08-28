@@ -269,6 +269,25 @@ pnpm test
 pnpm verify:docs          # keterlacakan ID lintas dokumen — wajib lulus
 ```
 
+### Verifikasi antarmuka di peramban
+
+```bash
+pnpm dev                          # api + web harus hidup
+python3 scripts/verify-ui.py      # butuh google-chrome + websocket-client
+```
+
+Menjalankan 24 pemeriksaan perilaku pada Chrome headless: target sentuh diukur
+pada lebar 375px, tabel benar-benar berganti kartu di ponsel dan kembali menjadi
+tabel di desktop, hint validasi dihitung ulang saat mengetik, kartu keputusan
+berada di atas lipatan, skip-link benar-benar terlihat saat difokus, Escape
+menutup navigasi, dan gerbang baca attestation membuka setelah dokumen dibaca.
+
+Terpisah dari `pnpm test` karena butuh kedua layanan hidup. Ada karena
+pemeriksaan tingkat markup pernah meloloskan dua cacat nyata: tiga tombol di
+bawah 44px, dan skip-link yang memakai kelas Tailwind yang ternyata tidak
+menghasilkan CSS apa pun sehingga tetap 1×1 piksel meski difokus — benar di
+markup, tak terlihat di layar.
+
 ## Tata letak
 
 ```
