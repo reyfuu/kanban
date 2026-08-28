@@ -58,6 +58,60 @@ pintas yang sah bila yang diinginkan hanya benih yang segar.
 
 ---
 
+## 1. Lanjutan sesi 28 Agustus 2026 — attestation (FR-C-019 s.d. FR-C-021)
+
+**Modul C kini menjawab pertanyaan yang paling sering ditanyakan auditor dan
+paling jarang bisa dijawab sistem:** dapatkah Anda tunjukkan bahwa orang-orang
+yang terikat prosedur ini benar-benar telah membacanya?
+
+| Butir | Keadaan |
+|---|---|
+| FR-C-019 | Jalan · lima kriteria sasaran, hanya dokumen berlaku, deteksi versi berganti di tengah kampanye |
+| FR-C-020 | Jalan · pernyataan menyebut VERSI, IP dari request, lama dibuka; gerbang baca ditegakkan server |
+| FR-C-021 | Jalan · penyelesaian keseluruhan/per unit/per jabatan, dan laporannya membeku jadi bukti Modul A |
+
+**Tiga keputusan yang menentukan apakah catatannya benar-benar bukti.**
+
+Pertama, **tugas dan pernyataan adalah dua tabel.** Tugas adalah kewajiban,
+pernyataan adalah fakta. Menggabungkannya membuat "belum menyatakan" tidak punya
+baris, padahal FR-C-021 justru menanyakan siapa yang tertunggak — pertanyaan yang
+tidak terjawab kalau ketidakhadiran pernyataan tidak terwakili.
+
+Kedua, **pernyataan menyebut versi, bukan dokumen.** Orang yang membaca versi 1.0
+belum membaca 2.0, dan catatan yang hanya menyebut dokumennya akan diam-diam
+mengklaim sebaliknya begitu kebijakan itu direvisi. Ketika versi berganti di
+tengah kampanye, sistem menandainya dan **manusia** yang memutuskan apakah perlu
+pernyataan ulang — hanya orang yang bisa menilai apakah revisinya mengubah hal
+yang perlu diketahui.
+
+Ketiga, **pernyataan tidak dapat dibatalkan, dan yang menjaminnya adalah grant
+basis data.** Peran aplikasi hanya memegang `INSERT` dan `SELECT` pada
+`attestation_record` — seperti perlakuan `audit_log` (K-7), dengan alasan yang
+sama: catatan yang bisa dihapus diam-diam bukan bukti apa pun. Efek sampingnya
+muncul saat menulis tes: tugas yang sudah dinyatakan pun jadi tak bisa dihapus,
+karena pernyataannya merujuknya. Itu bukan kejanggalan yang perlu diakali; itu
+jaminannya bekerja satu tingkat lebih jauh dari yang dirancang.
+
+**Bug yang ditemukan loop verifikasi: pembulatan persentase menyembunyikan
+kewajiban tertunggak.** `Math.round` melaporkan 1 dari 398 sebagai **0%** —
+terbaca "belum ada yang mulai" padahal sudah ada — dan, jauh lebih berbahaya,
+397 dari 398 sebagai **100%**, yang menyembunyikan satu orang yang belum membaca
+di balik angka yang menyatakan tidak ada yang tertunggak. Sekarang pembulatannya
+asimetris di kedua ujung: ada kemajuan sedikit pun minimal 1%, dan 100% hanya
+bila benar-benar selesai.
+
+**199 tes lulus** (dari 183). Empat gerbang mutu hijau. Verifikasi HTTP: kampanye
+398 tugas diluncurkan, pernyataan 0 detik ditolak 400, pernyataan sah tercatat,
+pernyataan kedua ditolak 409, progres membaca 1%, non-COMPLIANCE ditolak 403 saat
+membuka progres, pembangkitan bukti tanpa step-up ditolak 401.
+
+**Sisa Modul C tinggal satu slice:** jawaban berbasis dokumen beserta gerbang
+klasifikasi keluar (FR-C-013 s.d. FR-C-018). Seluruhnya bergantung pada LLM
+Gateway yang belum ada, dan ADR-03 mensyaratkan tidak ada jalur lain ke penyedia
+bahasa eksternal — jadi gateway-nya dulu, baru fitur ini.
+
+---
+
 ## 1a. Lanjutan sesi 28 Agustus 2026 — FR-C-005 dan FR-C-006 aturan 3
 
 **Celah kontrol yang ditemukan dan ditutup.** Slice Modul C pertama memberikan
