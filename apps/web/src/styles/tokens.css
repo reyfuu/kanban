@@ -56,42 +56,28 @@
   --color-sg-info-500: #0ea5e9;
   --color-sg-info-700: #0369a1;
 
-  /* Ungu dicadangkan khusus untuk penanda "dibangkitkan sistem". Jangan
+  /* Ungu dicadangkan khusus untuk penanda "dibangkitkan sistem" (mis. paket
+   * bukti kampanye). Ini semantik AREA DATA, bukan chrome — terpisah dari warna
+   * merek Trimegah di bawah, yang tidak boleh muncul di area data. Jangan
    * memakainya untuk keperluan lain. */
   --color-sg-system-50: #faf5ff;
   --color-sg-system-500: #a855f7;
   --color-sg-system-700: #7e22ce;
+
+  /* --- Merek Trimegah (06-DESIGN §2.0 & brand/BRAND-GUIDELINE.md) ---
+   * Hanya untuk chrome: bilah atas, bilah sisi, layar masuk, kop laporan,
+   * portal auditor eksternal. TIDAK PERNAH pada baris tabel, lencana status,
+   * penanda risiko, atau kendali keputusan review (§2.0). */
+  --color-tri-navy: #0b2545;
+  --color-tri-navy-dark: #061426;
+  --color-tri-navy-tint: #f0f4f9;
+  --color-tri-red: #e31d2b;
+  --color-tri-gold: #c5a059;
+  --color-tri-on-primary: #ffffff;
 }
 
 /*
  * Token non-warna (tipografi §3, jarak §4) tetap memakai nama `--sg-*` seperti
  * tertulis di dokumen dan dipakai lewat `var()`.
- *
- * Catatan untuk yang membaca nanti: `--sg-space-1..12` dan `--sg-radius-*`
- * ternyata bernilai sama persis dengan skala bawaan Tailwind (`p-3`, `p-4`,
- * `rounded-md`, dst.). Keduanya dapat dihapus dari dokumen tanpa kehilangan
- * apa pun — tapi itu keputusan atas dokumen, bukan atas berkas ini.
  */
 
-/*
- * --- Lapisan merek Trimegah (06-DESIGN §2.0) ---
- *
- * STATUS: MENUNGGU BRAND GUIDELINE. Nilainya sengaja dikosongkan, dan sengaja
- * BELUM dimasukkan ke `@theme` — entri `@theme` tanpa nilai membangkitkan kelas
- * utilitas rusak yang diam-diam merender warna kosong. Pindahkan ke `@theme`
- * sebagai `--color-tri-*` saat nilainya sudah ada.
- *
- * Jangan menebak nilai warna merek dari tangkapan layar situs. Kesalahan warna
- * merek pada dokumen resmi lebih mahal daripada penundaan.
- *
- * Aturan penerapannya sudah lengkap dan tidak menunggu apa pun: merek hanya
- * boleh muncul pada chrome — bilah atas, bilah sisi, layar masuk, kop laporan,
- * portal auditor eksternal. TIDAK PERNAH pada baris tabel, lencana status,
- * penanda risiko, atau kendali keputusan review. Alasannya bukan estetika:
- * navy merek di dalam tabel bersaing dengan lencana status, dan reviewer yang
- * menelaah 400 item kehilangan isyarat visual yang paling ia butuhkan.
- *
- * Saat mengisi: periksa kontras setiap pasangan terhadap 4,5:1. Bila warna
- * resmi tidak memenuhi, pakai varian gelapnya sebagai latar teks dan catat
- * penyimpangannya di dokumen — jangan menurunkan ambang.
- */

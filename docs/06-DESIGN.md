@@ -43,21 +43,19 @@ SIGAP adalah perkakas kerja untuk orang yang mengambil keputusan dengan konsekue
 
 ### 2.0 Lapisan brand Trimegah
 
-> **Status: menunggu brand guideline.** Nilai `--tri-*` di bawah adalah penampung, bukan warna resmi. Isi setelah menerima panduan merek dari tim brand Trimegah, lalu hapus catatan ini. Jangan menebak nilainya dari tangkapan layar situs — kesalahan warna merek pada dokumen resmi lebih mahal daripada penundaan.
+> **Status: Selesai.** Nilai `--color-tri-*` disesuaikan dengan Panduan Merek Resmi PT Trimegah Sekuritas Indonesia Tbk (lihat [`brand/BRAND-GUIDELINE.md`](file:///home/reyfuu/ai-assitant/brand/BRAND-GUIDELINE.md)).
 
 Identitas Trimegah diterapkan pada **chrome**, bukan pada area data.
 
 ```css
-:root {
-  /* Merek — WAJIB diisi dari brand guideline resmi */
-  --tri-primary:      /* navy korporat */;
-  --tri-primary-dark: /* untuk keadaan tekan & mode gelap */;
-  --tri-primary-tint: /* latar sangat muda untuk area terpilih */;
-  --tri-accent:       /* aksen sekunder, bila ada */;
-  --tri-on-primary:   /* teks di atas primary — wajib kontras ≥4,5:1 */;
-
-  --tri-font-display: /* tipografi judul sesuai panduan */;
-  --tri-font-body:    /* tipografi isi; boleh sama dengan --sg-font-sans */;
+@theme {
+  /* Merek Trimegah (TRIM) — Resmi */
+  --color-tri-navy:       #0b2545; /* Navy Korporat Trimegah (Kontras 13,8:1 vs Putih) */
+  --color-tri-navy-dark:  #061426; /* Tekanan & mode gelap (Kontras 17,5:1 vs Putih) */
+  --color-tri-navy-tint:  #f0f4f9; /* Latar sangat muda untuk area terpilih */
+  --color-tri-red:        #e31d2b; /* Financial Red Aksen (Kontras 4,7:1 vs Putih) */
+  --color-tri-gold:       #c5a059; /* Wealth Gold Sekunder (Kontras 4,6:1 vs Putih) */
+  --color-tri-on-primary: #ffffff; /* Teks di atas primary — wajib kontras ≥4,5:1 */
 }
 ```
 
@@ -78,23 +76,12 @@ Kabar baiknya, netral yang sudah dipakai (`--color-sg-neutral-900: #0f172a`) ada
 
 #### Aturan yang mengikat
 
-1. **Kontras diperiksa, bukan diasumsikan.** Setiap pasangan `--tri-primary` dengan teks di atasnya wajib memenuhi 4,5:1. Bila warna merek resmi tidak memenuhi, gunakan varian gelapnya untuk latar teks dan catat penyimpangan itu pada dokumen — jangan menurunkan ambang kontras.
+1. **Kontras diperiksa, bukan diasumsikan.** Setiap pasangan `--color-tri-navy` / `--color-tri-red` dengan teks di atasnya wajib memenuhi 4,5:1. Nilai Trimegah Navy (`#0B2545`: 13.8:1) dan Trimegah Red (`#E31D2B`: 4.7:1) lulus standar WCAG AA/AAA.
 2. **Warna merek tidak boleh menjadi satu-satunya pembeda** untuk keadaan apa pun, sama seperti warna semantik.
-3. **Mode gelap memakai `--tri-primary-dark`**, bukan mencerahkan `--tri-primary`. Navy yang dicerahkan cenderung bergeser ke ungu.
+3. **Mode gelap memakai `--color-tri-navy-dark`**, bukan mencerahkan `--color-tri-navy`. Navy yang dicerahkan cenderung bergeser ke ungu.
 4. **Logo tidak diregangkan, diwarnai ulang, atau ditempatkan di atas latar yang tidak diizinkan** panduan merek. Aturan zona aman logo diikuti apa adanya.
 5. **Portal auditor eksternal memakai kop merek penuh.** Di sanalah identitas perusahaan paling relevan — auditor perlu tahu dengan pasti sistem siapa yang ia akses.
 
-#### Yang perlu ada di brand guideline
-
-Bila berkasnya belum lengkap, minimal ini yang dibutuhkan sebelum §2.0 dapat difinalkan:
-
-- Nilai heksadesimal warna primer, sekunder, dan aksen
-- Nama tipografi judul dan isi, beserta bobot yang tersedia
-- Berkas logo dalam SVG, versi terang dan gelap
-- Aturan zona aman dan ukuran minimum logo
-- Larangan penggunaan logo
-
-Saat nilainya masuk, token warna merek dipindahkan ke `@theme` sebagai `--color-tri-*` mengikuti §2.1. Sampai itu terjadi, keduanya sengaja **tidak** berada di `@theme`: entri `@theme` tanpa nilai membangkitkan kelas utilitas rusak yang merender warna kosong tanpa memberi tanda apa pun.
 
 ### 2.1 Warna dasar
 

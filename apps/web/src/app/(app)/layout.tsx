@@ -13,10 +13,11 @@ import { SidebarNav } from '@/components/sidebar-nav'
  * sidebar showed. Filtering here only spares people links that would fail.
  *
  * The header and sidebar are the "chrome" 06-DESIGN §2.0 reserves for brand
- * colour once --tri-* lands. Until then they stay neutral -- a dark top bar and
- * a quiet rail -- because guessing the corporate navy from a screenshot is
- * worse than plain. Both are sticky so the identity, the sign-out and the
- * navigation stay put through a four-hundred-row review.
+ * colour. With the brand guideline landed, the top bar now carries Trimegah
+ * navy; brand stays on chrome only and never enters the data areas, so a status
+ * badge or risk marker keeps its semantic colour uncontested. Both are sticky so
+ * the identity, the sign-out and the navigation stay put through a
+ * four-hundred-row review.
  */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser()
@@ -27,29 +28,29 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-sg-neutral-50">
-      <header className="sticky top-0 z-30 border-b border-sg-neutral-800 bg-sg-neutral-900">
+      <header className="sticky top-0 z-30 border-b border-tri-navy-dark bg-tri-navy">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <Link
             href="/"
             className="flex items-center gap-2.5 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sg-accent-500"
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-sg-neutral-0 text-xs font-bold tracking-tight text-sg-neutral-900">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-tri-on-primary text-xs font-bold tracking-tight text-tri-navy">
               SG
             </span>
-            <span className="text-sm font-semibold tracking-wide text-sg-neutral-0">SIGAP</span>
+            <span className="text-sm font-semibold tracking-wide text-tri-on-primary">SIGAP</span>
           </Link>
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2.5">
               <span
                 aria-hidden
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-sg-neutral-700 text-2xs font-semibold text-sg-neutral-100"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-tri-navy-dark text-2xs font-semibold text-sg-neutral-100"
               >
                 {initials}
               </span>
               <span className="hidden text-right leading-tight sm:block">
-                <span className="block text-sm font-medium text-sg-neutral-0">{user.full_name}</span>
-                <span className="block text-2xs text-sg-neutral-400">
+                <span className="block text-sm font-medium text-tri-on-primary">{user.full_name}</span>
+                <span className="block text-2xs text-sg-neutral-300">
                   {user.job_title ?? user.roles.join(' · ')}
                 </span>
               </span>
@@ -57,7 +58,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <form action={logout}>
               <button
                 type="submit"
-                className="rounded-md px-2.5 py-1.5 text-sm text-sg-neutral-300 transition-colors hover:bg-sg-neutral-800 hover:text-sg-neutral-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sg-accent-500"
+                className="rounded-md px-2.5 py-1.5 text-sm text-sg-neutral-300 transition-colors hover:bg-tri-navy-dark hover:text-tri-on-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sg-accent-500"
               >
                 Keluar
               </button>

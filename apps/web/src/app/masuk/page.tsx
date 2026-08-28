@@ -11,11 +11,11 @@ export default async function MasukPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-sg-neutral-100 p-6">
       <div className="w-full max-w-sm">
-        {/* Brand chrome belongs here per 06-DESIGN Sec 2.0, but --tri-* values are
-            deliberately empty until the brand guideline arrives. Neutral until then;
-            guessing the corporate navy from a screenshot is worse than plain. */}
+        {/* Brand chrome (06-DESIGN §2.0): the login screen carries the Trimegah
+            navy mark now that the brand guideline has landed. Brand stays on
+            chrome only, never in data areas. */}
         <div className="mb-8 flex flex-col items-center text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-sg-neutral-900 text-md font-bold tracking-tight text-sg-neutral-0 shadow-sm">
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-tri-navy text-md font-bold tracking-tight text-tri-on-primary shadow-sm">
             SG
           </span>
           <h1 className="mt-4 text-2xl font-semibold tracking-tight text-sg-neutral-900">SIGAP</h1>
