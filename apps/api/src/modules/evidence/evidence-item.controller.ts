@@ -78,9 +78,20 @@ export class EvidenceItemController {
       ...(dto.owner_org_unit_id ? { ownerOrgUnitId: dto.owner_org_unit_id } : {}),
       classification: dto.classification,
       source: dto.source,
+      // FR-A-012 · the link travels with the registration so the two cannot
+      // come apart; the service writes both in one transaction.
+      ...(dto.link
+        ? {
+            link: {
+              targetType: dto.link.target_type,
+              targetId: dto.link.target_id,
+              ...(dto.link.note ? { note: dto.link.note } : {}),
+            },
+          }
+        : {}),
     })
     res.setHeader('Location', `/api/v1/evidence/${result.id}`)
-    return { data: { id: result.id } }
+    return { data: { id: result.id, linked: dto.link !== undefined } }
   }
 
   @Get('evidence/:id')

@@ -24,6 +24,12 @@ export interface EvidenceInput {
   readonly ownerOrgUnitId?: string
   readonly classification: Classification
   readonly source: EvidenceSource
+  /** FR-A-012 · link this evidence to a target in the same transaction. */
+  readonly link?: {
+    readonly targetType: EvidenceLinkTarget
+    readonly targetId: string
+    readonly note?: string
+  }
 }
 
 export interface VersionInput {
@@ -150,6 +156,14 @@ export class EvidenceService {
     if (input.validityFrom && input.validityTo && input.validityTo < input.validityFrom) {
       throw new BadRequestException('Akhir periode keberlakuan tidak boleh sebelum awalnya.')
     }
+    // FR-A-012 · an optional link, validated before anything is written.
+    // Registering and linking used to be two calls, and evidence orphaned in
+    // the gap keeps appearing in reuse suggestions while satisfying nothing.
+    // Both are done in one transaction so a rejected link cannot leave the
+    // evidence behind -- which would be the same orphan by another route.
+    if (input.link) {
+      await this.assertTargetExists(input.link.targetType, input.link.targetId)
+    }
     const id = randomUUID()
     await this.uow.write(async (tx, audit) => {
       await tx.evidence.create({
@@ -175,6 +189,33 @@ export class EvidenceService {
         objectId: id,
         after: { title: input.title, classification: input.classification },
       })
+
+      if (input.link) {
+        await tx.evidenceLink.create({
+          data: {
+            id: randomUUID(),
+            evidenceId: id,
+            targetType: input.link.targetType,
+            targetId: input.link.targetId,
+            note: input.link.note ?? null,
+            linkedBy: principal.userId,
+          },
+        })
+        await audit.record({
+          action: 'TAUTKAN_BUKTI',
+          objectType: 'EVIDENCE',
+          objectId: id,
+          after: {
+            target_type: input.link.targetType,
+            target_id: input.link.targetId,
+            // Newly created evidence cannot be outside a requested period in a
+            // way that needs justifying: it is being registered for this target
+            // now. FR-A-012 rule 2 still applies to linking pre-existing
+            // evidence through createLink.
+            period_override_reason: null,
+          },
+        })
+      }
     })
     return { id }
   }

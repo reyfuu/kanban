@@ -61,15 +61,16 @@ call "buka permintaan saya" GET /my/request-items "$P"
 note "permintaan menunggu: $(get 'len(d.get("data",[]))')"
 call "lihat saran bukti yang sudah ada" GET "/request-items/$ITEM/evidence-suggestions" "$P"
 note "saran penggunaan ulang: $(get 'len(d.get("data",[]))')"
-call "daftarkan bukti baru" POST /evidence "$P" "$(cat <<JSON
+# Satu panggilan: mendaftarkan bukti sekaligus menautkannya ke permintaan.
+call "daftarkan bukti + tautkan sekaligus" POST /evidence "$P" "$(cat <<JSON
 {"title":"Ekspor pengguna Back Office Juni 2026","evidence_type":"LAPORAN_SISTEM",
  "validity_period":{"from":"2026-01-01","to":"2026-06-30"},
- "owner_org_unit_id":"$OPS","classification":"INTERNAL","source":"UNGGAHAN_MANUAL"}
+ "owner_org_unit_id":"$OPS","classification":"INTERNAL","source":"UNGGAHAN_MANUAL",
+ "link":{"target_type":"REQUEST_ITEM","target_id":"$ITEM"}}
 JSON
 )"
 EV=$(get 'd["data"]["id"]')
-call "tautkan ke permintaan" POST "/evidence/$EV/links" "$P" \
-  "{\"target_type\":\"REQUEST_ITEM\",\"target_id\":\"$ITEM\"}"
+note "tertaut dalam panggilan yang sama: $(get 'd["data"]["linked"]')"
 call "serahkan" POST "/request-items/$ITEM/submit" "$P" '{}'
 PIC=$((N - B1))
 

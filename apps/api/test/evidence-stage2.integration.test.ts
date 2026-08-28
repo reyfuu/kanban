@@ -236,6 +236,44 @@ describe('FR-A-007 · request item review', () => {
     ).rejects.toThrow(/belum memiliki bukti terlampir/i)
   })
 
+  it('TC-IN-A-029b · mendaftarkan bukti dan menautkannya terjadi bersama atau tidak sama sekali', async () => {
+    // Dua panggilan terpisah meninggalkan bukti yatim setiap kali panggilan
+    // kedua tidak pernah datang -- bukti yang ada, tidak memenuhi apa pun, dan
+    // terus muncul sebagai saran penggunaan ulang.
+    const { itemId } = await publishedItem()
+    const { id } = await asAuditor(() =>
+      evidence.create(auditor, {
+        title: 'Bukti terdaftar sekaligus tertaut',
+        evidenceType: 'LAPORAN_SISTEM',
+        classification: 'INTERNAL',
+        source: 'UNGGAHAN_MANUAL',
+        link: { targetType: 'REQUEST_ITEM', targetId: itemId },
+      }),
+    )
+    createdEvidenceIds.push(id)
+    const links = await prisma.evidenceLink.count({
+      where: { evidenceId: id, targetType: 'REQUEST_ITEM', targetId: itemId },
+    })
+    expect(links).toBe(1)
+
+    // Sasaran yang tidak ada membatalkan keduanya. Bila hanya penautan yang
+    // gagal, buktinya tetap tertinggal, dan itu yatim yang sama lewat jalan
+    // lain.
+    const before = await prisma.evidence.count()
+    await expect(
+      asAuditor(() =>
+        evidence.create(auditor, {
+          title: 'Bukti dengan sasaran yang tidak ada',
+          evidenceType: 'LAPORAN_SISTEM',
+          classification: 'INTERNAL',
+          source: 'UNGGAHAN_MANUAL',
+          link: { targetType: 'REQUEST_ITEM', targetId: randomUUID() },
+        }),
+      ),
+    ).rejects.toThrow()
+    expect(await prisma.evidence.count()).toBe(before)
+  })
+
   it('TC-IN-A-030 · a rejection needs a 20-character reason', async () => {
     const { engagementId: eid, itemId: id } = await publishedItem()
     await attachEvidence(id)
