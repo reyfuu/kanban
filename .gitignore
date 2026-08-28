@@ -54,3 +54,12 @@ test-results/
 
 # Cache bytecode dari skrip verifikasi di scripts/.
 __pycache__/
+
+# Keluaran graphify: graf pengetahuan yang dibangkitkan dari kode.
+#
+# Bukan sumber, dan sebagian isinya khusus mesin: .graphify_python dan
+# .graphify_root menyimpan jalur absolut milik satu komputer, sehingga berkas
+# itu salah bagi setiap kloning lain. Ditambah graph.json + graph.html sekitar
+# 6MB yang berubah total setiap kali graf dibangun ulang. Jalankan graphify
+# lagi untuk memperolehnya kembali.
+graphify-out/
