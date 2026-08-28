@@ -132,8 +132,23 @@ export class EvidenceItemController {
       targetType: dto.target_type,
       targetId: dto.target_id,
       ...(dto.note ? { note: dto.note } : {}),
+      ...(dto.period_override_reason
+        ? { periodOverrideReason: dto.period_override_reason }
+        : {}),
     })
     return { data: result }
+  }
+
+  /**
+   * FR-A-012 rule 1 · evidence that could satisfy this request.
+   *
+   * A read, not a write: it recommends and never links. Whatever is chosen from
+   * the list still passes through POST /evidence/:id/links and every rule there.
+   */
+  @Get('request-items/:id/evidence-suggestions')
+  async suggestions(@Req() req: SigapRequest, @Param('id') id: string) {
+    this.require(req, 'control:read')
+    return { data: await this.evidence.suggestForRequest(req.principal!, id) }
   }
 
   @Delete('evidence-links/:id')

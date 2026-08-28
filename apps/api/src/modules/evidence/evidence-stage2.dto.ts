@@ -206,6 +206,16 @@ export class CreateEvidenceLinkDto {
   @IsString()
   @MaxLength(2000)
   note?: string
+
+  /**
+   * FR-A-012 rule 2 · justification for linking evidence outside the requested
+   * period. Only AUDITOR_INT may supply it, and only the service can tell
+   * whether it is needed, so this is optional here and judged there.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  period_override_reason?: string
 }
 
 export class CreateFindingDto {

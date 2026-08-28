@@ -8,6 +8,12 @@ import {
 } from '@nestjs/common'
 import type { Classification, EvidenceLinkTarget, EvidenceSource, Prisma } from '@prisma/client'
 import { PrismaService, UnitOfWork, hasAnyRole, type Principal } from '../shared/index.js'
+import {
+  coversPeriod,
+  isExpired,
+  relevanceScore,
+  type Period,
+} from './evidence-reuse-rules.js'
 
 export interface EvidenceInput {
   readonly title: string
@@ -33,6 +39,13 @@ export interface LinkInput {
   readonly targetType: EvidenceLinkTarget
   readonly targetId: string
   readonly note?: string
+  /**
+   * FR-A-012 rule 2 · an AUDITOR_INT's justification for linking evidence whose
+   * validity window does not cover the requested period. Absent, a mismatched
+   * period is refused. Present, it is recorded on the link and in the audit
+   * trail -- the override is meant to be visible later, not merely permitted.
+   */
+  readonly periodOverrideReason?: string
 }
 
 const SHA256_RE = /^[a-f0-9]{64}$/
@@ -324,11 +337,13 @@ export class EvidenceService {
   async createLink(principal: Principal, evidenceId: string, input: LinkInput): Promise<{ id: string }> {
     const evidence = await this.prisma.evidence.findUnique({
       where: { id: evidenceId },
-      select: { id: true },
+      select: { id: true, validityFrom: true, validityTo: true },
     })
     if (!evidence) throw new NotFoundException('Bukti tidak ditemukan.')
 
     await this.assertTargetExists(input.targetType, input.targetId)
+
+    const override = await this.assertPeriodCovered(principal, evidence, input)
 
     const existing = await this.prisma.evidenceLink.findUnique({
       where: {
@@ -358,7 +373,13 @@ export class EvidenceService {
         action: 'TAUTKAN_BUKTI',
         objectType: 'EVIDENCE',
         objectId: evidenceId,
-        after: { target_type: input.targetType, target_id: input.targetId },
+        after: {
+          target_type: input.targetType,
+          target_id: input.targetId,
+          // Recorded even when absent, so a reader can tell "no override was
+          // needed" apart from "an override happened and went unrecorded".
+          period_override_reason: override,
+        },
       })
     })
     return { id }
@@ -492,6 +513,166 @@ export class EvidenceService {
         after: { reason },
       })
     })
+  }
+
+  /**
+   * FR-A-012 rule 2 · refuse a link whose evidence does not cover the period the
+   * request asks about, unless an AUDITOR_INT justifies it.
+   *
+   * Only REQUEST_ITEM targets carry a requested period; the other link targets
+   * (a control, a finding, a campaign) are not period-bound, so there is nothing
+   * to compare and the rule does not apply. Returning the reason string rather
+   * than a boolean keeps the caller from having to reconstruct what it recorded.
+   */
+  private async assertPeriodCovered(
+    principal: Principal,
+    evidence: { validityFrom: Date | null; validityTo: Date | null },
+    input: LinkInput,
+  ): Promise<string | null> {
+    if (input.targetType !== 'REQUEST_ITEM') return null
+
+    const request = await this.prisma.requestItem.findUnique({
+      where: { id: input.targetId },
+      select: { evidencePeriodFrom: true, evidencePeriodTo: true },
+    })
+    if (!request) return null
+    if (!request.evidencePeriodFrom && !request.evidencePeriodTo) return null
+
+    const evidencePeriod: Period = { from: evidence.validityFrom, to: evidence.validityTo }
+    const verdict = coversPeriod(evidencePeriod, {
+      from: request.evidencePeriodFrom,
+      to: request.evidencePeriodTo,
+    })
+    if (verdict.covered) return null
+
+    const reason = input.periodOverrideReason?.trim()
+    if (!reason) {
+      throw new BadRequestException(
+        `${verdict.reason} Penautan ditolak. AUDITOR_INT dapat tetap menautkannya dengan menyertakan alasan.`,
+      )
+    }
+    // The override is an auditor's professional judgement, so it is theirs to
+    // make and no one else's -- a PIC who could self-approve the mismatch would
+    // turn rule 2 into a formality.
+    if (!hasAnyRole(principal, 'AUDITOR_INT', 'AUDIT_LEAD')) {
+      throw new ForbiddenException(
+        'Hanya AUDITOR_INT yang dapat menautkan bukti di luar periode yang diminta.',
+      )
+    }
+    if (reason.length < 10) {
+      throw new BadRequestException('Alasan penautan di luar periode minimal 10 karakter.')
+    }
+    return reason
+  }
+
+  /**
+   * FR-A-012 rule 1 · suggest evidence that could satisfy a request.
+   *
+   * Ranked by `relevanceScore`, and rule 3 removes expired evidence entirely
+   * rather than ranking it last: a suggestion list is a recommendation, and
+   * recommending evidence that is no longer valid invites exactly the filing
+   * error rule 2 exists to prevent.
+   *
+   * Suggestions are a convenience, never an authorisation -- `createLink` still
+   * applies every rule to whatever is chosen from this list.
+   */
+  async suggestForRequest(
+    _principal: Principal,
+    requestItemId: string,
+    limit = 10,
+  ): Promise<
+    Array<{
+      id: string
+      title: string
+      evidenceType: string
+      validityFrom: Date | null
+      validityTo: Date | null
+      coversPeriod: boolean
+    }>
+  > {
+    const request = await this.prisma.requestItem.findUnique({
+      where: { id: requestItemId },
+      select: {
+        controlId: true,
+        responsibleOrgUnitId: true,
+        evidencePeriodFrom: true,
+        evidencePeriodTo: true,
+        expectedEvidenceType: true,
+      },
+    })
+    if (!request) throw new NotFoundException('Permintaan bukti tidak ditemukan.')
+
+    const requested: Period = {
+      from: request.evidencePeriodFrom,
+      to: request.evidencePeriodTo,
+    }
+
+    // Candidates are narrowed in the database to evidence that is actually
+    // usable -- approved, not awaiting deletion -- and ranked in application
+    // code, because the ranking is a documented rule that belongs somewhere a
+    // reader can check it against the FRD.
+    const candidates = await this.prisma.evidence.findMany({
+      where: {
+        // DITERIMA and DISERAHKAN only. DRAF is not yet real evidence,
+        // DITOLAK was judged unusable, and KEDALUWARSA/DIARSIPKAN are exactly
+        // what rule 3 says must not be suggested.
+        status: { in: ['DITERIMA', 'DISERAHKAN'] },
+        deletionApprovedAt: null,
+        ...(request.expectedEvidenceType
+          ? { evidenceType: request.expectedEvidenceType }
+          : {}),
+      },
+      select: {
+        id: true,
+        title: true,
+        evidenceType: true,
+        validityFrom: true,
+        validityTo: true,
+        ownerOrgUnitId: true,
+        // The control this evidence is already filed under: the strongest
+        // signal that it answers the same obligation as the request.
+        links: {
+          where: { targetType: 'CONTROL' },
+          select: { targetId: true },
+          take: 1,
+        },
+      },
+      take: 200,
+    })
+
+    const asOf = new Date()
+    return candidates
+      .filter((c) => !isExpired({ from: c.validityFrom, to: c.validityTo }, asOf))
+      .map((c) => {
+        const period: Period = { from: c.validityFrom, to: c.validityTo }
+        return {
+          candidate: c,
+          period,
+          score: relevanceScore(
+            {
+              controlId: c.links[0]?.targetId ?? null,
+              ownerOrgUnitId: c.ownerOrgUnitId,
+              period,
+            },
+            {
+              controlId: request.controlId,
+              responsibleOrgUnitId: request.responsibleOrgUnitId,
+              period: requested,
+            },
+          ),
+        }
+      })
+      .filter((r) => r.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+      .map((r) => ({
+        id: r.candidate.id,
+        title: r.candidate.title,
+        evidenceType: r.candidate.evidenceType,
+        validityFrom: r.candidate.validityFrom,
+        validityTo: r.candidate.validityTo,
+        coversPeriod: coversPeriod(r.period, requested).covered,
+      }))
   }
 
   private async assertTargetExists(targetType: EvidenceLinkTarget, targetId: string): Promise<void> {
