@@ -1,6 +1,6 @@
 # 📊 Progress Implementasi SIGAP
 
-> Status per **28 Agustus 2026** · Commit `bf60ff9`
+> Status per **28 Agustus 2026** · Commit `d0e8d96`
 
 ---
 
@@ -11,10 +11,10 @@
 | Infrastruktur & Fondasi | ✅ ~100% |
 | Database Schema | ✅ ~100% (28 model) |
 | Modul B — Access Review | 🟡 ~60% |
-| Modul A — Evidence Vault | 🔴 ~2% |
-| Modul C — Policy Hub | 🔴 ~0% |
+| Modul A — Evidence Vault | 🟢 ~89% (16/18 FR) |
+| Modul C — Policy Hub | 🟢 ~82% (18/22 FR) |
 | Cross-cutting (FR-X) | 🟡 ~45% |
-| **Keseluruhan (dari total FRD)** | **~28–32%** |
+| **Keseluruhan (dari total FRD)** | **~75–80%** |
 
 ---
 
@@ -26,7 +26,7 @@
 - Next.js 15 web skeleton + layout berautentikasi
 - Prisma schema 28 model, 2 migrasi
 - Docker Compose infra (Postgres, Redis, Minio)
-- CI gerbang mutu: lint, typecheck, 82 tes, `verify:docs`
+- CI gerbang mutu: lint, typecheck, 203 tes, `verify:docs`
 - ADR, dokumentasi 11 dokumen lengkap
 
 ---
@@ -92,21 +92,64 @@
 
 ---
 
-### 🔴 Modul A — Evidence Vault (18 FR) · ~2%
+### 🟢 Modul A — Evidence Vault (18 FR) · ~89%
 
-Seluruh 18 FR-A **belum diimplementasi**. Hanya module shell (`evidence.module.ts`) yang ada.
+16 dari 18 FR-A terbangun, dengan 4 berkas uji integrasi (`evidence-*.test.ts`).
 
-| Status | Jumlah |
-|---|---|
-| ✅ Selesai | 0 |
-| ⚠️ Parsial | 0 |
-| ❌ Belum | 18 |
+- FR-A-001 s.d. 003 · pustaka kontrol, framework, pemetaan cakupan
+- FR-A-004, 005 · penugasan dan siklus hidupnya
+- FR-A-006, 007, 009 · permintaan bukti (PBC) dan daftar tugas PIC
+- FR-A-010, 011, 013, 014 · bukti sebagai entitas mandiri, versi + integritas (K-8)
+- FR-A-015 · retensi, penahanan hukum, antrean penghapusan
+- FR-A-016, 017 · temuan dan tindak lanjut
+- FR-A-018 · portal auditor eksternal
+
+**Belum:** FR-A-008 dan FR-A-012 tidak dirujuk di kode mana pun. Juga tertunda:
+object-lock penyimpanan yang membuat K-8 aturan 3 bersifat fisik, bukan sekadar
+ditegakkan aplikasi.
 
 ---
 
-### 🔴 Modul C — Policy Hub (22 FR) · ~0%
+### 🟢 Modul C — Policy Hub (22 FR) · ~82%
 
-Seluruh 22 FR-C **belum diimplementasi**. Hanya module shell (`policy.module.ts`) yang ada.
+18 dari 22 FR-C terbangun dan teruji. Yang tersisa adalah satu blok yang koheren,
+bukan sisa-sisa yang tersebar: seluruhnya bergantung pada LLM Gateway (ADR-03).
+
+**Terbangun (18).**
+
+| FR | Cakupan | Bukti |
+|---|---|---|
+| FR-C-001, 002 | Jenis dokumen, hierarki normatif, 12 bidang proses | `schema.prisma` enum `ProcessArea`, `document-rules.ts` |
+| FR-C-003, 004 | Pembuatan dokumen; siklus Draf → Berlaku → Digantikan/Ditarik | `document.service.ts`, `POST /documents`, `/transisi` |
+| FR-C-005 | Alur telaah & pengesahan berjenjang, autentikasi ulang, delegasi | `document-approval.service.ts`, `policy-approval.integration.test.ts` |
+| FR-C-006, 007 | Versi mayor.minor, jendela berlaku, "versi mana yang berlaku pada tanggal X" | `document-diff.ts`, `/berlaku-pada`, `/bandingkan` |
+| FR-C-008 | Tinjauan berkala; dokumen telat tinjau TETAP berlaku | `/tinjauan-terlambat`, `/tetap-berlaku` |
+| FR-C-009 s.d. 012 | Pencarian hibrida, penyaringan hak akses, penyaring + jumlah, hasil kosong | `document-search.repository.ts`, `check_document_access` |
+| FR-C-019 s.d. 021 | Kampanye attestation, pencatatan pernyataan + bukti, pemantauan | `attestation.service.ts`, `policy-attestation.integration.test.ts` |
+| FR-C-022 | Penautan dokumen ke kontrol Modul A | `POST /documents/:id/kontrol` |
+
+**Belum (4) — semuanya menunggu LLM Gateway.**
+
+| FR | Isi | Kenapa terblokir bersama |
+|---|---|---|
+| FR-C-013 | Pembentukan jawaban dari potongan dokumen | Butuh pemanggilan model |
+| FR-C-014 | Gerbang klasifikasi keluar (Publik/Internal saja) | Gerbang atas panggilan yang belum ada |
+| FR-C-016 | Pencatatan gerbang: muatan, token, biaya, penolakan | Mencatat panggilan yang belum ada |
+| FR-C-017 | Pemutus layanan bagi `COMPLIANCE` | Mematikan fitur yang belum ada |
+
+> [!NOTE]
+> FR-C-015 (redaksi data sensitif) dan FR-C-018 (kemandirian penyedia) tidak
+> masuk daftar tertunda dengan alasan berbeda. `redactSensitive` sudah ada dan
+> teruji, tetapi ditulis untuk FR-X-008 (audit log), bukan untuk pola FR-C-015
+> (NIK, rekening efek, kartu identitas) — jadi mekanismenya ada, polanya belum.
+> FR-C-018 terpenuhi secara struktural: fitur jawaban absen dan seluruh modul
+> lain tetap utuh, yang persis aturan 2-nya.
+
+**Artinya untuk pertanyaan "apakah Modul C sudah selesai".** Belum seluruhnya,
+tetapi bagian yang bisa berdiri tanpa layanan eksternal sudah selesai. Policy Hub
+dapat dipakai end-to-end hari ini: menyusun dokumen, mengesahkan berjenjang,
+mencari dengan penyaringan hak akses, dan menjalankan kampanye attestation.
+Yang hilang adalah lapisan tanya-jawab otomatis di atasnya.
 
 ---
 
@@ -116,11 +159,11 @@ Seluruh 22 FR-C **belum diimplementasi**. Hanya module shell (`policy.module.ts`
 |---|---|---|---|
 | FR-X (cross-cutting) | 18 | ~8 | 22% scope |
 | Modul B (Access Review) | 25 | ~15 | 30% scope |
-| Modul A (Evidence Vault) | 18 | ~0 | 22% scope |
-| Modul C (Policy Hub) | 22 | ~0 | 26% scope |
-| **Total** | **83** | **~23** | |
+| Modul A (Evidence Vault) | 18 | 16 | 22% scope |
+| Modul C (Policy Hub) | 22 | 18 | 26% scope |
+| **Total** | **83** | **~64** | |
 
-### 🎯 Estimasi Overall: **~28–32%** dari total FRD
+### 🎯 Estimasi Overall: **~75–80%** dari total FRD
 
 > Kalau hanya menghitung **Modul B yang jadi target demo**, progressnya jauh lebih tinggi: **~57–60%**.
 
@@ -129,8 +172,22 @@ Seluruh 22 FR-C **belum diimplementasi**. Hanya module shell (`policy.module.ts`
 ## Catatan Penting
 
 > [!IMPORTANT]
-> Fondasi dan infrastruktur sangat solid. 82 tes lulus, audit chain diverifikasi, kontrol kritis K-1 s.d. K-9 teruji adversarial. Yang belum adalah **Modul A (Evidence Vault) dan C (Policy Hub)** yang sama sekali nol implementasi.
+> Fondasi dan infrastruktur solid: 203 tes lulus, rantai audit terverifikasi,
+> kontrol kritis K-1 s.d. K-9 teruji adversarial. Modul A dan C — yang versi
+> sebelumnya laporan ini sebut "nol implementasi" — kini masing-masing 16/18 dan
+> 18/22 FR terbangun. Modul B justru menjadi yang paling tertinggal.
 
 > [!WARNING]
-> Beberapa item "jalan" masih parsial: AD real belum ada (pakai identity provider demo), notifikasi belum ada, laporan belum ada. Kalau scope demo = Modul B end-to-end, maka sudah **demo-ready**.
+> Sisa pekerjaan tidak tersebar merata, melainkan mengelompok pada empat hal:
+> **(1)** LLM Gateway, yang menahan seluruh FR-C-013/014/016/017; **(2)** mesin
+> deteksi Modul B (akun berisiko, persetujuan asal-asalan, konflik SoD) yang
+> aturannya sudah ada tetapi belum dijalankan otomatis; **(3)** notifikasi dan
+> laporan, yang belum ada sama sekali (FR-X-010, 011, 015, 016); **(4)** AD/LDAP
+> sungguhan — saat ini memakai identity provider demo.
 
+> [!NOTE]
+> Angka persentase di laporan ini dihitung dari rujukan `FR-x-nnn` di dalam kode
+> dan skema, lalu diperiksa silang dengan berkas uji. Itu berarti sebuah FR
+> dihitung "terbangun" bila ada kode yang menyebutnya — bukan bukti bahwa setiap
+> aturan bisnisnya sudah dipenuhi. Untuk kepastian per-aturan, `verify-ui.py`
+> (48/48) dan uji integrasi adalah sumber yang lebih dapat dipercaya.
