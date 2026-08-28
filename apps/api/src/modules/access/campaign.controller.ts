@@ -48,6 +48,19 @@ export class CampaignController {
     return { data: await this.builder.listApplications(req.principal!) }
   }
 
+  /**
+   * FR-B-009 rule 1 · candidate fallback reviewers for the L-09 wizard.
+   *
+   * Gated `campaign:write` because it exists only to build a campaign. Returns
+   * active internal users, so the author can nominate a safety-net reviewer
+   * other than themselves.
+   */
+  @Get('users')
+  async reviewerCandidates(@Req() req: SigapRequest) {
+    this.require(req, 'campaign:write')
+    return { data: await this.builder.listReviewerCandidates(req.principal!) }
+  }
+
   /** FR-B-008 · a campaign starts as a draft; nothing is routed until launch. */
   @Post('campaigns')
   @HttpCode(201)

@@ -573,6 +573,30 @@ export class CampaignBuilderService {
       },
     }
   }
+
+  /**
+   * FR-B-009 rule 1 · candidate fallback reviewers for the L-09 wizard.
+   *
+   * The fallback catches every item a reviewer rule could not route, so it must
+   * be a real, active user who can actually decide. This lists active internal
+   * users with a job title, which is who an author picks from. It is not the
+   * full user directory (FR-X-014, still absent) -- just enough that the wizard
+   * can offer someone other than the author as the safety net.
+   */
+  async listReviewerCandidates(_principal: Principal) {
+    const users = await this.prisma.appUser.findMany({
+      where: { isActive: true, userType: 'INTERNAL', employeeId: { not: null } },
+      include: { employee: { select: { fullName: true, jobTitle: true } } },
+      take: 500,
+    })
+    return users
+      .map((u) => ({
+        id: u.id,
+        full_name: u.employee?.fullName ?? u.externalId,
+        job_title: u.employee?.jobTitle ?? null,
+      }))
+      .sort((a, b) => a.full_name.localeCompare(b.full_name))
+  }
 }
 
 /** Campaign codes are sequential per year: UAR-2026-003. */

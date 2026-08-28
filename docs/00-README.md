@@ -24,7 +24,7 @@ Platform tata kelola internal untuk Trimegah Sekuritas, terdiri atas tiga modul 
 | 04 | [TRD — Technical Requirements](04-TRD.md) | Arsitektur, 8 keputusan arsitektur (ADR), model data & ERD, keamanan & model ancaman, NFR, sizing, penempatan | Arsitek, DevOps, DBA, IT Security |
 | 05 | [UI/UX Flow](05-UIUX-FLOW.md) | Peta situs, 4 alur pengguna utama, 16 wireframe naratif, keadaan antarmuka, aksesibilitas | Designer, Frontend Developer |
 | 06 | [DESIGN — Design System](06-DESIGN.md) | Token desain, semantik warna lintas modul, inventaris komponen, ikonografi, microcopy Bahasa Indonesia | Designer, Frontend Developer |
-| 07 | [API Contract](07-API-CONTRACT.md) | Konvensi REST, autentikasi, 191 titik akhir dengan contoh muatan konkret, kerangka OpenAPI 3.1 | Pengembang Backend & Frontend, Integrator |
+| 07 | [API Contract](07-API-CONTRACT.md) | Konvensi REST, autentikasi, 192 titik akhir dengan contoh muatan konkret, kerangka OpenAPI 3.1 | Pengembang Backend & Frontend, Integrator |
 | 08 | [Agent Spec](08-AGENT-SPEC.md) | 6 agent AI, pola Usulan Agent, inventaris tool baca-saja, matriks rute model, model data & API tambahan | AI Engineer, Arsitek, Kepatuhan |
 | 09 | [Guardrails](09-GUARDRAILS.md) | 33 guardrail dalam 8 lapis, 14 mode kegagalan, vektor penyisipan instruksi, penanganan insiden | AI Engineer, IT Security, Kepatuhan |
 | 10 | [Test Plan](10-TEST-PLAN.md) | Piramida uji, 10 kontrol kritis, uji keamanan & penetrasi, 20 dimensi eval AI, 36 kasus uji guardrail, kinerja, UAT | QA Lead, Tim Pengembang, SKAI |

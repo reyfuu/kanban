@@ -1330,6 +1330,7 @@ POST  /api/v1/access-anomalies/{id}/resolve
 ```http
 GET   /api/v1/campaigns?status=BERJALAN
 POST  /api/v1/campaigns
+GET   /api/v1/users
 GET   /api/v1/campaigns/{id}
 POST  /api/v1/campaigns/{id}/preview
 POST  /api/v1/campaigns/{id}/launch          # memerlukan Idempotency-Key

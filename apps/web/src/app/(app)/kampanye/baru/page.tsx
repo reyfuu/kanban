@@ -7,23 +7,34 @@ import { CampaignWizard } from './wizard'
 interface SessionUser {
   id: string
   full_name: string
+  job_title?: string | null
 }
 
 /**
  * Screen L-09 · Penyusun Kampanye Review — FR-B-008, FR-B-009.
  *
- * The candidate fallback reviewers are the current user for now. FR-B-009 rule 1
- * makes the fallback mandatory, and a user-directory endpoint (FR-X-014) does
- * not exist yet -- so rather than offer an empty select and let the author reach
- * step 4 before discovering they cannot proceed, the one identity we can resolve
- * server-side is offered and the gap is stated here.
+ * The fallback reviewer (FR-B-009 rule 1) is now chosen from the active user
+ * list, so a campaign can be built for someone other than the author. The
+ * author themselves is kept at the top of the list as the obvious default.
  */
 export default async function KampanyeBaruPage() {
   const user = await requireUser()
   if (!hasPermission(user, 'campaign:write')) notFound()
 
-  const applications = await apiFetch<ApplicationRow[]>('/applications')
-  const reviewers: SessionUser[] = [{ id: user.id, full_name: `${user.full_name} (Anda)` }]
+  const [applications, candidates] = await Promise.all([
+    apiFetch<ApplicationRow[]>('/applications'),
+    apiFetch<SessionUser[]>('/users').catch(() => [] as SessionUser[]),
+  ])
+
+  // The author first (labelled), then everyone else, de-duplicated.
+  const others = candidates.filter((c) => c.id !== user.id)
+  const reviewers: SessionUser[] = [
+    { id: user.id, full_name: `${user.full_name} (Anda)` },
+    ...others.map((c) => ({
+      id: c.id,
+      full_name: c.job_title ? `${c.full_name} · ${c.job_title}` : c.full_name,
+    })),
+  ]
 
   return <CampaignWizard applications={applications} reviewers={reviewers} />
 }
