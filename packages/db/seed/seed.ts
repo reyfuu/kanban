@@ -50,6 +50,8 @@ const REPORTS_TO: Record<string, string> = {
   'EMP-00056': 'EMP-00002', // Agus Santoso      -> Direktur Utama
   'EMP-00174': 'EMP-00002', // Dewi Lestari      -> Direktur Utama
   'EMP-00238': 'EMP-00002', // Fajar Nugroho     -> Direktur Utama
+  'EMP-00301': 'EMP-00238', // Putri Handayani   -> Fajar Nugroho
+  'EMP-00312': 'EMP-00174', // Joko Susilo       -> Dewi Lestari
   'EMP-00001': 'EMP-00056', // Administrator     -> Agus Santoso
 }
 
@@ -68,8 +70,29 @@ const PEOPLE = [
   ['agus.santoso', 'EMP-00056', 'Agus Santoso', 'Kepala Divisi TI', 'TI', ['APP_OWNER', 'LINE_MANAGER', 'EMPLOYEE']],
   ['dewi.lestari', 'EMP-00174', 'Dewi Lestari', 'Kepala Operasional', 'OPS', ['APP_OWNER', 'LINE_MANAGER', 'DOC_AUTHOR', 'EMPLOYEE']],
   ['fajar.nugroho', 'EMP-00238', 'Fajar Nugroho', 'Kepala Cabang Jakarta', 'RTL', ['LINE_MANAGER', 'EMPLOYEE']],
+  // A plain EMPLOYEE with no second role. Without one, every seeded account
+  // carries elevated permissions, and the baseline experience -- search,
+  // read an SOP, attest to it -- can only be inspected by a user who could
+  // also have reached the page some other way. Putri also gives RA-01 a real
+  // subordinate: Fajar's review queue is empty unless somebody reports to him.
+  ['putri.handayani', 'EMP-00301', 'Putri Handayani', 'Staf Ritel', 'RTL', ['EMPLOYEE']],
+  // EVIDENCE_PIC sits in Operasional because that is where the artefacts an
+  // auditor asks for are actually produced. Held alone rather than stacked on
+  // an existing manager, so that FR-A-004 can be exercised by someone who
+  // cannot also approve what they submit.
+  ['joko.susilo', 'EMP-00312', 'Joko Susilo', 'Supervisor Operasional', 'OPS', ['EVIDENCE_PIC', 'EMPLOYEE']],
   ['admin.sigap', 'EMP-00001', 'Administrator SIGAP', 'Administrator Sistem', 'TI', ['SYS_ADMIN']],
   ['direktur.utama', 'EMP-00002', 'Direktur Utama', 'Direktur Utama', 'DIR', ['EXECUTIVE', 'EMPLOYEE']],
+] as const
+
+/**
+ * FR-X-004: an external auditor is not an employee and has no reporting line.
+ * Seeded separately because PEOPLE builds an Employee row for each entry, and
+ * inventing an employee record for a KAP staff member would put a non-employee
+ * into the org chart -- where RA-01 could then route review items to them.
+ */
+const EXTERNAL_PEOPLE = [
+  ['budi.harjono', ['AUDITOR_EXT']],
 ] as const
 
 async function main(): Promise<void> {
@@ -174,6 +197,43 @@ async function main(): Promise<void> {
     await prisma.employee.update({ where: { employeeNumber }, data: { managerId } })
   }
 
+  // External users: an AppUser with no Employee behind it. FR-X-004 requires an
+  // expiry of at most 180 days, so it is set here rather than left null -- a
+  // seeded external account that never lapses is exactly the state that rule
+  // exists to prevent, and a demo is where such an account is most likely to be
+  // forgotten. The scope stays absent: an external auditor's reach is granted
+  // per engagement (FR-A-016), and an org scope here would be a second, silent
+  // grant nobody decided to give.
+  const externalExpiry = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000)
+  for (const [username, roles] of EXTERNAL_PEOPLE) {
+    const existingUser = await prisma.appUser.findUnique({ where: { externalId: username } })
+    const userId = existingUser?.id ?? randomUUID()
+    await prisma.appUser.upsert({
+      where: { externalId: username },
+      update: { isActive: true, expiresAt: externalExpiry },
+      create: {
+        id: userId,
+        externalId: username,
+        userType: 'EXTERNAL',
+        expiresAt: externalExpiry,
+      },
+    })
+    userIds.set(username, userId)
+
+    await prisma.userRole.deleteMany({ where: { userId } })
+    for (const roleCode of roles) {
+      await prisma.userRole.create({
+        data: {
+          id: randomUUID(),
+          userId,
+          roleId: roleIds.get(roleCode)!,
+          validFrom: new Date('2020-01-01'),
+          validUntil: externalExpiry,
+        },
+      })
+    }
+  }
+
   await seedModuleB({ prisma, orgIds, employeeIds, userIds })
   await seedModuleA({ prisma, orgIds, employeeIds, userIds })
   await seedModuleC({ prisma, orgIds, employeeIds, userIds })
@@ -187,7 +247,7 @@ async function main(): Promise<void> {
 
   console.log(
     `Benih siap: ${ORG_UNITS.length} unit, ${ROLES.length} peran, ` +
-      `${PERMISSIONS.length} hak, ${PEOPLE.length} pengguna, ` +
+      `${PERMISSIONS.length} hak, ${PEOPLE.length + EXTERNAL_PEOPLE.length} pengguna, ` +
       `${itemCount} item review dalam kampanye UAR-2026-S2.`,
   )
   console.log(`Masuk dengan salah satu nama pengguna di atas, kata sandi: ${process.env.SEED_IDENTITY_PASSWORD ?? 'demo'}`)

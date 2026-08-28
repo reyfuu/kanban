@@ -444,7 +444,30 @@ Contoh nyata: AI bisa membantu Pemilik Aplikasi menulis penjelasan "FIN_APPR_L2 
 
 ---
 
-## 10. Mau lanjut ke mana?
+## 10. Mau coba sendiri?
+
+Di lingkungan pengembangan sudah tersedia akun contoh. Semua memakai kata sandi `demo`.
+
+| Kalau ingin merasakan jadi | Masuk sebagai | Yang akan Anda lihat |
+|---|---|---|
+| Karyawan biasa | `putri.handayani` | Hanya pencarian aturan dan tugas "sudah baca". Tidak ada menu lain. |
+| Manajer yang memeriksa akses | `fajar.nugroho` | Daftar akses anak buah, termasuk milik Putri |
+| Pemilik aplikasi | `agus.santoso` | Registri aplikasi, unggah data, sign-off |
+| Petugas Keamanan TI | `rina.kusuma` | Penyusun kampanye dan pelacak tiket pencabutan |
+| Petugas Bukti | `joko.susilo` | Permintaan bukti yang harus dipenuhi |
+| Auditor | `sari.dewi` | Penugasan audit dan penelaahan bukti |
+| Penulis aturan | `hendra.wijaya` | Menyusun dokumen |
+| Yang mengesahkan aturan | `bayu.pratama` | Menyetujui dokumen agar berlaku |
+| Direksi | `direktur.utama` | Ringkasan saja, tanpa detail operasional |
+| Auditor dari luar | `budi.harjono` | Akses sangat terbatas, dan otomatis mati setelah 180 hari |
+
+**Coba ini untuk memahami perbedaan peran:** masuk sebagai `putri.handayani`, lihat betapa sedikit menunya. Lalu masuk sebagai `rina.kusuma` dan bandingkan. Keduanya orang yang sama-sama sah, tetapi melihat sistem yang sangat berbeda karena tugasnya berbeda.
+
+Daftar lengkap ada di [DEV-CREDENTIALS.md](DEV-CREDENTIALS.md).
+
+---
+
+## 11. Mau lanjut ke mana?
 
 | Kalau Anda ingin | Baca |
 |---|---|
