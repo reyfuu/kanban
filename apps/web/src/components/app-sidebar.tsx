@@ -133,7 +133,7 @@ export function AppSidebar({
       >
         <div className="h-0.5 w-full bg-tri-gold" aria-hidden />
 
-        <div className="flex items-center justify-between px-5 py-5">
+        <div className="flex items-center justify-between px-5 py-4">
           <Link
             href="/"
             onClick={() => setOpen(false)}
@@ -161,11 +161,11 @@ export function AppSidebar({
           </button>
         </div>
 
-        <nav aria-label="Navigasi utama" className="mt-1 flex-1 overflow-y-auto px-3 pb-4">
-          <div className="space-y-6">
+        <nav aria-label="Navigasi utama" className="sigap-sidebar-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-3">
+          <div className="space-y-4">
             {sections.map((section) => (
               <div key={section.name}>
-                <p className="px-3 pb-2 text-2xs font-semibold uppercase tracking-widest text-sg-neutral-400">
+                <p className="px-3 pb-1.5 text-2xs font-semibold uppercase tracking-widest text-sg-neutral-400">
                   {section.name}
                 </p>
                 <ul className="space-y-0.5">
