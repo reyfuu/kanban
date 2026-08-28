@@ -412,35 +412,50 @@ Contoh nyata: AI bisa membantu Pemilik Aplikasi menulis penjelasan "FIN_APPR_L2 
 
 ---
 
-## 9. Ringkasan satu halaman
+## 9. "Kenapa karyawan tidak bisa mengajukan akses?"
 
-### Yang perlu diingat tentang data
+Ini pertanyaan yang wajar, dan jawabannya menjelaskan batas SIGAP.
 
-| Pertanyaan | Jawaban |
+### SIGAP bukan tempat meminta akses
+
+```mermaid
+flowchart LR
+    A["Budi butuh akses<br/>ke Aplikasi Trading"] --> B["Minta lewat proses TI<br/>yang sudah ada,<br/>DI LUAR SIGAP"]
+    B --> C["Tim TI berikan akses<br/>di aplikasi itu"]
+    C --> D["SIGAP menarik data<br/>dan melihat: Budi punya akses"]
+    D --> E["SIGAP bertanya ke atasan:<br/>'ini masih perlu?'"]
+```
+
+**SIGAP tidak memberi akses, dan tidak mencabut akses.** Ia hanya **mengetahui** dan **menilai**. Ini keputusan yang diambil sengaja: memberi SIGAP kuasa menulis ke aplikasi produksi berarti memberinya kunci ke seluruh sistem perusahaan, dan risikonya jauh lebih besar daripada manfaatnya.
+
+Analoginya: SIGAP adalah **satpam yang mencatat dan memeriksa**, bukan **tukang kunci yang membuatkan kunci**.
+
+### Jadi karyawan biasa bisa apa?
+
+| Bisa | Tidak bisa |
 |---|---|
-| Siapa mendaftarkan saya? | Tidak ada. Akun muncul sendiri saat Anda login pertama kali pakai password kantor. |
-| Data akses dari mana? | Ditarik otomatis dari aplikasi, atau diunggah Pemilik Aplikasi lewat Excel. |
-| Data atasan-bawahan dari mana? | Dari data kepegawaian. Ini yang menentukan siapa memeriksa siapa. |
-| Daftar yang harus saya periksa dibuat siapa? | Tidak dibuat manual. Muncul sendiri dari data yang ditarik. |
+| Mencari aturan perusahaan | Mengajukan permintaan akses baru |
+| Membaca SOP yang berlaku | Menyetujui atau menolak apa pun |
+| Menyatakan sudah membaca | Melihat data orang lain |
+| Melihat tugasnya sendiri | Melihat hasil review dirinya |
 
-### Yang perlu diingat tentang kerja
+**Karyawan adalah objek yang ditinjau, bukan pihak yang meninjau.** Aksesnya diperiksa oleh atasannya, dan ia tidak diberi tahu hasilnya melalui SIGAP. Kalau aksesnya dicabut, ia mengetahuinya dari proses TI biasa.
 
-| Peran | Frekuensi | Kerjanya |
-|---|---|---|
-| Karyawan | Sesekali | Cari aturan, nyatakan sudah baca |
-| Manajer | 2× setahun | Periksa akses anak buah, tanda tangan |
-| Pemilik Aplikasi | 2× setahun | Kirim data, jelaskan arti akses, tanda tangan |
-| Petugas Bukti | Saat ada audit | Sediakan bukti |
-| Auditor | Saat audit | Minta dan nilai bukti |
-| Petugas Keamanan TI | Terus-menerus | Atur dan pantau |
+### Kenapa karyawan tidak boleh menyetujui aksesnya sendiri?
 
-### Lima aturan yang menjelaskan hampir semuanya
+Karena itu menghapus seluruh gunanya pemeriksaan. Aturannya bahkan lebih ketat: **seorang manajer pun tidak boleh meninjau akses miliknya sendiri.** Kalau itu terjadi, item tersebut otomatis dinaikkan ke atasannya.
 
-1. **Data yang sudah ditarik tidak bisa diedit.** Kalau salah, tarik ulang. Ini supaya pembuktian bisa dipercaya.
-2. **Tidak ada jawaban yang tercentang duluan.** Kalau ada, orang akan asal setuju.
-3. **Bilang "sudah" bukan berarti sudah.** Harus terbukti dari data aplikasi aslinya.
-4. **Satu bukti dipakai berkali-kali.** Kumpulkan sekali, pakai untuk banyak pemeriksaan.
-5. **AI cuma mengusulkan.** Manusia yang memutuskan, dan namanya yang tercatat.
+### Kalau begitu, kapan karyawan berinteraksi dengan auditor?
+
+Tidak pernah secara langsung. Auditor meminta bukti kepada **Petugas Bukti**, bukan kepada karyawan satu per satu.
+
+```mermaid
+flowchart LR
+    A["Auditor minta bukti"] --> B["Petugas Bukti<br/>(Joko)"]
+    B --> C["Kumpulkan dan serahkan"]
+    C --> A
+    D["Karyawan biasa<br/>(Putri)"] -.->|"tidak terlibat"| A
+```
 
 ---
 
@@ -467,7 +482,39 @@ Daftar lengkap ada di [DEV-CREDENTIALS.md](DEV-CREDENTIALS.md).
 
 ---
 
-## 11. Mau lanjut ke mana?
+## 11. Ringkasan satu halaman
+
+### Yang perlu diingat tentang data
+
+| Pertanyaan | Jawaban |
+|---|---|
+| Siapa mendaftarkan saya? | Tidak ada. Akun muncul sendiri saat Anda login pertama kali pakai password kantor. |
+| Data akses dari mana? | Ditarik otomatis dari aplikasi, atau diunggah Pemilik Aplikasi lewat Excel. |
+| Data atasan-bawahan dari mana? | Dari data kepegawaian. Ini yang menentukan siapa memeriksa siapa. |
+| Daftar yang harus saya periksa dibuat siapa? | Tidak dibuat manual. Muncul sendiri dari data yang ditarik. |
+
+### Yang perlu diingat tentang kerja
+
+| Peran | Frekuensi | Kerjanya |
+|---|---|---|
+| Karyawan | Sesekali | Cari aturan, nyatakan sudah baca |
+| Manajer | 2× setahun | Periksa akses anak buah, tanda tangan |
+| Pemilik Aplikasi | 2× setahun | Kirim data, jelaskan arti akses, tanda tangan |
+| Petugas Bukti | Saat ada audit | Sediakan bukti |
+| Auditor | Saat audit | Minta dan nilai bukti |
+| Petugas Keamanan TI | Terus-menerus | Atur dan pantau |
+
+### Lima aturan yang menjelaskan hampir semuanya
+
+1. **SIGAP tidak memberi atau mencabut akses.** Ia mengetahui dan menilai. Eksekusinya tetap lewat proses TI yang ada.
+2. **Data yang sudah ditarik tidak bisa diedit.** Kalau salah, tarik ulang. Ini supaya pembuktian bisa dipercaya.
+3. **Tidak ada jawaban yang tercentang duluan.** Kalau ada, orang akan asal setuju.
+4. **Bilang "sudah" bukan berarti sudah.** Harus terbukti dari data aplikasi aslinya.
+5. **AI cuma mengusulkan.** Manusia yang memutuskan, dan namanya yang tercatat.
+
+---
+
+## 12. Mau lanjut ke mana?
 
 | Kalau Anda ingin | Baca |
 |---|---|

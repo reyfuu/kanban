@@ -402,6 +402,110 @@ export async function seedModuleC(ctx: Ctx): Promise<void> {
       }
     }
   }
+
+  await seedAttestationCampaign(ctx, authorUserId)
+}
+
+/**
+ * FR-C-019/021 · a running attestation campaign targeting every employee.
+ *
+ * Without this, the seed has no obligation that lands on an ordinary employee,
+ * and the baseline experience -- the only thing an EMPLOYEE-only account can
+ * actually do besides search -- appears to be missing rather than merely
+ * unseeded. A campaign is also the one place where a non-privileged user
+ * writes to the system, so its absence made the whole role look read-only.
+ *
+ * Left BERJALAN with tasks MENUNGGU rather than pre-completed: a finished
+ * campaign demonstrates the report but not the act, and the act is what the
+ * control depends on.
+ *
+ * Reconciles rather than bails out when the campaign already exists. Returning
+ * early on a name match looks idempotent but is not: anyone seeded after the
+ * campaign was first created would silently never be enrolled, which is the
+ * precise failure autoEnrollNewEmployees exists to prevent. Enrolment is
+ * therefore treated as reference data the seed owns, in the same spirit as the
+ * role-permission rebuild.
+ */
+async function seedAttestationCampaign(ctx: Ctx, createdBy: string): Promise<void> {
+  const { prisma } = ctx
+  const CAMPAIGN_NAME = 'Attestation Kebijakan Benturan Kepentingan 2026'
+
+  const document = await prisma.document.findUnique({
+    where: { documentNo: 'KEB-KEP-001' },
+    select: { id: true },
+  })
+  if (!document) return
+
+  const version = await prisma.documentVersion.findFirst({
+    where: { documentId: document.id, status: 'BERLAKU' },
+    orderBy: [{ versionMajor: 'desc' }, { versionMinor: 'desc' }],
+    select: { id: true },
+  })
+  if (!version) return
+
+  const existing = await prisma.attestationCampaign.findFirst({
+    where: { name: CAMPAIGN_NAME },
+    select: { id: true },
+  })
+  const campaignId = existing?.id ?? randomUUID()
+
+  const campaignFields = {
+    name: CAMPAIGN_NAME,
+    description:
+      'Seluruh karyawan menyatakan telah membaca kebijakan benturan kepentingan yang berlaku.',
+    targetKind: 'SELURUH_KARYAWAN' as const,
+    startDate: daysAgo(14),
+    dueDate: daysAgo(-16),
+    isMandatory: true,
+    // New joiners inherit the obligation. A campaign that only ever covers the
+    // roster as it stood at launch leaves everyone hired mid-cycle outside a
+    // mandatory policy, which is the gap the flag exists to close.
+    autoEnrollNewEmployees: true,
+    status: 'BERJALAN' as const,
+    launchedAt: daysAgo(14),
+    createdBy,
+  }
+
+  await prisma.attestationCampaign.upsert({
+    where: { id: campaignId },
+    update: campaignFields,
+    create: { id: campaignId, ...campaignFields },
+  })
+
+  const existingLink = await prisma.attestationCampaignDocument.findFirst({
+    where: { campaignId, documentId: document.id },
+    select: { id: true },
+  })
+  const campaignDocumentId = existingLink?.id ?? randomUUID()
+  if (!existingLink) {
+    await prisma.attestationCampaignDocument.create({
+      data: {
+        id: campaignDocumentId,
+        campaignId,
+        documentId: document.id,
+        versionId: version.id,
+      },
+    })
+  }
+
+  // Scoped to the seeded demo staff. Every employee row would sweep in the
+  // fixtures integration tests leave behind, and report a task count that is
+  // about the test suite rather than the demo.
+  const employees = await prisma.employee.findMany({
+    where: { employmentStatus: 'AKTIF', employeeNumber: { startsWith: 'EMP-' } },
+    select: { id: true },
+  })
+
+  await prisma.attestationTask.createMany({
+    data: employees.map((employee) => ({
+      id: randomUUID(),
+      campaignId,
+      campaignDocumentId,
+      employeeId: employee.id,
+      status: 'MENUNGGU' as const,
+    })),
+    skipDuplicates: true,
+  })
 }
 
 /**
