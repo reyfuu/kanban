@@ -77,55 +77,57 @@ export default async function KampanyePage() {
             const overdue = remaining !== null && remaining < 0 && c.completion_percent < 100
 
             return (
-              <li
-                key={c.id}
-                className="rounded-lg border border-sg-neutral-200 bg-sg-neutral-0 p-4 shadow-sm transition-colors hover:border-sg-neutral-300"
-              >
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-semibold text-sg-neutral-900">
-                      {c.name}
-                      <Code className="ml-2 text-xs font-normal text-sg-neutral-500">{c.code}</Code>
-                    </p>
-                    <p className="mt-0.5 text-xs text-sg-neutral-600">
-                      {c.campaign_type} · {formatDate(c.start_date)} – {formatDate(c.due_date)}
-                      {remaining !== null && (
-                        <span className={overdue ? ' text-sg-danger-700' : ''}>
-                          {overdue
-                            ? ` · terlewat ${Math.abs(remaining)} hari`
-                            : ` · ${remaining} hari lagi`}
-                        </span>
-                      )}
-                    </p>
+              <li key={c.id}>
+                <Link
+                  href={`/kampanye/${c.id}`}
+                  className="block rounded-lg border border-sg-neutral-200 bg-sg-neutral-0 p-4 shadow-sm transition-colors hover:border-sg-neutral-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sg-accent-600"
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-sg-neutral-900">
+                        {c.name}
+                        <Code className="ml-2 text-xs font-normal text-sg-neutral-500">{c.code}</Code>
+                      </p>
+                      <p className="mt-0.5 text-xs text-sg-neutral-600">
+                        {c.campaign_type} · {formatDate(c.start_date)} – {formatDate(c.due_date)}
+                        {remaining !== null && (
+                          <span className={overdue ? ' text-sg-danger-700' : ''}>
+                            {overdue
+                              ? ` · terlewat ${Math.abs(remaining)} hari`
+                              : ` · ${remaining} hari lagi`}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <StatusBadge tone={STATUS_TONE[c.status] ?? 'neutral'}>
+                      {STATUS_LABEL[c.status] ?? c.status}
+                    </StatusBadge>
                   </div>
-                  <StatusBadge tone={STATUS_TONE[c.status] ?? 'neutral'}>
-                    {STATUS_LABEL[c.status] ?? c.status}
-                  </StatusBadge>
-                </div>
 
-                <p className="mt-2 text-xs text-sg-neutral-600">
-                  {c.applications.map((a) => a.name).join(' · ') || 'Tanpa aplikasi'}
-                </p>
-
-                <div className="mt-3">
-                  <div
-                    className="h-2 w-full overflow-hidden rounded-full bg-sg-neutral-200"
-                    role="progressbar"
-                    aria-valuenow={c.decided_items}
-                    aria-valuemin={0}
-                    aria-valuemax={c.total_items}
-                    aria-label={`${c.decided_items} dari ${c.total_items} item diputuskan`}
-                  >
-                    <div
-                      className="h-full rounded-full bg-sg-accent-600 transition-all"
-                      style={{ width: `${c.completion_percent}%` }}
-                    />
-                  </div>
-                  <p className="mt-1 text-xs text-sg-neutral-600 tabular-nums">
-                    {formatNumber(c.decided_items)} dari {formatNumber(c.total_items)} item diputuskan ·{' '}
-                    {formatPercent(c.completion_percent)}
+                  <p className="mt-2 text-xs text-sg-neutral-600">
+                    {c.applications.map((a) => a.name).join(' · ') || 'Tanpa aplikasi'}
                   </p>
-                </div>
+
+                  <div className="mt-3">
+                    <div
+                      className="h-2 w-full overflow-hidden rounded-full bg-sg-neutral-200"
+                      role="progressbar"
+                      aria-valuenow={c.decided_items}
+                      aria-valuemin={0}
+                      aria-valuemax={c.total_items}
+                      aria-label={`${c.decided_items} dari ${c.total_items} item diputuskan`}
+                    >
+                      <div
+                        className="h-full rounded-full bg-sg-accent-600 transition-all"
+                        style={{ width: `${c.completion_percent}%` }}
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-sg-neutral-600 tabular-nums">
+                      {formatNumber(c.decided_items)} dari {formatNumber(c.total_items)} item diputuskan ·{' '}
+                      {formatPercent(c.completion_percent)}
+                    </p>
+                  </div>
+                </Link>
               </li>
             )
           })}
