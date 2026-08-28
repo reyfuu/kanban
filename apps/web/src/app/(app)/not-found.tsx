@@ -17,7 +17,7 @@ import Link from 'next/link'
 export default function NotFound() {
   return (
     <div className="mx-auto max-w-lg py-16 text-center">
-      <p className="text-2xs font-semibold uppercase tracking-widest text-sg-neutral-500">404</p>
+      <p className="text-xs font-semibold uppercase tracking-widest text-sg-neutral-500">404</p>
       <h1 className="mt-2 text-xl font-semibold tracking-tight text-sg-neutral-900">
         Halaman tidak ditemukan
       </h1>

@@ -142,7 +142,7 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
                       {formatDateTime(s.signed_at)}
                     </span>
                   </div>
-                  <Code className="mt-0.5 block break-all text-2xs text-sg-neutral-500">
+                  <Code className="mt-0.5 block break-all text-xs text-sg-neutral-500">
                     {s.content_hash}
                   </Code>
                   {!s.is_active && (

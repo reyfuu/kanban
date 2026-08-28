@@ -342,7 +342,7 @@ function ApprovalTrail(props: {
         {ordered.map(([round, steps]) => (
           <div key={round}>
             {ordered.length > 1 && (
-              <p className="mb-1 text-2xs font-semibold uppercase tracking-wider text-sg-neutral-500">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-sg-neutral-500">
                 Pengajuan ke-{round}
               </p>
             )}
@@ -353,7 +353,7 @@ function ApprovalTrail(props: {
                     <StatusBadge tone={STEP_TONE[step.status] ?? 'neutral'}>
                       {STEP_LABEL[step.status] ?? step.status}
                     </StatusBadge>
-                    <span className="text-2xs font-semibold uppercase tracking-wider text-sg-neutral-500">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-sg-neutral-500">
                       {step.kind === 'PENELAAHAN' ? 'Telaah' : `Pengesahan tingkat ${step.stepOrder}`}
                     </span>
                     {step.actedAt && (
@@ -390,7 +390,7 @@ function ApprovalTrail(props: {
 function Field(props: { label: string; value: string; hint?: string }) {
   return (
     <div>
-      <dt className="text-2xs font-semibold uppercase tracking-wider text-sg-neutral-500">
+      <dt className="text-xs font-semibold uppercase tracking-wider text-sg-neutral-500">
         {props.label}
       </dt>
       <dd className="mt-1 text-sm text-sg-neutral-900">{props.value}</dd>
@@ -403,7 +403,7 @@ function Th(props: { children: React.ReactNode }) {
   return (
     <th
       scope="col"
-      className="px-3 py-2 text-2xs font-semibold uppercase tracking-wider text-sg-neutral-500"
+      className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-sg-neutral-500"
     >
       {props.children}
     </th>

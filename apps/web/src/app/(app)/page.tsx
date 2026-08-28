@@ -231,7 +231,7 @@ function StatTile(props: Stat) {
           {props.value === null ? '—' : formatNumber(props.value)}
         </span>
       </div>
-      <p className="mt-2 text-2xs font-medium uppercase tracking-wide text-sg-neutral-500">
+      <p className="mt-2 text-xs font-medium uppercase tracking-wide text-sg-neutral-500">
         {props.label}
       </p>
     </Link>
@@ -276,7 +276,7 @@ function TicketPanel(props: { data: TicketData }) {
         <Bar label="Dalam proses" value={inProgress} max={max} tone="bg-sg-info-500" />
         <Bar label="Selesai" value={closed} max={max} tone="bg-sg-success-500" />
       </div>
-      <p className="mt-3 text-2xs uppercase tracking-wide text-sg-neutral-500">
+      <p className="mt-3 text-xs uppercase tracking-wide text-sg-neutral-500">
         {formatNumber(total)} total
       </p>
     </Panel>
@@ -293,7 +293,7 @@ function CampaignPanel(props: { data: CampaignData }) {
         <Bar label="Menunggu sign-off" value={signoff} max={max} tone="bg-sg-warning-500" />
         <Bar label="Selesai" value={done} max={max} tone="bg-sg-success-500" />
       </div>
-      <p className="mt-3 text-2xs uppercase tracking-wide text-sg-neutral-500">
+      <p className="mt-3 text-xs uppercase tracking-wide text-sg-neutral-500">
         {formatNumber(total)} total
       </p>
     </Panel>

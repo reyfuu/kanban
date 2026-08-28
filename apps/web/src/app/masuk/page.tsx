@@ -25,7 +25,7 @@ export default async function MasukPage() {
           </span>
           <span className="flex flex-col leading-tight">
             <span className="text-lg font-semibold tracking-wide text-tri-on-primary">SIGAP</span>
-            <span className="text-2xs font-medium tracking-wide text-tri-gold">
+            <span className="text-xs font-medium tracking-wide text-tri-gold">
               PT Trimegah Sekuritas Indonesia Tbk
             </span>
           </span>
@@ -42,7 +42,7 @@ export default async function MasukPage() {
           <div className="mt-6 h-px w-16 bg-tri-gold" aria-hidden />
         </div>
 
-        <p className="relative text-2xs tracking-wide text-sg-neutral-400">
+        <p className="relative text-xs tracking-wide text-sg-neutral-400">
           Integritas · Profesionalisme · Keandalan · Inovasi
         </p>
       </section>

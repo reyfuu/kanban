@@ -125,7 +125,7 @@ export function RecordCard(props: {
       <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2">
         {props.fields.map((f) => (
           <div key={f.label} className="min-w-0">
-            <dt className="text-2xs font-semibold uppercase tracking-wide text-sg-neutral-500">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-sg-neutral-500">
               {f.label}
             </dt>
             <dd className="mt-0.5 truncate text-sm text-sg-neutral-700">{f.value}</dd>
@@ -146,7 +146,7 @@ export function Th(props: { children: ReactNode; className?: string }) {
   return (
     <th
       scope="col"
-      className={`px-3 py-2 text-2xs font-semibold uppercase tracking-wider text-sg-neutral-500 ${props.className ?? ''}`}
+      className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider text-sg-neutral-500 ${props.className ?? ''}`}
     >
       {props.children}
     </th>

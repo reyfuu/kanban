@@ -107,7 +107,7 @@ export default async function BandingkanPage({
             {diff.hunks.map((hunk, hi) => (
               <div key={hi}>
                 {hunk.skippedBefore > 0 && (
-                  <p className="border-y border-sg-neutral-200 bg-sg-neutral-50 px-4 py-1 text-2xs uppercase tracking-wider text-sg-neutral-500">
+                  <p className="border-y border-sg-neutral-200 bg-sg-neutral-50 px-4 py-1 text-xs uppercase tracking-wider text-sg-neutral-500">
                     {hunk.skippedBefore} baris tidak berubah
                   </p>
                 )}
@@ -161,7 +161,7 @@ function VersionCard({
 }) {
   return (
     <div className="rounded-lg border border-sg-neutral-200 bg-sg-neutral-0 p-4">
-      <dt className="text-2xs font-semibold uppercase tracking-wider text-sg-neutral-500">
+      <dt className="text-xs font-semibold uppercase tracking-wider text-sg-neutral-500">
         {label}
       </dt>
       <dd className="mt-1 flex flex-wrap items-center gap-2">

@@ -144,7 +144,7 @@ export function AppSidebar({
             </span>
             <span className="flex flex-col leading-tight">
               <span className="text-base font-semibold tracking-wide text-tri-on-primary">SIGAP</span>
-              <span className="text-2xs font-medium tracking-wide text-tri-gold">
+              <span className="text-xs font-medium tracking-wide text-tri-gold">
                 PT Trimegah Sekuritas
               </span>
             </span>
@@ -165,7 +165,7 @@ export function AppSidebar({
           <div className="space-y-4">
             {sections.map((section) => (
               <div key={section.name}>
-                <p className="px-3 pb-1.5 text-2xs font-semibold uppercase tracking-widest text-sg-neutral-400">
+                <p className="px-3 pb-1.5 text-xs font-semibold uppercase tracking-widest text-sg-neutral-400">
                   {section.name}
                 </p>
                 <ul className="space-y-0.5">
@@ -202,13 +202,13 @@ export function AppSidebar({
           <div className="flex items-center gap-3 rounded-lg px-2 py-2">
             <span
               aria-hidden
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-tri-navy-dark text-2xs font-semibold text-tri-on-primary ring-1 ring-tri-navy-line"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-tri-navy-dark text-xs font-semibold text-tri-on-primary ring-1 ring-tri-navy-line"
             >
               {initials}
             </span>
             <span className="min-w-0 flex-1 leading-tight">
               <span className="block truncate text-sm font-medium text-tri-on-primary">{userName}</span>
-              <span className="block truncate text-2xs text-sg-neutral-400">{userSubtitle}</span>
+              <span className="block truncate text-xs text-sg-neutral-400">{userSubtitle}</span>
             </span>
           </div>
           <form action={logout}>

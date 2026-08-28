@@ -147,7 +147,7 @@ export default async function TiketPage() {
                   <td className="px-3 py-2 text-sg-neutral-700">
                     {t.entitlement.display_name}
                     {t.entitlement.is_privileged && (
-                      <span className="ml-2 inline-flex items-center rounded bg-sg-warning-50 px-1.5 py-0.5 text-2xs font-semibold text-sg-warning-700">
+                      <span className="ml-2 inline-flex items-center rounded bg-sg-warning-50 px-1.5 py-0.5 text-xs font-semibold text-sg-warning-700">
                         ISTIMEWA
                       </span>
                     )}

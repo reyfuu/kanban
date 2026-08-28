@@ -191,7 +191,7 @@ export default async function KebijakanPage({
                             className="flex min-h-11 items-center justify-between gap-3 px-4 py-2 text-sm text-sg-accent-700 hover:bg-sg-neutral-50"
                           >
                             <span>{s.title}</span>
-                            <span className="text-2xs uppercase tracking-wide text-sg-neutral-500">
+                            <span className="text-xs uppercase tracking-wide text-sg-neutral-500">
                               {AREA_LABEL[s.process_area] ?? s.process_area}
                             </span>
                           </Link>
@@ -300,7 +300,7 @@ function FacetList(props: {
   if (props.items.length === 0) return null
   return (
     <section>
-      <h2 className="text-2xs font-semibold uppercase tracking-wider text-sg-neutral-500">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-sg-neutral-500">
         {props.title}
       </h2>
       <ul className="mt-2 space-y-0.5">

@@ -115,7 +115,7 @@ function FormedPack({ pack }: { pack: EvidencePackage }) {
 
       {/* The eight sections of FR-B-022, as a scannable count grid. */}
       <div>
-        <h3 className="text-2xs font-semibold uppercase tracking-wider text-sg-neutral-500">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-sg-neutral-500">
           Isi paket
         </h3>
         <dl className="mt-2 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-sg-neutral-200 bg-sg-neutral-200 sm:grid-cols-4">
@@ -158,7 +158,7 @@ function FormedPack({ pack }: { pack: EvidencePackage }) {
 function Field(props: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-2xs font-semibold uppercase tracking-wider text-sg-neutral-500">
+      <dt className="text-xs font-semibold uppercase tracking-wider text-sg-neutral-500">
         {props.label}
       </dt>
       <dd className="mt-1 text-sm text-sg-neutral-900">{props.children}</dd>
@@ -179,7 +179,7 @@ function Stat(props: { label: string; value: number; tone?: 'neutral' | 'success
   return (
     <div className="bg-sg-neutral-0 px-3 py-2">
       <p className={`text-lg font-semibold tabular-nums ${valueColor}`}>{props.value}</p>
-      <p className="text-2xs text-sg-neutral-600">{props.label}</p>
+      <p className="text-xs text-sg-neutral-600">{props.label}</p>
     </div>
   )
 }
