@@ -305,6 +305,18 @@ Ini yang tidak terlihat dari membaca kode saja. Yang baru ada di bagian bawah.
 6. **Direktori pengguna (FR-X-014).** Wisaya kampanye hanya dapat menawarkan pengguna yang sedang masuk sebagai reviewer cadangan, karena tidak ada titik akhir yang mendaftar pengguna. FR-B-009 aturan 1 mewajibkan cadangan, jadi ini membatasi siapa yang dapat menyusun kampanye untuk orang lain.
 7. **Modul C · Policy Hub** — sisa Fase 1.
 
+### Modul A · Evidence Vault — status
+
+Dibangun dan teruji (commit `dcff234`, `4910b44`, `97a0e86`):
+- FR-A-001..003 · pustaka kontrol, framework, pemetaan + tampilan cakupan.
+- FR-A-004..005 · penugasan + siklus hidup (state machine, scope tim, legal hold).
+- FR-A-006..009 · permintaan bukti (PBC), daftar tugas PIC, kesiapan.
+- FR-A-010..014 · bukti entitas mandiri, versi + **integritas K-8** (SHA-256, tolak duplikat, verifikasi unduh, atestasi rantai kepemilikan).
+- FR-A-015 · retensi + penahanan hukum + antrean penghapusan (persetujuan COMPLIANCE + step-up).
+- FR-A-016..017 · temuan + tindak lanjut (SLA per risiko, tutup AUDIT_LEAD, terima-risiko direksi).
+
+**Belum:** FR-A-018 (portal auditor eksternal) — butuh jalur autentikasi AUDITOR_EXT terpisah (FR-X-004), tanda air, dan pembatasan baca ke bukti berstatus DITERIMA saja. Slice lintas potong tersendiri. Object-lock penyimpanan fisik (K-8 rule 3) menunggu backend penyimpanan.
+
 Setelah menyentuh kontrol kritis mana pun: jalankan skill `critical-controls`, lalu subagent `security-reviewer`. Daftar periksa menangkap pelanggaran yang terlihat; review adversarial menangkap yang tersembunyi — kebocoran cakupan di §4 tidak akan tertangkap oleh daftar periksa.
 
 ---
