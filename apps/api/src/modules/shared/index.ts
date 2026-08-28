@@ -18,7 +18,17 @@ export {
 } from './request-context/request-context.js'
 export { type Principal, hasPermission, hasAnyRole } from './authz/principal.js'
 export { AuthzService } from './authz/authz.service.js'
+export {
+  ScopeFilter,
+  applicationScope,
+  orgUnitScope,
+  SCOPE_APPLICATIONS,
+  SCOPE_ORG_UNITS,
+} from './authz/scope.js'
 export { Public } from './http/public.decorator.js'
 export { AuthGuard } from './http/auth.guard.js'
+export { StepUpGuard } from './http/step-up.guard.js'
+export { RequiresStepUp } from './http/step-up.decorator.js'
+export type { SigapRequest } from './http/request.types.js'
 export { ResponseInterceptor } from './http/response.interceptor.js'
 export { ProblemFilter } from './http/problem.filter.js'

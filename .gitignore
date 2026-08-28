@@ -7,6 +7,9 @@ dist/
 build/
 .next/
 out/
+# Cache inkremental TypeScript — artefak mesin, bukan sumber. Ia berubah pada
+# setiap typecheck dan menghasilkan konflik yang tidak berarti apa-apa.
+*.tsbuildinfo
 
 # Lingkungan & rahasia
 .env

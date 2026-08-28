@@ -7,6 +7,7 @@ import { AuthzService } from './authz/authz.service.js'
 import { IdentityProvider, assertProviderAllowed } from './identity/identity-provider.js'
 import { SeedIdentityProvider } from './identity/seed-identity.provider.js'
 import { SessionService } from './identity/session.service.js'
+import { StepUpService } from './identity/step-up.service.js'
 import { AuthService } from './identity/auth.service.js'
 import { AuthController } from './identity/auth.controller.js'
 import { ContextMiddleware } from './http/context.middleware.js'
@@ -32,6 +33,7 @@ import { ContextMiddleware } from './http/context.middleware.js'
     AuditService,
     AuthzService,
     SessionService,
+    StepUpService,
     AuthService,
     {
       // ADR-06: which implementation is a configuration choice, and the rest of
@@ -45,7 +47,15 @@ import { ContextMiddleware } from './http/context.middleware.js'
       inject: [PrismaService],
     },
   ],
-  exports: [PrismaService, UnitOfWork, AuditService, AuthzService, SessionService, AuthService],
+  exports: [
+    PrismaService,
+    UnitOfWork,
+    AuditService,
+    AuthzService,
+    SessionService,
+    StepUpService,
+    AuthService,
+  ],
 })
 export class SharedModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

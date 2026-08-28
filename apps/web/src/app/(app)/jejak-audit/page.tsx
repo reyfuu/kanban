@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { apiFetch } from '@/lib/api'
+import { formatDateTimePrecise } from '@/lib/format'
 import { hasPermission, requireUser } from '@/lib/session'
 import { VerifyChainButton } from './verify-button'
 
@@ -15,12 +16,6 @@ interface AuditRow {
   prev_hash: string | null
   hash: string
 }
-
-const dateTime = new Intl.DateTimeFormat('id-ID', {
-  dateStyle: 'medium',
-  timeStyle: 'medium',
-  timeZone: 'Asia/Jakarta',
-})
 
 export default async function JejakAuditPage() {
   const user = await requireUser()
@@ -62,7 +57,7 @@ export default async function JejakAuditPage() {
             {rows.map((row) => (
               <tr key={row.id} className="align-top">
                 <td className="whitespace-nowrap px-3 py-2 tabular-nums text-sg-neutral-700">
-                  {dateTime.format(new Date(row.occurred_at))}
+                  {formatDateTimePrecise(row.occurred_at)}
                 </td>
                 <td className="px-3 py-2 text-sg-neutral-900">{row.actor.full_name}</td>
                 <td className="px-3 py-2 text-xs text-sg-neutral-600">

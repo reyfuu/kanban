@@ -5,6 +5,7 @@ import { AuthzService } from '../authz/authz.service.js'
 import type { Principal } from '../authz/principal.js'
 import { IdentityProvider } from './identity-provider.js'
 import { SESSION_IDLE_MINUTES, SessionService } from './session.service.js'
+import { StepUpService } from './step-up.service.js'
 
 export interface LoginResult {
   readonly accessToken: string
@@ -34,6 +35,7 @@ export class AuthService {
     private readonly identity: IdentityProvider,
     private readonly sessions: SessionService,
     private readonly authz: AuthzService,
+    private readonly stepUp: StepUpService,
     private readonly uow: UnitOfWork,
   ) {}
 
@@ -116,6 +118,70 @@ export class AuthService {
     if (!principal) return null
 
     return { principal, sessionId: session.sessionId }
+  }
+
+  /**
+   * Re-authentication for sensitive actions (FR-X-003).
+   *
+   * The password is checked against the identity provider again, not against
+   * anything cached from login: FR-X-003 exists to prove the person at the
+   * keyboard right now is the account holder, and a cached answer proves only
+   * that someone once was.
+   *
+   * The username is taken from the authenticated principal and never from the
+   * request body. Accepting a username here would turn re-authentication into
+   * a way to mint a step-up token for whichever account you know the password
+   * of, and then act as the session's user.
+   *
+   * A successful step-up is audited. It is the moment a person asserted their
+   * identity in order to do something irreversible, and FR-X-008 rule 1 wants
+   * that moment recorded with its actor, session and source address.
+   */
+  async issueStepUp(input: {
+    password: string
+    principal: Principal
+    sessionId: string
+    requestId: string
+    ipAddress: string
+  }): Promise<{ token: string; expiresIn: number }> {
+    const verified = await this.identity.authenticate({
+      username: input.principal.externalId,
+      password: input.password,
+    })
+    if (!verified) throw new UnauthorizedException('Kata sandi salah.')
+
+    // A directory account disabled since login must not be able to step up.
+    const active = await this.identity.isActive(input.principal.externalId)
+    if (!active) throw new UnauthorizedException('Kata sandi salah.')
+
+    const issued = await this.stepUp.issue({
+      userId: input.principal.userId,
+      sessionId: input.sessionId,
+    })
+
+    await runWithRequestContext(
+      {
+        requestId: input.requestId,
+        actorId: input.principal.userId,
+        actorRoles: input.principal.roles,
+        sessionId: input.sessionId,
+        ipAddress: input.ipAddress,
+      },
+      async () =>
+        this.uow.write(async (_tx, audit) => {
+          await audit.record({
+            action: 'AUTENTIKASI_ULANG',
+            objectType: 'SESSION',
+            objectId: input.sessionId,
+            // The token itself is deliberately absent. It is a live credential
+            // for the next five minutes, and audit_log refuses UPDATE and
+            // DELETE -- anything written there is written permanently.
+            after: { expires_in: issued.expiresIn },
+          })
+        }),
+    )
+
+    return issued
   }
 
   async logout(input: {

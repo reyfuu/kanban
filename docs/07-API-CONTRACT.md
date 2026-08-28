@@ -1304,6 +1304,7 @@ POST  /api/v1/campaigns/{id}/cancel
 GET   /api/v1/campaigns/{id}/progress
 GET   /api/v1/campaigns/{id}/signoffs
 POST  /api/v1/campaigns/{id}/signoff         # memerlukan X-Step-Up-Token
+POST  /api/v1/signoffs/{id}/reopen           # memerlukan X-Step-Up-Token, hanya SEC_OFFICER
 POST  /api/v1/campaigns/{id}/evidence-package
 ```
 
@@ -1579,6 +1580,28 @@ X-Step-Up-Token: su_01JKX9Z8Q2...
   }
 }
 ```
+
+**Membuka kembali sign-off** — FR-B-015 aturan 4. Satu-satunya jalan melewati
+penguncian keputusan, dan karena itu menuntut autentikasi ulang seperti sign-off
+yang dibukanya.
+
+```http
+POST /api/v1/signoffs/{id}/reopen
+X-Step-Up-Token: su_01JKX9Z8Q2...
+```
+
+```json
+{
+  "reason": "Ditemukan kesalahan pemetaan reviewer pada 12 item aplikasi Back Office."
+}
+```
+
+**`204 No Content`**
+
+Catatan sign-off sebelumnya **tidak dihapus**: barisnya tetap tersimpan dengan
+`is_active: false` beserta `reopened_at`, `reopened_by`, dan `reopen_reason`.
+Tanda tangan yang dapat dihapus tidak membuktikan apa pun tentang apa yang
+ditandatangani.
 
 **Kesalahan bila masih ada item tertinggal**
 
@@ -2577,7 +2600,7 @@ components:
 | FR-B-006, FR-B-007 | `/access-anomalies` |
 | FR-B-008 s.d. FR-B-010 | `/campaigns`, `POST /campaigns/{id}/preview` |
 | FR-B-011 s.d. FR-B-014 | `GET /my/review-items`, `POST /review-items/{id}/decision` |
-| FR-B-015, FR-B-016 | `POST /campaigns/{id}/signoff`, `GET /campaigns/{id}/progress` |
+| FR-B-015, FR-B-016 | `POST /campaigns/{id}/signoff`, `POST /signoffs/{id}/reopen`, `GET /campaigns/{id}/progress` |
 | FR-B-018 s.d. FR-B-021 | `/revocation-tickets` |
 | FR-B-022, FR-B-023 | `POST /campaigns/{id}/evidence-package` |
 | FR-B-024, FR-B-025 | `/sod-rules`, `POST /sod-rules/{id}/simulate` |

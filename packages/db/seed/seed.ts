@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { PrismaClient } from '@prisma/client'
 import { PERMISSIONS, ROLES, ROLE_PERMISSIONS } from './catalogue.js'
+import { seedModuleB } from './module-b.js'
 
 /**
  * Development and demo dataset.
@@ -89,6 +90,9 @@ async function main(): Promise<void> {
     }
   }
 
+  const employeeIds = new Map<string, string>()
+  const userIds = new Map<string, string>()
+
   for (const [username, empNumber, fullName, jobTitle, orgCode, roles] of PEOPLE) {
     const existingEmp = await prisma.employee.findUnique({ where: { employeeNumber: empNumber } })
     const employeeId = existingEmp?.id ?? randomUUID()
@@ -115,6 +119,9 @@ async function main(): Promise<void> {
       create: { id: userId, employeeId, externalId: username, userType: 'INTERNAL' },
     })
 
+    employeeIds.set(empNumber, employeeId)
+    userIds.set(username, userId)
+
     await prisma.userRole.deleteMany({ where: { userId } })
     for (const roleCode of roles) {
       await prisma.userRole.create({
@@ -123,15 +130,24 @@ async function main(): Promise<void> {
           userId,
           roleId: roleIds.get(roleCode)!,
           validFrom: new Date('2020-01-01'),
-          scope: orgCode === 'DIR' ? undefined : { org_units: [orgCode] },
+          // The key is omitted rather than set to undefined: an unscoped grant
+          // and a grant scoped to nothing are different states (see
+          // ScopeFilter.from), and exactOptionalPropertyTypes is right to
+          // refuse to let one stand in for the other.
+          ...(orgCode === 'DIR' ? {} : { scope: { org_units: [orgCode] } }),
         },
       })
     }
   }
 
+  await seedModuleB({ prisma, orgIds, employeeIds, userIds })
+
+  const itemCount = await prisma.reviewItem.count()
+
   console.log(
     `Benih siap: ${ORG_UNITS.length} unit, ${ROLES.length} peran, ` +
-      `${PERMISSIONS.length} hak, ${PEOPLE.length} pengguna.`,
+      `${PERMISSIONS.length} hak, ${PEOPLE.length} pengguna, ` +
+      `${itemCount} item review dalam kampanye UAR-2026-S2.`,
   )
   console.log(`Masuk dengan salah satu nama pengguna di atas, kata sandi: ${process.env.SEED_IDENTITY_PASSWORD ?? 'demo'}`)
 }

@@ -16,8 +16,8 @@ Yang dikerjakan sekarang adalah **fondasi lintas modul (FR-X) dari Fase 1**, lal
 |---|---|---|
 | Autentikasi lewat antarmuka `IdentityProvider` | FR-X-001 | Penyedia demo jalan; implementasi LDAPS **belum** |
 | Sesi persisten, idle 30 menit, absolut 12 jam | FR-X-002 | Jalan; peringatan 2 menit di antarmuka belum |
-| Autentikasi ulang aksi sensitif | FR-X-003 | **Belum** — diperlukan sebelum sign-off (K-9) |
-| Peran, hak akses, cakupan | FR-X-005 | Resolusi jalan; penyaringan cakupan di repositori **belum dipakai** |
+| Autentikasi ulang aksi sensitif | FR-X-003 | Jalan — token 5 menit di Redis, terikat sesi; dipakai sign-off (K-9) |
+| Peran, hak akses, cakupan | FR-X-005 | Jalan; penyaringan cakupan ditegakkan di lapisan repositori Modul B |
 | Pemisahan tugas internal | FR-X-006 | **Belum** |
 | Pendelegasian wewenang | FR-X-007 | Ditampilkan; pembuatannya **belum** |
 | Jejak audit berantai + verifikasi | FR-X-008 | Jalan, termasuk penyamaran rahasia |
@@ -25,10 +25,41 @@ Yang dikerjakan sekarang adalah **fondasi lintas modul (FR-X) dari Fase 1**, lal
 | Notifikasi | FR-X-010, FR-X-011 | **Belum** |
 | Unggahan berkas & pemindaian | FR-X-013 | Skema saja |
 | Modul C · Policy Hub | FR-C-* | **Belum** — sisa Fase 1 |
-| Modul B · Access Review | FR-B-* | Sedang dibangun |
+| Modul B · Item review & keputusan | FR-B-011 s.d. FR-B-013 | Jalan — K-2, K-3, K-4 |
+| Modul B · Sign-off kampanye | FR-B-015 | Jalan — K-9, dengan sidik jari isi |
+| Modul B · Pemantauan kampanye | FR-B-016 | Jalan |
+| Modul B · Tiket pencabutan & verifikasi | FR-B-018 s.d. FR-B-021 | Jalan — K-1 |
+| Modul B · Penyusun kampanye | FR-B-008 s.d. FR-B-010 | **Belum** — kampanye demo dari benih |
+| Modul B · Konektor & snapshot | FR-B-003 s.d. FR-B-006 | Skema saja; snapshot demo dari benih |
+| Modul B · Deteksi anomali & SoD | FR-B-007, FR-B-024 | Skema saja; temuan demo dari benih |
+| Modul B · Paket bukti kampanye | FR-B-022, FR-B-023 | **Belum** |
 | Modul A · Evidence Vault | FR-A-* | **Belum** — Fase 2 |
 
-Layar yang sudah ada: masuk, beranda, dan jejak audit. Sembilan pengguna benih dengan peran berbeda tersedia untuk mencoba.
+Layar yang sudah ada: masuk, beranda, jejak audit, dan **L-10 Review Saya**
+(termasuk dialog sign-off L-11). Sembilan pengguna benih dengan peran berbeda
+tersedia untuk mencoba.
+
+### Alur demo Modul B
+
+Masuk sebagai `dewi.lestari` (pemilik Back Office & Trading) lalu buka **Review Saya**:
+
+1. Delapan item. Tidak satu pun tombol keputusan terpilih — itu K-2, dan
+   terlihat langsung di HTML yang dirender.
+2. Item istimewa dan berkonflik tampil sebagai kartu penuh; item rutin sebagai
+   baris ringkas yang dapat dipilih massal. Item berisiko tidak punya kotak
+   centang sama sekali (K-4).
+3. Rudi Hartono memegang "Order Entry" sekaligus "Settlement Approver" —
+   konflik SOD-01, dijelaskan sebagai kalimat risiko bisnis, bukan kode aturan.
+4. Keputusan **Pertahankan** pada hak akses istimewa tetap menuntut alasan, dan
+   labelnya menyebut alasannya: "wajib — hak akses istimewa" (K-3).
+5. Setelah seluruh item diputuskan, **Tanda tangani hasil review** meminta kata
+   sandi kembali (FR-X-003), menampilkan ringkasan jumlah keputusan sebelum
+   ditandatangani, lalu mengunci seluruh keputusan (K-9).
+6. Keputusan "Cabut" menghasilkan tiket pencabutan. Masuk sebagai
+   `rina.kusuma` (SEC_OFFICER) untuk melihatnya di **Tiket Pencabutan** — dan
+   untuk membuktikan K-1: tiket **tidak dapat** ditutup dengan menyatakan
+   pekerjaan selesai. Hanya snapshot baru yang membuktikan akses telah hilang
+   dapat menutupnya; bila akses masih ada, tiket menjadi Gagal Diverifikasi.
 
 ## Menjalankan
 

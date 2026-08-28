@@ -364,7 +364,9 @@ interface IdentityProvider {
 - Verifikasi pencabutan (FR-B-020) memerlukan perbandingan langsung antar-snapshot utuh.
 - Perhitungan volume: 30 aplikasi × 500 identitas × 8 hak akses × 24 snapshot ≈ 2,9 juta baris per tahun. PostgreSQL menangani volume ini dengan sangat baik pada satu tabel berpartisi.
 
-**Konsekuensi.** Tabel `access_snapshot_line` dipartisi berdasarkan `snapshot_id` dalam rentang bulanan. Snapshot berumur lebih dari 3 tahun dipindahkan ke penyimpanan objek dalam format kolumnar untuk keperluan arsip.
+**Konsekuensi.** Tabel `snapshot_line` dipartisi rentang bulanan berdasarkan `captured_at` — waktu pengambilan snapshot, didenormalisasi dari `access_snapshot` ke setiap baris. Partisi rentang menuntut kunci yang terurut; `snapshot_id` berupa UUID tidak memenuhinya, sedangkan pertanyaan arsip selalu berbentuk rentang waktu (lihat §3.5). Snapshot berumur lebih dari 3 tahun dipindahkan ke penyimpanan objek dalam format kolumnar untuk keperluan arsip, satu partisi sekaligus.
+
+Konsekuensi yang harus disadari: PostgreSQL mewajibkan kolom partisi masuk ke setiap kendala unik, sehingga kunci utama `snapshot_line` menjadi komposit `(id, captured_at)`. Kunci asing ke tabel itu tidak dapat dibuat dari kolom tunggal, maka `review_item.snapshot_line_id` dan `access_anomaly.snapshot_line_id` **tidak memiliki kunci asing di basis data**. Integritas referensial untuk kedua rujukan itu ditegakkan di lapisan repositori — repositori wajib memverifikasi keberadaan baris snapshot yang dirujuk sebelum menulis, dan tidak boleh menganggap basis data akan menolaknya. `sod_violation` sengaja merujuk `entitlement_catalog`, bukan `snapshot_line`, justru agar tetap memperoleh kunci asing sungguhan.
 
 ---
 

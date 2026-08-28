@@ -7,7 +7,13 @@ import { NestFactory, Reflector } from '@nestjs/core'
 import { Logger, ValidationPipe } from '@nestjs/common'
 import helmet from 'helmet'
 import { AppModule } from './app.module.js'
-import { AuthGuard, ProblemFilter, ResponseInterceptor } from './modules/shared/index.js'
+import {
+  AuthGuard,
+  ProblemFilter,
+  ResponseInterceptor,
+  StepUpGuard,
+} from './modules/shared/index.js'
+import { StepUpService } from './modules/shared/identity/step-up.service.js'
 
 /**
  * API process entrypoint (ADR-08).
@@ -29,7 +35,13 @@ async function bootstrap(): Promise<void> {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   )
-  app.useGlobalGuards(new AuthGuard(app.get(Reflector)))
+  // Order matters: AuthGuard establishes that there IS a principal, StepUpGuard
+  // then asks whether that principal re-authenticated recently enough
+  // (FR-X-003). Both are global so protection is the default state.
+  app.useGlobalGuards(
+    new AuthGuard(app.get(Reflector)),
+    new StepUpGuard(app.get(Reflector), app.get(StepUpService)),
+  )
   app.useGlobalInterceptors(new ResponseInterceptor())
   app.useGlobalFilters(new ProblemFilter())
 

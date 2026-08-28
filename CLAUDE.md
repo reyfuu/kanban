@@ -20,7 +20,7 @@ Sistem Integrasi Governance, Akses, dan Prosedur. Platform tata kelola internal 
 | Arsitektur, ADR, model data, NFR | [04-TRD](docs/04-TRD.md) |
 | Alur & layar | [05-UIUX-FLOW](docs/05-UIUX-FLOW.md) |
 | Token desain & komponen | [06-DESIGN](docs/06-DESIGN.md) |
-| Kontrak REST, 187 titik akhir | [07-API-CONTRACT](docs/07-API-CONTRACT.md) |
+| Kontrak REST, 188 titik akhir | [07-API-CONTRACT](docs/07-API-CONTRACT.md) |
 | Enam agent AI produk | [08-AGENT-SPEC](docs/08-AGENT-SPEC.md) |
 | 33 guardrail agent | [09-GUARDRAILS](docs/09-GUARDRAILS.md) |
 | Strategi uji & eval | [10-TEST-PLAN](docs/10-TEST-PLAN.md) |

@@ -1,0 +1,12 @@
+{
+  // The seed is real code that talks to a real database, and it was reaching
+  // production-shaped enums by string literal. Until this file existed, an
+  // invalid enum member in seed/ was found by running the seed, not by the
+  // quality gate -- so the gate learned nothing and the failure arrived late.
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false
+  },
+  "include": ["seed"]
+}

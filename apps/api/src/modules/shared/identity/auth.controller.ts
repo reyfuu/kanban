@@ -5,6 +5,13 @@ import { Public } from '../http/public.decorator.js'
 import { AuthService } from './auth.service.js'
 import { SessionService } from './session.service.js'
 
+class StepUpDto {
+  @IsString()
+  @IsNotEmpty({ message: 'Kata sandi wajib diisi.' })
+  @MaxLength(200)
+  password!: string
+}
+
 class LoginDto {
   @IsString()
   @IsNotEmpty({ message: 'Nama pengguna wajib diisi.' })
@@ -85,6 +92,26 @@ export class AuthController {
         user_agent: s.userAgent,
         is_current: s.id === req.sessionId,
       })),
+    }
+  }
+
+  /** 07-API-CONTRACT Sec 2.3 — FR-X-003. */
+  @Post('step-up')
+  @HttpCode(200)
+  async stepUp(@Body() dto: StepUpDto, @Req() req: SigapRequest) {
+    const result = await this.auth.issueStepUp({
+      password: dto.password,
+      principal: req.principal!,
+      sessionId: req.sessionId!,
+      requestId: req.requestId ?? 'unknown',
+      ipAddress: req.ip ?? 'unknown',
+    })
+
+    return {
+      data: {
+        step_up_token: result.token,
+        expires_in: result.expiresIn,
+      },
     }
   }
 

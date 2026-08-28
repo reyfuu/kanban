@@ -19,7 +19,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "generate": "prisma generate --schema prisma/schema.prisma",
-    "seed": "tsx --env-file=../../.env seed/seed.ts"
+    "seed": "tsx --env-file=../../.env seed/seed.ts",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.seed.json"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3"

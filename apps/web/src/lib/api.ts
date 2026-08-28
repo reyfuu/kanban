@@ -33,6 +33,8 @@ interface RequestOptions {
   body?: unknown
   /** Omit the session token -- only for login. */
   anonymous?: boolean
+  /** Extra headers, e.g. the FR-X-003 step-up token on a sign-off. */
+  headers?: Record<string, string>
 }
 
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -43,6 +45,9 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     if (token) headers.Authorization = `Bearer ${token}`
   }
   if (options.body !== undefined) headers['Content-Type'] = 'application/json'
+  // Merged last so a caller cannot accidentally drop the Authorization header
+  // by supplying its own set.
+  for (const [key, value] of Object.entries(options.headers ?? {})) headers[key] = value
 
   // The key is omitted rather than set to undefined: exactOptionalPropertyTypes
   // treats those as different things, and RequestInit does not accept undefined.
