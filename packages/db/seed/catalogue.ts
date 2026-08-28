@@ -38,6 +38,8 @@ export const PERMISSIONS = [
   ['user:read', 'Melihat pengguna dan peran', 'X'],
   ['user:write', 'Mengelola pengguna dan peran', 'X'],
   ['dashboard:executive', 'Melihat dasbor eksekutif', 'X'],
+  ['control:read', 'Melihat pustaka kontrol dan framework', 'A'],
+  ['control:write', 'Mengelola kontrol, framework, dan pemetaan', 'A'],
 ] as const
 
 /**
@@ -54,7 +56,7 @@ export const PERMISSIONS = [
  */
 export const ROLE_PERMISSIONS: Record<string, readonly string[]> = {
   SYS_ADMIN: ['application:read', 'application:write', 'user:read', 'user:write'],
-  COMPLIANCE: ['campaign:read', 'review:read', 'audit-log:verify', 'user:read', 'application:read'],
+  COMPLIANCE: ['campaign:read', 'review:read', 'audit-log:verify', 'user:read', 'application:read', 'control:read', 'control:write'],
   SEC_OFFICER: [
     'campaign:read',
     'campaign:write',
@@ -67,9 +69,9 @@ export const ROLE_PERMISSIONS: Record<string, readonly string[]> = {
   ],
   APP_OWNER: ['campaign:read', 'review:read', 'review:decide', 'campaign:signoff', 'application:read', 'ticket:read'],
   LINE_MANAGER: ['campaign:read', 'review:read', 'review:decide'],
-  AUDIT_LEAD: ['campaign:read', 'review:read', 'audit-log:verify'],
-  AUDITOR_INT: ['campaign:read', 'review:read'],
-  EXECUTIVE: ['dashboard:executive', 'campaign:read'],
+  AUDIT_LEAD: ['campaign:read', 'review:read', 'audit-log:verify', 'control:read', 'control:write'],
+  AUDITOR_INT: ['campaign:read', 'review:read', 'control:read', 'control:write'],
+  EXECUTIVE: ['dashboard:executive', 'campaign:read', 'control:read'],
   EMPLOYEE: [],
   AUDITOR_EXT: [],
   EVIDENCE_PIC: [],

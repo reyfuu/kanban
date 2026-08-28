@@ -88,6 +88,7 @@ model OrganizationUnit {
   parent    OrganizationUnit?  @relation("OrgUnitHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   children  OrganizationUnit[] @relation("OrgUnitHierarchy")
   employees Employee[]
+  executedControls Control[]   @relation("ControlExecutingUnit")
 
   @@index([parentId], map: "idx_organization_unit_parent_id")
   @@map("organization_unit")
@@ -119,6 +120,9 @@ model Employee {
   assignedRevocations    RevocationTicket[]
   sodViolations          SodViolation[]
   accessAnomalies        AccessAnomaly[]
+
+  // Modul A (docs/04-TRD.md Sec 3.2) back-relations.
+  ownedControls          Control[]          @relation("ControlOwner")
 
   @@index([orgUnitId], map: "idx_employee_org_unit_id")
   @@index([managerId], map: "idx_employee_manager_id")
@@ -157,6 +161,10 @@ model AppUser {
   signedCampaignSignoffs    CampaignSignoff[]  @relation("CampaignSignoffSignedBy")
   reopenedCampaignSignoffs  CampaignSignoff[]  @relation("CampaignSignoffReopenedBy")
   approvedSodExceptions     SodException[]
+
+  // Modul A (docs/04-TRD.md Sec 3.2) back-relations.
+  authoredControlVersions   ControlVersion[]   @relation("ControlVersionAuthor")
+  authoredControlMappings   ControlMapping[]   @relation("ControlMappingAuthor")
 
   @@index([isActive], map: "idx_app_user_is_active")
   @@map("app_user")
@@ -570,6 +578,49 @@ enum AccessAnomalyCode {
   @@map("access_anomaly_code")
 }
 
+// ============================================================================
+// Modul A — Evidence Vault enums (docs/04-TRD.md Sec 3.2, docs/03-FRD.md FR-A)
+// ============================================================================
+
+/// FR-A-001 · how often a control is performed.
+enum ControlFrequency {
+  HARIAN
+  MINGGUAN
+  BULANAN
+  TRIWULANAN
+  TAHUNAN
+  AD_HOC
+
+  @@map("control_frequency")
+}
+
+/// FR-A-001 · preventive/detective/corrective.
+enum ControlType {
+  PREVENTIF
+  DETEKTIF
+  KOREKTIF
+
+  @@map("control_type")
+}
+
+/// FR-A-001 · manual/automated/semi-automated.
+enum ControlNature {
+  MANUAL
+  OTOMATIS
+  SEMI_OTOMATIS
+
+  @@map("control_nature")
+}
+
+/// FR-A-003 aturan 3 · how completely a control satisfies a framework item.
+enum CoverageLevel {
+  PENUH
+  SEBAGIAN
+  MENDUKUNG
+
+  @@map("coverage_level")
+}
+
 /// Application registry subject to access review (FR-B-001). See
 /// packages/db/README.md for the documented gap between this column list and
 /// the FR-B-001 prose "Atribut" list (uraian/data classification/retrieval
@@ -962,4 +1013,127 @@ model AccessAnomaly {
   @@index([employeeId], map: "idx_access_anomaly_employee_id")
   @@index([status], map: "idx_access_anomaly_status")
   @@map("access_anomaly")
+}
+
+// ============================================================================
+// Modul A — Evidence Vault: control library and framework mapping.
+// Requirements FR-A-001, FR-A-002, FR-A-003; docs/04-TRD.md Sec 3.2 ERD.
+// Evidence, engagements, request items, findings and versions follow in a
+// later migration; this migration builds the control/framework foundation
+// everything else in Modul A references.
+// ============================================================================
+
+/// FR-A-001 · a managed enterprise control.
+model Control {
+  id                  String           @id @db.Uuid
+  code                String           @unique(map: "uq_control_code") @db.VarChar(50)
+  title               String           @db.VarChar(300)
+  objective           String
+  ownerEmployeeId     String           @map("owner_employee_id") @db.Uuid
+  executingOrgUnitId  String?          @map("executing_org_unit_id") @db.Uuid
+  frequency           ControlFrequency
+  controlType         ControlType      @map("control_type")
+  nature              ControlNature
+  riskLevel           RiskLevel        @map("risk_level")
+  testProcedure       String?          @map("test_procedure")
+  expectedEvidenceTypes String[]       @map("expected_evidence_types")
+  /// FR-A-001 aturan 2: the current version number; each edit to a used
+  /// control bumps this and writes a ControlVersion snapshot.
+  currentVersion      Int              @default(1) @map("current_version")
+  isActive            Boolean          @default(true) @map("is_active")
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  ownerEmployee    Employee          @relation("ControlOwner", fields: [ownerEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  executingOrgUnit OrganizationUnit? @relation("ControlExecutingUnit", fields: [executingOrgUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  versions         ControlVersion[]
+  mappings         ControlMapping[]
+
+  @@index([ownerEmployeeId], map: "idx_control_owner_employee_id")
+  @@index([isActive], map: "idx_control_is_active")
+  @@map("control")
+}
+
+/// FR-A-001 aturan 2 · an immutable snapshot of a control at a point in time.
+/// A completed engagement keeps referring to the version that was in force,
+/// so edits never rewrite history.
+model ControlVersion {
+  id            String   @id @db.Uuid
+  controlId     String   @map("control_id") @db.Uuid
+  versionNo     Int      @map("version_no")
+  title         String   @db.VarChar(300)
+  objective     String
+  frequency     ControlFrequency
+  controlType   ControlType @map("control_type")
+  nature        ControlNature
+  riskLevel     RiskLevel   @map("risk_level")
+  testProcedure String?     @map("test_procedure")
+  snapshot      Json        @default("{}")
+  changedBy     String      @map("changed_by") @db.Uuid
+  changedAt     DateTime    @default(now()) @map("changed_at") @db.Timestamptz(6)
+
+  control       Control  @relation(fields: [controlId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  changedByUser AppUser  @relation("ControlVersionAuthor", fields: [changedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([controlId, versionNo], map: "uq_control_version_control_no")
+  @@index([controlId], map: "idx_control_version_control_id")
+  @@map("control_version")
+}
+
+/// FR-A-002 · a compliance framework (ISO 27001, OJK, COBIT, internal).
+model Framework {
+  id          String          @id @db.Uuid
+  code        String          @unique(map: "uq_framework_code") @db.VarChar(50)
+  name        String          @db.VarChar(300)
+  description String?
+  isActive    Boolean         @default(true) @map("is_active")
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  items FrameworkItem[]
+
+  @@map("framework")
+}
+
+/// FR-A-002 aturan 2 · a hierarchical clause within a framework (bab → pasal →
+/// ayat), of arbitrary depth via the self-referential parent.
+model FrameworkItem {
+  id          String  @id @db.Uuid
+  frameworkId String  @map("framework_id") @db.Uuid
+  parentId    String? @map("parent_id") @db.Uuid
+  ref         String  @db.VarChar(100)
+  title       String  @db.VarChar(500)
+  description String?
+  sortOrder   Int     @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  framework Framework        @relation(fields: [frameworkId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  parent    FrameworkItem?   @relation("FrameworkItemHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children  FrameworkItem[]  @relation("FrameworkItemHierarchy")
+  mappings  ControlMapping[]
+
+  @@unique([frameworkId, ref], map: "uq_framework_item_framework_ref")
+  @@index([frameworkId], map: "idx_framework_item_framework_id")
+  @@index([parentId], map: "idx_framework_item_parent_id")
+  @@map("framework_item")
+}
+
+/// FR-A-003 · many-to-many control ↔ framework item, with a coverage level.
+model ControlMapping {
+  id              String        @id @db.Uuid
+  controlId       String        @map("control_id") @db.Uuid
+  frameworkItemId String        @map("framework_item_id") @db.Uuid
+  coverageLevel   CoverageLevel @map("coverage_level")
+  note            String?
+  mappedBy        String        @map("mapped_by") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  control       Control       @relation(fields: [controlId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  frameworkItem FrameworkItem @relation(fields: [frameworkItemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  mappedByUser  AppUser       @relation("ControlMappingAuthor", fields: [mappedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([controlId, frameworkItemId], map: "uq_control_mapping_control_item")
+  @@index([controlId], map: "idx_control_mapping_control_id")
+  @@index([frameworkItemId], map: "idx_control_mapping_framework_item_id")
+  @@map("control_mapping")
 }
