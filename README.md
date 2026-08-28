@@ -31,7 +31,7 @@ Yang dikerjakan sekarang adalah **fondasi lintas modul (FR-X) dari Fase 1**, lal
 | Modul C · Penautan dokumen ke kontrol | FR-C-022 | Jalan lewat API |
 | Modul C · Alur persetujuan berjenjang | FR-C-005 | Jalan — telaah paralel, pengesahan berurutan, autentikasi ulang, pengalihan ke delegasi/atasan |
 | Modul C · Jawaban berbasis dokumen + gerbang klasifikasi | FR-C-013 s.d. FR-C-018 | **Belum** — seluruhnya lewat LLM Gateway (ADR-03) |
-| Modul C · Kampanye attestation | FR-C-019 s.d. FR-C-021 | **Belum** |
+| Modul C · Kampanye attestation | FR-C-019 s.d. FR-C-021 | Jalan — kriteria sasaran, gerbang baca ditegakkan server, pernyataan tak dapat dibatalkan (grant basis data), pemantauan per unit & jabatan, laporan menjadi bukti Modul A |
 | Modul B · Item review & keputusan | FR-B-011 s.d. FR-B-013 | Jalan — K-2, K-3, K-4 |
 | Modul B · Sign-off kampanye | FR-B-015 | Jalan — K-9, dengan sidik jari isi |
 | Modul B · Pemantauan kampanye | FR-B-016 | Jalan |
@@ -47,8 +47,8 @@ Yang dikerjakan sekarang adalah **fondasi lintas modul (FR-X) dari Fase 1**, lal
 
 Layar yang sudah ada: masuk, beranda, jejak audit, **L-09 Penyusun Kampanye**,
 **L-10 Review Saya** (termasuk dialog sign-off L-11), daftar kampanye, registri
-aplikasi, tiket pencabutan, serta **Pusat Kebijakan** (pencarian + detail
-dokumen beserta alur persetujuannya). Sembilan pengguna benih dengan peran berbeda tersedia untuk mencoba.
+aplikasi, tiket pencabutan, **Pusat Kebijakan** (pencarian + detail dokumen
+beserta alur persetujuan dan perbandingan versi), dan **Pernyataan Saya**. Sembilan pengguna benih dengan peran berbeda tersedia untuk mencoba.
 
 ### Alur demo Modul B
 
@@ -158,6 +158,16 @@ sulit dipercaya kalau hanya dibaca di dokumen.
    jenjang pengesahan. Penandaan itu memberi tahu, tidak pernah memblokir:
    substansi versus redaksional adalah penilaian atas makna, dan tidak ada
    hitungan baris yang bisa memutuskannya.
+8. Sebagai `hendra.wijaya`, buat kampanye attestation atas sebuah kebijakan lalu
+   luncurkan. Masuk sebagai `sari.dewi`, buka **Pernyataan Saya**, dan coba
+   menyatakan telah membaca: tombolnya tidak aktif sampai dokumen benar-benar
+   dibuka beberapa detik dan digulir sampai akhir. Gerbang itu **bukan** kendali
+   sesungguhnya — siapa pun bisa memanggil titik akhirnya langsung — jadi server
+   menegakkan batas bawahnya sendiri dan menyimpan apa yang dilihatnya. Progres
+   kampanye dihitung dari kewajiban, bukan dari pernyataan, sehingga 1 dari 398
+   terbaca **1%** dan bukan 0%, dan 397 dari 398 terbaca 99% dan bukan 100%:
+   angka kepatuhan yang membulatkan kewajiban tertunggak menjadi hilang lebih
+   berbahaya daripada angka yang kurang presisi.
 
 Yang membuat butir 3 dan 4 dapat dipercaya: penyaringan hak akses berupa fungsi
 `check_document_access` di dalam PostgreSQL, dan **setiap** cabang kueri

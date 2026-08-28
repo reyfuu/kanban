@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common'
 import { DocumentController } from './document.controller.js'
+import { AttestationController } from './attestation.controller.js'
+import { AttestationService } from './attestation.service.js'
 import { DocumentApprovalService } from './document-approval.service.js'
 import { DocumentService } from './document.service.js'
 import { DocumentSearchRepository } from './document-search.repository.js'
@@ -18,11 +20,13 @@ import { DocumentSearchService } from './document-search.service.js'
  *    pemeringkatan, penyaring + jumlah hasil, dan perilaku saat hasil kosong.
  *  - FR-C-005 · alur telaah & pengesahan berjenjang yang dapat dikonfigurasi,
  *    dengan autentikasi ulang (FR-X-003) dan pengalihan ke delegasi/atasan.
+ *  - FR-C-019 s.d. FR-C-021 · kampanye attestation, pencatatan pernyataan
+ *    beserta buktinya, pemantauan penyelesaian, dan laporan yang menjadi bukti
+ *    Modul A (FR-A-014 aturan 2).
  *  - FR-C-022 · penautan dokumen ke kontrol Modul A.
  *
- * Menyusul: jawaban berbasis dokumen
- * beserta gerbang klasifikasi keluar (FR-C-013 s.d. FR-C-018 — seluruhnya lewat
- * LLM Gateway, ADR-03), dan kampanye attestation (FR-C-019 s.d. FR-C-021).
+ * Menyusul: jawaban berbasis dokumen beserta gerbang klasifikasi keluar
+ * (FR-C-013 s.d. FR-C-018 — seluruhnya lewat LLM Gateway, ADR-03).
  *
  * Penyaringan hak akses ada di lapisan repositori, di dalam basis data
  * (`check_document_access`), bukan di controller — FR-C-010 aturan 1 melarang
@@ -31,8 +35,9 @@ import { DocumentSearchService } from './document-search.service.js'
  * penyaring di lapisan controller.
  */
 @Module({
-  controllers: [DocumentController],
+  controllers: [DocumentController, AttestationController],
   providers: [
+    AttestationService,
     DocumentService,
     DocumentApprovalService,
     DocumentSearchService,

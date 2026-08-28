@@ -6,6 +6,7 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
@@ -15,7 +16,7 @@ import {
   MinLength,
 } from 'class-validator'
 import { Type } from 'class-transformer'
-import { Classification, DocumentType, ProcessArea } from '@prisma/client'
+import { AttestationTargetKind, Classification, DocumentType, ProcessArea } from '@prisma/client'
 
 /**
  * Request shapes for Modul C (Policy Hub).
@@ -198,4 +199,72 @@ export class SearchDocumentsDto {
   @Max(50)
   @Type(() => Number)
   limit?: number
+}
+
+/* ------------------------------------- FR-C-019 s.d. FR-C-021 · attestation - */
+
+export class CreateAttestationCampaignDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(300)
+  name!: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  description?: string
+
+  @IsArray()
+  @IsUUID('4', { each: true })
+  @ArrayMaxSize(50)
+  document_ids!: string[]
+
+  @IsEnum(AttestationTargetKind)
+  target_kind!: AttestationTargetKind
+
+  /**
+   * Parameters for the target rule. Shape depends on `target_kind` and is
+   * validated in the service, where the rule that needs them lives -- a DTO
+   * that tried to express "org_unit_ids required only when kind is UNIT" would
+   * restate the rule in a second place and let the two drift.
+   */
+  @IsOptional()
+  @IsObject()
+  target_params?: Record<string, unknown>
+
+  @IsDateString()
+  start_date!: string
+
+  @IsDateString()
+  due_date!: string
+
+  @IsOptional()
+  @IsBoolean()
+  is_mandatory?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  auto_enroll_new_employees?: boolean
+}
+
+export class AttestDto {
+  /**
+   * FR-C-020 · how long the document was open, reported by the client and
+   * floor-checked by the server. The client cannot be trusted to be honest, but
+   * it is the only thing that can observe the reading; the server's job is to
+   * reject the implausible and record what it was told.
+   */
+  @IsInt()
+  @Min(0)
+  @Max(86_400)
+  seconds_viewed!: number
+
+  @IsOptional()
+  @IsBoolean()
+  reached_end?: boolean
+}
+
+export class ReattestationDecisionDto {
+  @IsBoolean()
+  required!: boolean
 }

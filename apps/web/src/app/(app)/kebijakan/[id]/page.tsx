@@ -4,6 +4,7 @@ import { apiFetch, ApiError } from '@/lib/api'
 import { formatDate } from '@/lib/format'
 import { hasPermission, requireUser } from '@/lib/session'
 import { Code, PageHeader, StatusBadge, type BadgeTone } from '@/components/ui'
+import { AttestationPanel } from './attestation-panel'
 
 /**
  * Document detail — the version history is the substance of this page.
@@ -95,11 +96,21 @@ const CLASSIFICATION_TONE: Record<string, BadgeTone> = {
   RAHASIA: 'danger',
 }
 
-export default async function DokumenPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function DokumenPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
   const user = await requireUser()
   if (!hasPermission(user, 'document:read')) notFound()
 
   const { id } = await params
+  const query = await searchParams
+  // Arriving from "Pernyataan Saya" carries the task id, which is what turns
+  // this page from a reference view into an attestation.
+  const taskId = typeof query.tugas === 'string' ? query.tugas : null
 
   let doc: DocumentDetail
   try {
@@ -251,6 +262,20 @@ export default async function DokumenPage({ params }: { params: Promise<{ id: st
           </table>
         </div>
       </section>
+
+      {/*
+       * FR-C-020 · the attestation control, shown only when the reader arrived
+       * from a task they actually owe. It sits after the version history so
+       * that reaching it means having scrolled past the document's substance.
+       */}
+      {taskId && doc.versions[0] && (
+        <AttestationPanel
+          taskId={taskId}
+          documentTitle={doc.title}
+          version={`${doc.versions[0].versionMajor}.${doc.versions[0].versionMinor}`}
+          requiresScroll
+        />
+      )}
 
       {/*
        * FR-C-005 · the approval trail.

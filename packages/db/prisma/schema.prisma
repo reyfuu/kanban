@@ -137,6 +137,8 @@ model Employee {
   approvalTemplateSlots  DocumentApprovalTemplate[] @relation("DocumentApprovalTemplateEmployee")
   approvalStepsAssigned  DocumentApprovalStep[]     @relation("DocumentApprovalAssignee")
   approvalStepsRedirected DocumentApprovalStep[]    @relation("DocumentApprovalRedirectedFrom")
+  attestationTasks       AttestationTask[]          @relation("AttestationTaskEmployee")
+  attestationRecords     AttestationRecord[]        @relation("AttestationRecordEmployee")
 
   @@index([orgUnitId], map: "idx_employee_org_unit_id")
   @@index([managerId], map: "idx_employee_manager_id")
@@ -196,6 +198,8 @@ model AppUser {
   linkedDocumentControls    DocumentControlLink[] @relation("DocumentControlLinker")
   documentSearchMisses      DocumentSearchMiss[]  @relation("DocumentSearchMissUser")
   documentApprovalActions   DocumentApprovalStep[] @relation("DocumentApprovalActor")
+  attestationCampaigns      AttestationCampaign[]  @relation("AttestationCampaignCreator")
+  attestationReattestDecisions AttestationCampaignDocument[] @relation("AttestationReattestationDecider")
 
   @@index([isActive], map: "idx_app_user_is_active")
   @@map("app_user")
@@ -730,6 +734,9 @@ enum EvidenceLinkTarget {
   FINDING
   ENGAGEMENT
   CAMPAIGN
+  /// FR-C-021 aturan 2 · the attestation completion report is Modul A evidence
+  /// and points back at the campaign it was computed from.
+  ATTESTATION_CAMPAIGN
 
   @@map("evidence_link_target")
 }
@@ -1666,6 +1673,7 @@ model Document {
   versions      DocumentVersion[]
   accessGrants  DocumentAccess[]
   controlLinks  DocumentControlLink[]
+  attestationEntries AttestationCampaignDocument[]
 
   @@index([tags], map: "idx_document_tags", type: Gin)
   @@index([status, classification, ownerOrgUnitId], map: "idx_document_status_classification_unit")
@@ -1697,6 +1705,8 @@ model DocumentVersion {
   createdByUser AppUser         @relation("DocumentVersionAuthor", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   chunks        DocumentChunk[]
   approvalSteps DocumentApprovalStep[]
+  attestationEntries AttestationCampaignDocument[]
+  attestationRecords AttestationRecord[]
 
   @@unique([documentId, versionMajor, versionMinor], map: "uq_document_version_no")
   @@index([documentId], map: "idx_document_version_document_id")
@@ -1852,4 +1862,140 @@ model DocumentApprovalStep {
   @@unique([documentVersionId, round, kind, stepOrder, assigneeEmployeeId], map: "uq_document_approval_step_slot")
   @@index([documentVersionId, kind, stepOrder], map: "idx_document_approval_step_version")
   @@map("document_approval_step")
+}
+
+// ---------------------------------------------------------------------------
+// Modul C -- kampanye attestation (FR-C-019 s.d. FR-C-021)
+//
+// Mirrors migrations/20260828190000_module_c_attestation/migration.sql, which
+// is the authority. Note especially the grant asymmetry it carries:
+// attestation_record has INSERT and SELECT only, because FR-C-020 aturan 3 says
+// a statement cannot be withdrawn, and a grant guarantees that far more
+// strongly than a service method that happens not to offer deletion.
+// ---------------------------------------------------------------------------
+
+enum AttestationCampaignStatus {
+  DRAF
+  BERJALAN
+  SELESAI
+  DIBATALKAN
+
+  @@map("attestation_campaign_status")
+}
+
+/// FR-C-019 · who a campaign targets.
+enum AttestationTargetKind {
+  SELURUH_KARYAWAN
+  UNIT
+  JABATAN
+  KARYAWAN_BARU
+  DAFTAR_INDIVIDU
+
+  @@map("attestation_target_kind")
+}
+
+enum AttestationTaskStatus {
+  MENUNGGU
+  SELESAI
+  PERLU_NYATAKAN_ULANG
+  DIBATALKAN
+
+  @@map("attestation_task_status")
+}
+
+/// FR-C-019 · a read-and-acknowledge campaign.
+model AttestationCampaign {
+  id          String                    @id @db.Uuid
+  name        String                    @db.VarChar(300)
+  description String?
+  targetKind  AttestationTargetKind     @map("target_kind")
+  targetParams Json                     @default("{}") @map("target_params")
+  startDate   DateTime                  @map("start_date") @db.Date
+  dueDate     DateTime                  @map("due_date") @db.Date
+  isMandatory Boolean                   @default(true) @map("is_mandatory")
+  /// FR-C-019 aturan 3 · off by default; see the migration for why.
+  autoEnrollNewEmployees Boolean        @default(false) @map("auto_enroll_new_employees")
+  status      AttestationCampaignStatus @default(DRAF)
+  launchedAt  DateTime?                 @map("launched_at") @db.Timestamptz(6)
+  closedAt    DateTime?                 @map("closed_at") @db.Timestamptz(6)
+  createdBy   String                    @map("created_by") @db.Uuid
+  createdAt   DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime                  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  createdByUser AppUser                         @relation("AttestationCampaignCreator", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  documents     AttestationCampaignDocument[]
+  tasks         AttestationTask[]
+
+  @@index([status], map: "idx_attestation_campaign_status")
+  @@index([dueDate], map: "idx_attestation_campaign_due_date")
+  @@map("attestation_campaign")
+}
+
+/// FR-C-019 aturan 1 & 2 · one document in a campaign, pinned to the version
+/// that was in force when the campaign launched.
+model AttestationCampaignDocument {
+  id                     String    @id @db.Uuid
+  campaignId             String    @map("campaign_id") @db.Uuid
+  documentId             String    @map("document_id") @db.Uuid
+  versionId              String    @map("version_id") @db.Uuid
+  supersededNoticedAt    DateTime? @map("superseded_noticed_at") @db.Timestamptz(6)
+  reattestationRequired  Boolean   @default(false) @map("reattestation_required")
+  reattestationDecidedAt DateTime? @map("reattestation_decided_at") @db.Timestamptz(6)
+  reattestationDecidedBy String?   @map("reattestation_decided_by") @db.Uuid
+
+  campaign   AttestationCampaign @relation(fields: [campaignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  document   Document            @relation(fields: [documentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  version    DocumentVersion     @relation(fields: [versionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  decidedBy  AppUser?            @relation("AttestationReattestationDecider", fields: [reattestationDecidedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tasks      AttestationTask[]
+
+  @@unique([campaignId, documentId], map: "uq_attestation_campaign_document")
+  @@index([campaignId], map: "idx_attestation_campaign_document_campaign")
+  @@map("attestation_campaign_document")
+}
+
+/// FR-C-019/021 · one obligation. Kept separate from the record so that
+/// "has not attested" is representable.
+model AttestationTask {
+  id                 String                @id @db.Uuid
+  campaignId         String                @map("campaign_id") @db.Uuid
+  campaignDocumentId String                @map("campaign_document_id") @db.Uuid
+  employeeId         String                @map("employee_id") @db.Uuid
+  status             AttestationTaskStatus @default(MENUNGGU)
+  createdAt          DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  campaign         AttestationCampaign         @relation(fields: [campaignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  campaignDocument AttestationCampaignDocument @relation(fields: [campaignDocumentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  employee         Employee                    @relation("AttestationTaskEmployee", fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  records          AttestationRecord[]
+
+  @@unique([campaignDocumentId, employeeId], map: "uq_attestation_task")
+  @@index([campaignId, status], map: "idx_attestation_task_campaign_status")
+  @@map("attestation_task")
+}
+
+/// FR-C-020 · the statement, with the evidence that makes it mean something.
+model AttestationRecord {
+  id                String    @id @db.Uuid
+  taskId            String    @map("task_id") @db.Uuid
+  employeeId        String    @map("employee_id") @db.Uuid
+  /// The VERSION attested to. Someone who read 1.0 has not read 2.0.
+  documentVersionId String    @map("document_version_id") @db.Uuid
+  attestedAt        DateTime  @default(now()) @map("attested_at") @db.Timestamptz(6)
+  ipAddress         String?   @map("ip_address") @db.Inet
+  secondsViewed     Int       @map("seconds_viewed")
+  reachedEnd        Boolean   @default(false) @map("reached_end")
+  /// FR-C-020 aturan 3 · a correction is a new record naming the old one.
+  correctsRecordId  String?   @map("corrects_record_id") @db.Uuid
+  correctionReason  String?   @map("correction_reason")
+
+  task     AttestationTask     @relation(fields: [taskId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  employee Employee            @relation("AttestationRecordEmployee", fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  version  DocumentVersion     @relation(fields: [documentVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  corrects AttestationRecord?  @relation("AttestationCorrection", fields: [correctsRecordId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  correctedBy AttestationRecord[] @relation("AttestationCorrection")
+
+  @@index([taskId], map: "idx_attestation_record_task")
+  @@index([employeeId], map: "idx_attestation_record_employee")
+  @@map("attestation_record")
 }

@@ -25,5 +25,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/aplikasi', label: 'Registri Aplikasi', permission: 'application:read', section: 'Access Review', icon: 'grid' },
   { href: '/unggah-akses', label: 'Unggah Data Akses', permission: 'snapshot:upload', section: 'Access Review', icon: 'upload' },
   { href: '/kebijakan', label: 'Pusat Kebijakan', permission: 'document:read', section: 'Policy Hub', icon: 'book' },
+  { href: '/attestation', label: 'Pernyataan Saya', section: 'Policy Hub', icon: 'clipboard-check' },
   { href: '/jejak-audit', label: 'Jejak Audit', permission: 'audit-log:verify', section: 'Sistem', icon: 'shield' },
 ]

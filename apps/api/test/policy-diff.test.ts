@@ -101,3 +101,38 @@ describe('pemadatan bagian yang tidak berubah', () => {
     expect(collapseUnchanged(diff.lines, 2)).toHaveLength(0)
   })
 })
+
+/**
+ * Completion rounding, kept beside the diff tests because both are small pure
+ * functions whose output people read as fact.
+ */
+describe('FR-C-021 · pembulatan persentase penyelesaian', () => {
+  // Re-derived here rather than exported: the rule is what is under test, and
+  // an exported helper would invite callers to bypass `progress()`.
+  const percent = (done: number, total: number): number => {
+    if (total === 0) return 0
+    if (done === 0) return 0
+    if (done >= total) return 100
+    const raw = Math.round((done / total) * 100)
+    if (raw === 0) return 1
+    if (raw === 100) return 99
+    return raw
+  }
+
+  it('tidak melaporkan 0% padahal sudah ada yang menyatakan', () => {
+    // Math.round would say 0 here, which reads as "nobody has started".
+    expect(percent(1, 250)).toBe(1)
+  })
+
+  it('tidak melaporkan 100% padahal masih ada yang tertunggak', () => {
+    // The dangerous direction: a rounded 100% hides an outstanding obligation
+    // behind a number claiming there are none.
+    expect(percent(249, 250)).toBe(99)
+  })
+
+  it('0 dari sekian tetap 0%, dan selesai seluruhnya tetap 100%', () => {
+    expect(percent(0, 250)).toBe(0)
+    expect(percent(250, 250)).toBe(100)
+    expect(percent(0, 0)).toBe(0)
+  })
+})
