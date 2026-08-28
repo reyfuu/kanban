@@ -29,7 +29,7 @@ Yang dikerjakan sekarang adalah **fondasi lintas modul (FR-X) dari Fase 1**, lal
 | Modul C · Tinjauan berkala | FR-C-008 | Jalan — pernyataan tetap berlaku + daftar terlambat ditinjau (tidak pernah mencabut otomatis) |
 | Modul C · Pencarian hibrida & hak akses | FR-C-009 s.d. FR-C-012 | Jalan — RRF di dalam PostgreSQL, penyaringan hak akses sebelum pemeringkatan, penyaring berhitung, pencarian nihil tercatat |
 | Modul C · Penautan dokumen ke kontrol | FR-C-022 | Jalan lewat API |
-| Modul C · Alur persetujuan berjenjang | FR-C-005 | **Belum** |
+| Modul C · Alur persetujuan berjenjang | FR-C-005 | Jalan — telaah paralel, pengesahan berurutan, autentikasi ulang, pengalihan ke delegasi/atasan |
 | Modul C · Jawaban berbasis dokumen + gerbang klasifikasi | FR-C-013 s.d. FR-C-018 | **Belum** — seluruhnya lewat LLM Gateway (ADR-03) |
 | Modul C · Kampanye attestation | FR-C-019 s.d. FR-C-021 | **Belum** |
 | Modul B · Item review & keputusan | FR-B-011 s.d. FR-B-013 | Jalan — K-2, K-3, K-4 |
@@ -48,7 +48,7 @@ Yang dikerjakan sekarang adalah **fondasi lintas modul (FR-X) dari Fase 1**, lal
 Layar yang sudah ada: masuk, beranda, jejak audit, **L-09 Penyusun Kampanye**,
 **L-10 Review Saya** (termasuk dialog sign-off L-11), daftar kampanye, registri
 aplikasi, tiket pencabutan, serta **Pusat Kebijakan** (pencarian + detail
-dokumen). Sembilan pengguna benih dengan peran berbeda tersedia untuk mencoba.
+dokumen beserta alur persetujuannya). Sembilan pengguna benih dengan peran berbeda tersedia untuk mencoba.
 
 ### Alur demo Modul B
 
@@ -142,6 +142,15 @@ sulit dipercaya kalau hanya dibaca di dokumen.
    **terlambat ditinjau** dan tetap ditandai berlaku. SIGAP tidak pernah
    mencabut prosedur otomatis karena keterlambatan administrasi; kekosongan
    aturan lebih berbahaya daripada dokumen yang agak kedaluwarsa.
+6. Susun dokumen baru sebagai `hendra.wijaya`, ajukan ke alur, lalu setujui
+   sebagai `sari.dewi` (penelaah) dan sahkan sebagai `hendra.wijaya` (pengesah
+   SOP). Dua hal yang perlu diperhatikan: **status dokumen tidak dapat dinaikkan
+   langsung** — mencoba memindahkannya ke Disahkan ditolak, karena satu-satunya
+   jalan menuju Disahkan adalah lewat tanda tangan; dan **setiap keputusan
+   menuntut autentikasi ulang** (FR-X-003). Jejak auditnya menjadi rangkaian
+   `BUAT_DOKUMEN → AJUKAN_TELAAH_DOKUMEN → SETUJUI_TELAAH_DOKUMEN →
+   SAHKAN_DOKUMEN → BERLAKUKAN_DOKUMEN`, dan seluruh langkahnya tampil pada
+   halaman detail dokumen.
 
 Yang membuat butir 3 dan 4 dapat dipercaya: penyaringan hak akses berupa fungsi
 `check_document_access` di dalam PostgreSQL, dan **setiap** cabang kueri
@@ -195,10 +204,10 @@ Kata sandi seluruh pengguna benih: `demo` (ubah lewat `SEED_IDENTITY_PASSWORD`).
 
 | Nama pengguna | Peran | Yang terlihat baginya |
 |---|---|---|
-| `bayu.pratama` | AUDIT_LEAD | Kampanye, Review Saya, Jejak Audit |
+| `bayu.pratama` | AUDIT_LEAD, DOC_APPROVER | Kampanye, Review Saya, Jejak Audit, Pusat Kebijakan |
 | `rina.kusuma` | SEC_OFFICER | Kampanye, Review Saya, Tiket, Registri Aplikasi |
 | `agus.santoso` | APP_OWNER, LINE_MANAGER | Kampanye, Review Saya, Tiket, Registri |
-| `hendra.wijaya` | COMPLIANCE | Kampanye, Review Saya, Jejak Audit, Registri |
+| `hendra.wijaya` | COMPLIANCE, DOC_AUTHOR | Kampanye, Review Saya, Jejak Audit, Registri, Pusat Kebijakan |
 | `direktur.utama` | EXECUTIVE | Kampanye |
 | `admin.sigap` | SYS_ADMIN | Registri Aplikasi saja |
 | `fajar.nugroho` | LINE_MANAGER | Review Saya, Pusat Kebijakan |

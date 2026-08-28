@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   ForbiddenException,
@@ -9,15 +10,19 @@ import {
   Query,
   Req,
 } from '@nestjs/common'
-import { hasPermission, type SigapRequest } from '../shared/index.js'
+import { hasPermission, RequiresStepUp, type SigapRequest } from '../shared/index.js'
 import { DocumentService } from './document.service.js'
+import { DocumentApprovalService } from './document-approval.service.js'
 import { DocumentSearchService } from './document-search.service.js'
 import {
+  ApprovalDecisionDto,
+  CancelFlowDto,
   CreateDocumentDto,
   CreateVersionDto,
   LinkControlDto,
   PutIntoForceDto,
   SearchDocumentsDto,
+  SubmitForReviewDto,
   TransitionDocumentDto,
 } from './policy.dto.js'
 
@@ -39,6 +44,7 @@ export class DocumentController {
   constructor(
     private readonly documents: DocumentService,
     private readonly search: DocumentSearchService,
+    private readonly approvals: DocumentApprovalService,
   ) {}
 
   /** FR-C-009 s.d. FR-C-012 · `GET /documents/search`. */
@@ -122,30 +128,107 @@ export class DocumentController {
     return { data: { id: result.id } }
   }
 
+  /* ------------------------------------------------ FR-C-005 · alur ------ */
+
+  /** The steps still waiting on the signed-in person. */
+  @Get('documents/persetujuan/antrean-saya')
+  async myApprovalQueue(@Req() req: SigapRequest) {
+    this.require(req, 'document:read')
+    return { data: await this.approvals.myQueue(req.principal!) }
+  }
+
+  /** FR-C-005 · submit the working version into the configured ladder. */
+  @Post('documents/:id/ajukan')
+  @HttpCode(202)
+  async submit(
+    @Req() req: SigapRequest,
+    @Param('id') id: string,
+    @Body() dto: SubmitForReviewDto,
+  ) {
+    this.require(req, 'document:write')
+    const result = await this.approvals.submit(req.principal!, id, {
+      isMinor: dto.is_minor === true,
+    })
+    return { data: { steps: result.steps } }
+  }
+
   /**
-   * FR-C-004 · lifecycle transitions other than taking force.
+   * FR-C-005 aturan 3 & 4 · act on one step.
    *
-   * Moving into MENUNGGU_PENGESAHAN or beyond is an approver's act, so the two
-   * halves of the lifecycle carry different permissions: an author may submit
-   * their own document for review, but may not ratify it. That split is the
-   * whole point of a review workflow.
+   * @RequiresStepUp() is aturan 4 and FR-X-003, which names "pengesahan
+   * dokumen" explicitly. It sits on the route rather than inside the service so
+   * the requirement is visible where the endpoint is defined, and so it is
+   * enforced by the global guard before any business code runs.
+   *
+   * It covers review decisions too, not only ratification. The endpoint is one
+   * route, and a guard that applied to only some of its payloads would be a
+   * conditional control -- the kind that is one refactor away from being
+   * bypassed. Asking a reviewer for their password is a small cost for removing
+   * that class of mistake entirely.
+   */
+  @Post('documents/persetujuan/:stepId')
+  @RequiresStepUp()
+  @HttpCode(204)
+  async decide(
+    @Req() req: SigapRequest,
+    @Param('stepId') stepId: string,
+    @Body() dto: ApprovalDecisionDto,
+  ) {
+    this.require(req, 'document:read')
+    await this.approvals.act(req.principal!, stepId, dto.decision, dto.comment)
+  }
+
+  /** FR-C-005 aturan 6 · the author stops the flow before ratification. */
+  @Post('documents/:id/hentikan-alur')
+  @HttpCode(204)
+  async cancelFlow(
+    @Req() req: SigapRequest,
+    @Param('id') id: string,
+    @Body() dto: CancelFlowDto,
+  ) {
+    this.require(req, 'document:write')
+    await this.approvals.cancel(req.principal!, id, dto.reason)
+  }
+
+  /**
+   * FR-C-004 · withdrawal.
+   *
+   * The only lifecycle move still made directly. Everything between Draf and
+   * Disahkan now runs through the approval ladder above, because a document
+   * that reached "Disahkan" by a status update nobody signed has not been
+   * ratified by anyone -- which is the entire point of FR-C-005.
+   *
+   * Withdrawal keeps step-up for the same reason ratification has it: taking a
+   * procedure out of force is at least as consequential as putting it in.
    */
   @Post('documents/:id/transisi')
+  @RequiresStepUp()
   @HttpCode(204)
   async transition(
     @Req() req: SigapRequest,
     @Param('id') id: string,
     @Body() dto: TransitionDocumentDto,
   ) {
-    const approverMoves = ['DISAHKAN', 'DITARIK']
-    this.require(req, approverMoves.includes(dto.to) ? 'document:approve' : 'document:write')
+    this.require(req, 'document:approve')
+    if (dto.to !== 'DITARIK') {
+      throw new BadRequestException(
+        'Hanya penarikan yang dilakukan lewat titik akhir ini. ' +
+          'Perpindahan dari Draf sampai Disahkan berjalan lewat alur persetujuan (FR-C-005).',
+      )
+    }
     await this.documents.transition(req.principal!, id, dto.to, {
       ...(dto.reason ? { reason: dto.reason } : {}),
     })
   }
 
-  /** FR-C-004 aturan 2 & FR-C-007 · bring the ratified version into force. */
+  /**
+   * FR-C-004 aturan 2 & FR-C-007 · bring the ratified version into force.
+   *
+   * Step-up applies: this is the moment a document starts binding people, and
+   * FR-X-003's "pengesahan dokumen" is not meaningfully complete without it.
+   */
   @Post('documents/:id/berlakukan')
+  @RequiresStepUp()
   @HttpCode(204)
   async putIntoForce(
     @Req() req: SigapRequest,

@@ -140,6 +140,25 @@ export class DocumentSearchService {
             effectiveFrom: true,
             effectiveUntil: true,
             approvedAt: true,
+            // FR-C-005 · who reviewed and ratified this version, and what they
+            // said. Nested in the same `select` rather than a sibling
+            // `include`: Prisma rejects both on one relation at runtime, and
+            // typecheck does not catch it.
+            approvalSteps: {
+              select: {
+                id: true,
+                kind: true,
+                stepOrder: true,
+                round: true,
+                status: true,
+                comment: true,
+                actedAt: true,
+                assignee: { select: { fullName: true, jobTitle: true } },
+                redirectedFrom: { select: { fullName: true } },
+                redirectReason: true,
+              },
+              orderBy: [{ round: 'desc' }, { kind: 'asc' }, { stepOrder: 'asc' }],
+            },
           },
           orderBy: [{ versionMajor: 'desc' }, { versionMinor: 'desc' }],
         },

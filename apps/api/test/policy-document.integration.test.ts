@@ -7,6 +7,7 @@ import type { Principal } from '../src/modules/shared/authz/principal.js'
 import { DocumentService } from '../src/modules/policy/document.service.js'
 import { DocumentSearchRepository } from '../src/modules/policy/document-search.repository.js'
 import { DocumentSearchService } from '../src/modules/policy/document-search.service.js'
+import { DocumentApprovalService } from '../src/modules/policy/document-approval.service.js'
 
 /**
  * Modul C against the real database.
@@ -27,6 +28,7 @@ const uow = new UnitOfWork(prisma)
 const repo = new DocumentSearchRepository(prisma)
 const documents = new DocumentService(prisma, uow)
 const search = new DocumentSearchService(prisma, repo, uow)
+const approvals = new DocumentApprovalService(prisma, uow)
 
 const ids = {
   orgUnit: randomUUID(),
@@ -161,6 +163,9 @@ afterAll(async () => {
     where: { documentId: { in: docIds } },
     select: { id: true },
   })
+  await prisma.documentApprovalStep.deleteMany({
+    where: { documentVersionId: { in: versions.map((v) => v.id) } },
+  })
   await prisma.documentChunk.deleteMany({
     where: { documentVersionId: { in: versions.map((v) => v.id) } },
   })
@@ -235,6 +240,26 @@ describe('FR-C-003/004/007 · siklus hidup dokumen', () => {
     ).rejects.toThrow(/tidak dapat berpindah/i)
   })
 
+  it('status tidak dapat dinaikkan tanpa melewati alur persetujuan', async () => {
+    const { id } = await asUser(ids.user, ['DOC_AUTHOR'], () =>
+      documents.create(author, {
+        title: `SOP Uji Pintasan Status ${suffix}`,
+        documentType: 'SOP',
+        ownerOrgUnitId: ids.orgUnit,
+        ownerEmployeeId: ids.employee,
+        classification: 'INTERNAL',
+        processArea: 'KEPATUHAN',
+        body: 'Pasal 1\n\nIsi prosedur.',
+        changeSummary: 'Versi pertama.',
+      }),
+    )
+    // The control: no service call can mint a ratified document. Only the
+    // ladder can, and the ladder always leaves signatures behind.
+    await expect(
+      asUser(ids.user, ['DOC_AUTHOR'], () => documents.transition(author, id, 'DALAM_PENELAAHAN')),
+    ).rejects.toThrow(/alur persetujuan/i)
+  })
+
   it('menolak penarikan tanpa alasan (FR-C-004 aturan 4)', async () => {
     const id = await bringIntoForce('Kebijakan Uji Penarikan', 'KEBIJAKAN', 'INTERNAL')
     await expect(
@@ -252,13 +277,8 @@ describe('FR-C-003/004/007 · siklus hidup dokumen', () => {
         kind: 'MAYOR',
       }),
     )
-    await asUser(ids.user, ['DOC_AUTHOR'], () =>
-      documents.transition(author, id, 'DALAM_PENELAAHAN'),
-    )
-    await asUser(ids.user, ['DOC_AUTHOR'], () =>
-      documents.transition(author, id, 'MENUNGGU_PENGESAHAN'),
-    )
-    await asUser(ids.user, ['DOC_APPROVER'], () => documents.transition(author, id, 'DISAHKAN'))
+    await asUser(ids.user, ['DOC_AUTHOR'], () => approvals.submit(author, id))
+    await approveEveryStep(id)
     await asUser(ids.user, ['DOC_APPROVER'], () =>
       documents.putIntoForce(author, id, SUPERSEDE_FROM),
     )
@@ -429,15 +449,52 @@ async function bringIntoForce(
   return id
 }
 
+/**
+ * Walk a document all the way to BERLAKU through the real approval ladder.
+ *
+ * Deliberately not a status shortcut: since FR-C-005 landed, `transition()`
+ * refuses everything except withdrawal, so a helper that faked the states would
+ * be testing a path the application no longer has.
+ */
 async function forceInPlace(id: string): Promise<void> {
-  await asUser(ids.user, ['DOC_AUTHOR'], () =>
-    documents.transition(author, id, 'DALAM_PENELAAHAN'),
-  )
-  await asUser(ids.user, ['DOC_AUTHOR'], () =>
-    documents.transition(author, id, 'MENUNGGU_PENGESAHAN'),
-  )
-  await asUser(ids.user, ['DOC_APPROVER'], () => documents.transition(author, id, 'DISAHKAN'))
-  await asUser(ids.user, ['DOC_APPROVER'], () =>
-    documents.putIntoForce(author, id, FORCE_FROM),
-  )
+  await asUser(ids.user, ['DOC_AUTHOR'], () => approvals.submit(author, id))
+  await approveEveryStep(id)
+  await asUser(ids.user, ['DOC_APPROVER'], () => documents.putIntoForce(author, id, FORCE_FROM))
+}
+
+/** Approve each outstanding step in ladder order, as its assignee. */
+async function approveEveryStep(documentId: string): Promise<void> {
+  for (let guard = 0; guard < 20; guard += 1) {
+    const version = await prisma.documentVersion.findFirst({
+      where: {
+        documentId,
+        status: { in: ['DRAF', 'DALAM_PENELAAHAN', 'MENUNGGU_PENGESAHAN', 'DALAM_REVISI'] },
+      },
+      orderBy: [{ versionMajor: 'desc' }, { versionMinor: 'desc' }],
+      select: { id: true },
+    })
+    if (!version) return
+    const step = await prisma.documentApprovalStep.findFirst({
+      where: { documentVersionId: version.id, status: 'MENUNGGU' },
+      orderBy: [{ kind: 'asc' }, { stepOrder: 'asc' }],
+      select: { id: true, assigneeEmployeeId: true },
+    })
+    if (!step) return
+    const actor = await principalForEmployee(step.assigneeEmployeeId)
+    await asUser(actor.userId, ['DOC_APPROVER'], () =>
+      approvals.act(actor, step.id, 'SETUJU', 'Disetujui untuk keperluan uji integrasi.'),
+    )
+  }
+  throw new Error('Alur persetujuan tidak selesai setelah 20 langkah.')
+}
+
+/** A principal standing in for whoever the ladder assigned a step to. */
+async function principalForEmployee(employeeId: string): Promise<Principal> {
+  const employee = await prisma.employee.findUniqueOrThrow({
+    where: { id: employeeId },
+    select: { id: true, appUser: { select: { id: true } } },
+  })
+  const userId = employee.appUser?.id
+  if (!userId) throw new Error(`Karyawan ${employeeId} tidak punya akun pengguna.`)
+  return principalOf(userId, employeeId, ['DOC_APPROVER'])
 }

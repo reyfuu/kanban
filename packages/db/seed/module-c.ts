@@ -213,10 +213,67 @@ Setiap pihak yang memperoleh akses atas informasi sebagaimana dimaksud dalam Pas
   },
 ]
 
+/**
+ * FR-C-005 · the approval ladders, per document type.
+ *
+ * Company-wide (org_unit_id NULL) so every document type has a configured
+ * flow out of the box. A Kebijakan takes two ratification tiers because a
+ * policy binds the whole firm; an SOP takes one, because its authority is the
+ * owning division's. Both are reviewed by Kepatuhan first, which is what makes
+ * the review a control rather than a formality.
+ *
+ * The editorial-revision skip (FR-C-006 aturan 2) is granted only on the
+ * highest tier: a typo fix should not need the Direktur Utama's signature, but
+ * it still needs someone's.
+ */
+const APPROVAL_TEMPLATES = [
+  // Kebijakan: telaah Kepatuhan, lalu pengesahan berjenjang.
+  { type: 'KEBIJAKAN' as const, kind: 'PENELAAHAN' as const, order: 1, role: 'COMPLIANCE', skipOnMinor: false },
+  { type: 'KEBIJAKAN' as const, kind: 'PENGESAHAN' as const, order: 1, role: 'AUDIT_LEAD', skipOnMinor: false },
+  { type: 'KEBIJAKAN' as const, kind: 'PENGESAHAN' as const, order: 2, role: 'EXECUTIVE', skipOnMinor: true },
+  // Pedoman: telaah Kepatuhan, satu tingkat pengesahan.
+  { type: 'PEDOMAN' as const, kind: 'PENELAAHAN' as const, order: 1, role: 'COMPLIANCE', skipOnMinor: false },
+  { type: 'PEDOMAN' as const, kind: 'PENGESAHAN' as const, order: 1, role: 'AUDIT_LEAD', skipOnMinor: false },
+  // SOP: telaah Kepatuhan, disahkan Kepatuhan.
+  { type: 'SOP' as const, kind: 'PENELAAHAN' as const, order: 1, role: 'AUDITOR_INT', skipOnMinor: true },
+  { type: 'SOP' as const, kind: 'PENGESAHAN' as const, order: 1, role: 'COMPLIANCE', skipOnMinor: false },
+  // Instruksi Kerja: satu telaah, satu pengesahan.
+  { type: 'INSTRUKSI_KERJA' as const, kind: 'PENELAAHAN' as const, order: 1, role: 'AUDITOR_INT', skipOnMinor: true },
+  { type: 'INSTRUKSI_KERJA' as const, kind: 'PENGESAHAN' as const, order: 1, role: 'COMPLIANCE', skipOnMinor: false },
+]
+
+async function seedApprovalTemplates(prisma: PrismaClient): Promise<void> {
+  for (const t of APPROVAL_TEMPLATES) {
+    const existing = await prisma.documentApprovalTemplate.findFirst({
+      where: {
+        documentType: t.type,
+        orgUnitId: null,
+        kind: t.kind,
+        stepOrder: t.order,
+        roleCode: t.role,
+      },
+      select: { id: true },
+    })
+    if (existing) continue
+    await prisma.documentApprovalTemplate.create({
+      data: {
+        id: randomUUID(),
+        documentType: t.type,
+        kind: t.kind,
+        stepOrder: t.order,
+        roleCode: t.role,
+        skipOnMinor: t.skipOnMinor,
+      },
+    })
+  }
+}
+
 export async function seedModuleC(ctx: Ctx): Promise<void> {
   const { prisma, employeeIds, orgIds, userIds } = ctx
   const authorUserId = userIds.get('hendra.wijaya') ?? userIds.get('admin.sigap')
   if (!authorUserId) return
+
+  await seedApprovalTemplates(prisma)
 
   for (const spec of DOCUMENTS) {
     const existing = await prisma.document.findUnique({

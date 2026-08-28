@@ -54,12 +54,19 @@ const REPORTS_TO: Record<string, string> = {
 }
 
 const PEOPLE = [
-  ['bayu.pratama', 'EMP-00142', 'Bayu Pratama', 'Kepala SKAI', 'SKAI', ['AUDIT_LEAD', 'EMPLOYEE']],
+  // Kepala SKAI ratifies but does not author, the same separation as
+  // ticket:execute vs campaign:signoff in Modul B: whoever writes a procedure
+  // is not who declares it binding.
+  ['bayu.pratama', 'EMP-00142', 'Bayu Pratama', 'Kepala SKAI', 'SKAI', ['AUDIT_LEAD', 'DOC_APPROVER', 'EMPLOYEE']],
   ['sari.dewi', 'EMP-00187', 'Sari Dewi', 'Auditor Internal Senior', 'SKAI', ['AUDITOR_INT', 'EMPLOYEE']],
-  ['hendra.wijaya', 'EMP-00093', 'Hendra Wijaya', 'Compliance Officer', 'KEP', ['COMPLIANCE', 'EMPLOYEE']],
+  // DOC_AUTHOR is on Kepatuhan and Operasional because that is who writes
+  // policy and procedure in a securities firm. Without it nobody in the seed
+  // could author a document at all, and Modul C would be demonstrable only
+  // through data loaded behind the application's back.
+  ['hendra.wijaya', 'EMP-00093', 'Hendra Wijaya', 'Compliance Officer', 'KEP', ['COMPLIANCE', 'DOC_AUTHOR', 'EMPLOYEE']],
   ['rina.kusuma', 'EMP-00211', 'Rina Kusuma', 'IT Security Officer', 'TI', ['SEC_OFFICER', 'EMPLOYEE']],
   ['agus.santoso', 'EMP-00056', 'Agus Santoso', 'Kepala Divisi TI', 'TI', ['APP_OWNER', 'LINE_MANAGER', 'EMPLOYEE']],
-  ['dewi.lestari', 'EMP-00174', 'Dewi Lestari', 'Kepala Operasional', 'OPS', ['APP_OWNER', 'LINE_MANAGER', 'EMPLOYEE']],
+  ['dewi.lestari', 'EMP-00174', 'Dewi Lestari', 'Kepala Operasional', 'OPS', ['APP_OWNER', 'LINE_MANAGER', 'DOC_AUTHOR', 'EMPLOYEE']],
   ['fajar.nugroho', 'EMP-00238', 'Fajar Nugroho', 'Kepala Cabang Jakarta', 'RTL', ['LINE_MANAGER', 'EMPLOYEE']],
   ['admin.sigap', 'EMP-00001', 'Administrator SIGAP', 'Administrator Sistem', 'TI', ['SYS_ADMIN']],
   ['direktur.utama', 'EMP-00002', 'Direktur Utama', 'Direktur Utama', 'DIR', ['EXECUTIVE', 'EMPLOYEE']],

@@ -41,8 +41,40 @@ interface DocumentDetail {
     effectiveFrom: string | null
     effectiveUntil: string | null
     approvedAt: string | null
+    approvalSteps: ApprovalStep[]
   }[]
   controlLinks: { id: string; note: string | null; control: { id: string; code: string; title: string } }[]
+}
+
+interface ApprovalStep {
+  id: string
+  kind: string
+  stepOrder: number
+  round: number
+  status: string
+  comment: string | null
+  actedAt: string | null
+  assignee: { fullName: string; jobTitle: string }
+  redirectedFrom: { fullName: string } | null
+  redirectReason: string | null
+}
+
+const STEP_TONE: Record<string, BadgeTone> = {
+  MENUNGGU: 'neutral',
+  SETUJU: 'success',
+  DIKEMBALIKAN: 'warning',
+  DITOLAK: 'danger',
+  DILEWATI: 'muted',
+  DIBATALKAN: 'muted',
+}
+
+const STEP_LABEL: Record<string, string> = {
+  MENUNGGU: 'Menunggu',
+  SETUJU: 'Setuju',
+  DIKEMBALIKAN: 'Dikembalikan',
+  DITOLAK: 'Ditolak',
+  DILEWATI: 'Dilewati',
+  DIBATALKAN: 'Dibatalkan',
 }
 
 const STATUS_TONE: Record<string, BadgeTone> = {
@@ -204,6 +236,18 @@ export default async function DokumenPage({ params }: { params: Promise<{ id: st
         </div>
       </section>
 
+      {/*
+       * FR-C-005 · the approval trail.
+       *
+       * Shown for the newest version, because that is the one whose approval
+       * is in question. An approval nobody can see is indistinguishable from
+       * one that never happened, which is the whole reason this module records
+       * who signed rather than only that something was signed.
+       */}
+      {doc.versions[0] && doc.versions[0].approvalSteps.length > 0 && (
+        <ApprovalTrail version={doc.versions[0]} />
+      )}
+
       {doc.controlLinks.length > 0 && (
         <section className="mt-8">
           <h2 className="text-sm font-semibold text-sg-neutral-900">Kontrol yang didasari</h2>
@@ -222,6 +266,83 @@ export default async function DokumenPage({ params }: { params: Promise<{ id: st
         </section>
       )}
     </div>
+  )
+}
+
+/**
+ * The ladder for one version, newest attempt first.
+ *
+ * Rounds are labelled rather than collapsed: a document ratified on the third
+ * attempt is a different fact from one ratified immediately, and the returns in
+ * between are usually the most informative part of its history.
+ */
+function ApprovalTrail(props: {
+  version: { versionMajor: number; versionMinor: number; approvalSteps: ApprovalStep[] }
+}) {
+  const rounds = new Map<number, ApprovalStep[]>()
+  for (const step of props.version.approvalSteps) {
+    const list = rounds.get(step.round) ?? []
+    list.push(step)
+    rounds.set(step.round, list)
+  }
+  const ordered = [...rounds.entries()].sort((a, b) => b[0] - a[0])
+
+  return (
+    <section className="mt-8">
+      <h2 className="text-sm font-semibold text-sg-neutral-900">
+        Alur persetujuan versi {props.version.versionMajor}.{props.version.versionMinor}
+      </h2>
+      <p className="mt-1 text-sm text-sg-neutral-600">
+        Penelaah berjalan paralel, pengesah berurutan sesuai jenjang. Setiap keputusan memuat
+        komentar, dan setiap pengesahan menuntut autentikasi ulang.
+      </p>
+
+      <div className="mt-3 space-y-4">
+        {ordered.map(([round, steps]) => (
+          <div key={round}>
+            {ordered.length > 1 && (
+              <p className="mb-1 text-2xs font-semibold uppercase tracking-wider text-sg-neutral-500">
+                Pengajuan ke-{round}
+              </p>
+            )}
+            <ol className="divide-y divide-sg-neutral-100 rounded-lg border border-sg-neutral-200 bg-sg-neutral-0">
+              {steps.map((step) => (
+                <li key={step.id} className="px-4 py-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusBadge tone={STEP_TONE[step.status] ?? 'neutral'}>
+                      {STEP_LABEL[step.status] ?? step.status}
+                    </StatusBadge>
+                    <span className="text-2xs font-semibold uppercase tracking-wider text-sg-neutral-500">
+                      {step.kind === 'PENELAAHAN' ? 'Telaah' : `Pengesahan tingkat ${step.stepOrder}`}
+                    </span>
+                    {step.actedAt && (
+                      <span className="text-xs tabular-nums text-sg-neutral-500">
+                        {formatDate(step.actedAt)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-sg-neutral-900">
+                    {step.assignee.fullName}
+                    <span className="ml-2 text-xs text-sg-neutral-500">{step.assignee.jobTitle}</span>
+                  </p>
+                  {/* aturan 5: the redirect is shown, not hidden. Who was
+                      supposed to act matters as much as who did. */}
+                  {step.redirectedFrom && (
+                    <p className="mt-0.5 text-xs text-sg-warning-700">
+                      Dialihkan dari {step.redirectedFrom.fullName}
+                      {step.redirectReason ? ` — ${step.redirectReason}` : ''}
+                    </p>
+                  )}
+                  {step.comment && (
+                    <p className="mt-1 text-sg-neutral-700">{step.comment}</p>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }
 

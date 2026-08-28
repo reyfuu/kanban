@@ -93,6 +93,7 @@ model OrganizationUnit {
 
   // Modul C (docs/04-TRD.md Sec 3.4) back-relations.
   ownedDocuments   Document[]   @relation("DocumentOwnerUnit")
+  approvalTemplates DocumentApprovalTemplate[] @relation("DocumentApprovalTemplateUnit")
 
   @@index([parentId], map: "idx_organization_unit_parent_id")
   @@map("organization_unit")
@@ -133,6 +134,9 @@ model Employee {
 
   // Modul C (docs/04-TRD.md Sec 3.4) back-relations.
   ownedDocuments         Document[]         @relation("DocumentOwner")
+  approvalTemplateSlots  DocumentApprovalTemplate[] @relation("DocumentApprovalTemplateEmployee")
+  approvalStepsAssigned  DocumentApprovalStep[]     @relation("DocumentApprovalAssignee")
+  approvalStepsRedirected DocumentApprovalStep[]    @relation("DocumentApprovalRedirectedFrom")
 
   @@index([orgUnitId], map: "idx_employee_org_unit_id")
   @@index([managerId], map: "idx_employee_manager_id")
@@ -191,6 +195,7 @@ model AppUser {
   grantedDocumentAccess     DocumentAccess[]      @relation("DocumentAccessGranter")
   linkedDocumentControls    DocumentControlLink[] @relation("DocumentControlLinker")
   documentSearchMisses      DocumentSearchMiss[]  @relation("DocumentSearchMissUser")
+  documentApprovalActions   DocumentApprovalStep[] @relation("DocumentApprovalActor")
 
   @@index([isActive], map: "idx_app_user_is_active")
   @@map("app_user")
@@ -1691,6 +1696,7 @@ model DocumentVersion {
   document      Document        @relation(fields: [documentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   createdByUser AppUser         @relation("DocumentVersionAuthor", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   chunks        DocumentChunk[]
+  approvalSteps DocumentApprovalStep[]
 
   @@unique([documentId, versionMajor, versionMinor], map: "uq_document_version_no")
   @@index([documentId], map: "idx_document_version_document_id")
@@ -1771,4 +1777,79 @@ model DocumentSearchMiss {
 
   @@index([occurredAt(sort: Desc)], map: "idx_document_search_miss_occurred_at")
   @@map("document_search_miss")
+}
+
+// ---------------------------------------------------------------------------
+// Modul C -- alur persetujuan berjenjang (FR-C-005)
+//
+// Mirrors migrations/20260828180000_module_c_approval/migration.sql. That file
+// is the authority: it carries the CHECK constraints Prisma cannot express,
+// notably the one refusing a rejection with no recorded reason.
+// ---------------------------------------------------------------------------
+
+/// FR-C-005 aturan 1 & 2 · reviewers may run in parallel, approvers never do.
+enum ApprovalStepKind {
+  PENELAAHAN
+  PENGESAHAN
+
+  @@map("approval_step_kind")
+}
+
+enum ApprovalStepStatus {
+  MENUNGGU
+  SETUJU
+  DIKEMBALIKAN
+  DITOLAK
+  DILEWATI
+  DIBATALKAN
+
+  @@map("approval_step_status")
+}
+
+/// FR-C-005 · the configurable ladder, per document type and (optionally) unit.
+model DocumentApprovalTemplate {
+  id           String           @id @db.Uuid
+  documentType DocumentType     @map("document_type")
+  orgUnitId    String?          @map("org_unit_id") @db.Uuid
+  kind         ApprovalStepKind
+  stepOrder    Int              @map("step_order")
+  employeeId   String?          @map("employee_id") @db.Uuid
+  roleCode     String?          @map("role_code") @db.VarChar(50)
+  /// FR-C-006 aturan 2 · skippable for an editorial (minor) revision.
+  skipOnMinor  Boolean          @default(false) @map("skip_on_minor")
+  isActive     Boolean          @default(true) @map("is_active")
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  orgUnit  OrganizationUnit? @relation("DocumentApprovalTemplateUnit", fields: [orgUnitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  employee Employee?         @relation("DocumentApprovalTemplateEmployee", fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("document_approval_template")
+}
+
+/// FR-C-005 · one concrete step on one version, frozen when the flow starts.
+model DocumentApprovalStep {
+  id                       String             @id @db.Uuid
+  documentVersionId        String             @map("document_version_id") @db.Uuid
+  kind                     ApprovalStepKind
+  stepOrder                Int                @map("step_order")
+  /// Which submission attempt this step belongs to. A rejected flow keeps its
+  /// steps; the next submission opens a new round. See the migration.
+  round                    Int                @default(1)
+  assigneeEmployeeId       String             @map("assignee_employee_id") @db.Uuid
+  redirectedFromEmployeeId String?            @map("redirected_from_employee_id") @db.Uuid
+  redirectReason           String?            @map("redirect_reason") @db.VarChar(200)
+  status                   ApprovalStepStatus @default(MENUNGGU)
+  comment                  String?
+  actedBy                  String?            @map("acted_by") @db.Uuid
+  actedAt                  DateTime?          @map("acted_at") @db.Timestamptz(6)
+  createdAt                DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  version          DocumentVersion @relation(fields: [documentVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignee         Employee        @relation("DocumentApprovalAssignee", fields: [assigneeEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  redirectedFrom   Employee?       @relation("DocumentApprovalRedirectedFrom", fields: [redirectedFromEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  actedByUser      AppUser?        @relation("DocumentApprovalActor", fields: [actedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([documentVersionId, round, kind, stepOrder, assigneeEmployeeId], map: "uq_document_approval_step_slot")
+  @@index([documentVersionId, kind, stepOrder], map: "idx_document_approval_step_version")
+  @@map("document_approval_step")
 }

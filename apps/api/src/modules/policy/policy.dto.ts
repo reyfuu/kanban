@@ -119,6 +119,31 @@ export class CreateVersionDto {
   kind!: 'MAYOR' | 'MINOR'
 }
 
+export class SubmitForReviewDto {
+  /** FR-C-006 aturan 2 · an editorial revision may skip skippable steps. */
+  @IsOptional()
+  @IsBoolean()
+  is_minor?: boolean
+}
+
+export class ApprovalDecisionDto {
+  @IsEnum({ SETUJU: 'SETUJU', DIKEMBALIKAN: 'DIKEMBALIKAN', DITOLAK: 'DITOLAK' })
+  decision!: 'SETUJU' | 'DIKEMBALIKAN' | 'DITOLAK'
+
+  /** FR-C-005 aturan 3 · every decision carries a comment. Never optional. */
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
+  comment!: string
+}
+
+export class CancelFlowDto {
+  @IsString()
+  @MinLength(10)
+  @MaxLength(2000)
+  reason!: string
+}
+
 export class LinkControlDto {
   @IsUUID()
   control_id!: string

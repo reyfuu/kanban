@@ -137,11 +137,18 @@ export class DocumentService {
   }
 
   /**
-   * FR-C-004 · move a document (and its working version) along the lifecycle.
+   * FR-C-004 · withdrawal, and only withdrawal.
    *
-   * The legal moves come from `document-rules.ts`, which transcribes the state
-   * diagram. Anything not in that table is rejected here rather than being
-   * quietly allowed by an `if` chain that grew a hole.
+   * Every move between Draf and Disahkan belongs to the approval flow
+   * (FR-C-005, `DocumentApprovalService`) and is refused here. That refusal is
+   * the control, not a routing preference: a document that reached "Disahkan"
+   * by a status update has been ratified by nobody, and a service method that
+   * can produce that state is one careless call away from producing it. The
+   * approval ladder is the only way in, so the signatures always exist.
+   *
+   * The legal moves still come from `document-rules.ts`, which transcribes the
+   * state diagram, so the transition is validated against the same table the
+   * flow uses.
    */
   async transition(
     principal: Principal,
@@ -160,19 +167,19 @@ export class DocumentService {
         `Dokumen berstatus ${doc.status} tidak dapat berpindah ke ${to}.`,
       )
     }
+    // The approval ladder owns everything up to ratification. See the method
+    // comment: this refusal is why a Disahkan document always has signatures.
+    if (to !== 'DITARIK') {
+      throw new BadRequestException(
+        `Perpindahan ke ${to} berjalan lewat alur persetujuan (FR-C-005), bukan lewat pembaruan status. ` +
+          'Gunakan pengajuan telaah dan keputusan pada tiap langkah.',
+      )
+    }
     // FR-C-004 aturan 4: withdrawal without a recorded reason is exactly the
     // audit gap this system exists to close, so it is refused, not defaulted.
     if (to === 'DITARIK' && !options.reason?.trim()) {
       throw new BadRequestException('Penarikan dokumen wajib disertai alasan.')
     }
-    // Taking force is not a free transition: it has to move the previous
-    // version out in the same breath, so it has its own method.
-    if (to === 'BERLAKU') {
-      throw new BadRequestException(
-        'Pemberlakuan dilakukan lewat titik akhir "berlakukan", bukan transisi biasa.',
-      )
-    }
-
     await this.uow.write(async (tx, audit) => {
       await tx.document.update({
         where: { id: documentId },
@@ -183,18 +190,12 @@ export class DocumentService {
             : {}),
         },
       })
-      // The working version follows the document through review and approval;
-      // a version already in force is not dragged along by a withdrawal of a
-      // later draft.
+      // A withdrawal takes the in-force version out with it. Drafts are left
+      // alone: withdrawing what is published says nothing about a revision
+      // somebody is still writing.
       await tx.documentVersion.updateMany({
-        where: {
-          documentId,
-          status: { in: ['DRAF', 'DALAM_PENELAAHAN', 'MENUNGGU_PENGESAHAN', 'DALAM_REVISI'] },
-        },
-        data: {
-          status: to as never,
-          ...(to === 'DISAHKAN' ? { approvedAt: new Date() } : {}),
-        },
+        where: { documentId, status: 'BERLAKU' },
+        data: { status: 'DITARIK' },
       })
       await audit.record({
         action: 'UBAH_STATUS_DOKUMEN',

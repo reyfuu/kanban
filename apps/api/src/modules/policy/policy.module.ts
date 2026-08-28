@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { DocumentController } from './document.controller.js'
+import { DocumentApprovalService } from './document-approval.service.js'
 import { DocumentService } from './document.service.js'
 import { DocumentSearchRepository } from './document-search.repository.js'
 import { DocumentSearchService } from './document-search.service.js'
@@ -15,9 +16,11 @@ import { DocumentSearchService } from './document-search.service.js'
  *  - FR-C-008 · siklus tinjauan berkala; dokumen terlambat ditinjau TETAP berlaku.
  *  - FR-C-009 s.d. FR-C-012 · pencarian hibrida, penyaringan hak akses sebelum
  *    pemeringkatan, penyaring + jumlah hasil, dan perilaku saat hasil kosong.
+ *  - FR-C-005 · alur telaah & pengesahan berjenjang yang dapat dikonfigurasi,
+ *    dengan autentikasi ulang (FR-X-003) dan pengalihan ke delegasi/atasan.
  *  - FR-C-022 · penautan dokumen ke kontrol Modul A.
  *
- * Menyusul: alur persetujuan berjenjang (FR-C-005), jawaban berbasis dokumen
+ * Menyusul: jawaban berbasis dokumen
  * beserta gerbang klasifikasi keluar (FR-C-013 s.d. FR-C-018 — seluruhnya lewat
  * LLM Gateway, ADR-03), dan kampanye attestation (FR-C-019 s.d. FR-C-021).
  *
@@ -29,7 +32,12 @@ import { DocumentSearchService } from './document-search.service.js'
  */
 @Module({
   controllers: [DocumentController],
-  providers: [DocumentService, DocumentSearchService, DocumentSearchRepository],
+  providers: [
+    DocumentService,
+    DocumentApprovalService,
+    DocumentSearchService,
+    DocumentSearchRepository,
+  ],
   exports: [],
 })
 export class PolicyModule {}
