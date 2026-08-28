@@ -28,14 +28,17 @@ Platform tata kelola internal untuk Trimegah Sekuritas, terdiri atas tiga modul 
 | 08 | [Agent Spec](08-AGENT-SPEC.md) | 6 agent AI, pola Usulan Agent, inventaris tool baca-saja, matriks rute model, model data & API tambahan | AI Engineer, Arsitek, Kepatuhan |
 | 09 | [Guardrails](09-GUARDRAILS.md) | 33 guardrail dalam 8 lapis, 14 mode kegagalan, vektor penyisipan instruksi, penanganan insiden | AI Engineer, IT Security, Kepatuhan |
 | 10 | [Test Plan](10-TEST-PLAN.md) | Piramida uji, 10 kontrol kritis, uji keamanan & penetrasi, 20 dimensi eval AI, 36 kasus uji guardrail, kinerja, UAT | QA Lead, Tim Pengembang, SKAI |
+| 11 | [Alur Sistem](11-ALUR-SISTEM.md) | Perjalanan data end-to-end: asal pengguna dan data akses, alur tiap modul, titik temu ketiganya, posisi agent AI, tabel rujukan cepat | **Titik masuk bagi pembaca baru** — seluruh audiens |
 
 ### Urutan membaca yang disarankan
+
+**Bila ini kali pertama Anda membaca:** mulai dari `11-ALUR-SISTEM`. Dokumen itu menjelaskan dari mana pengguna dan data berasal, bagaimana keduanya bergerak melalui ketiga modul, dan mengapa ketiganya menjadi satu sistem. Setelah itu barulah urutan sesuai peran di bawah menjadi mudah diikuti.
 
 **Untuk pengambil keputusan (Direksi, Komite Audit):** baca `01-BRD` seluruhnya. Cukup untuk menilai apakah investasi ini layak.
 
 **Untuk Kepatuhan & SKAI:** `01-BRD` → `02-PRD` (persona & user story) → `03-FRD` (aturan bisnis dan matriks hak akses).
 
-**Untuk tim pengembang:** `02-PRD` (memahami untuk siapa) → `03-FRD` (apa yang harus dibangun) → `04-TRD` (bagaimana membangunnya) → `07-API-CONTRACT` → `05-UIUX-FLOW` → `06-DESIGN`.
+**Untuk tim pengembang:** `02-PRD` (memahami untuk siapa) → `03-FRD` (apa yang harus dibangun) → `04-TRD` (bagaimana membangunnya) → `07-API-CONTRACT` → `05-UIUX-FLOW` → `06-DESIGN`. `11-ALUR-SISTEM` dibaca lebih dahulu bila belum memahami gambaran besarnya.
 
 **Untuk AI Engineer:** `08-AGENT-SPEC` → `09-GUARDRAILS` → `10-TEST-PLAN §5`. Ketiganya dibaca berurutan; guardrail tidak dapat dipahami tanpa memahami batas wewenang agent lebih dulu.
 
