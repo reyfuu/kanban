@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { isReasonComplete, ReasonHint } from '@/components/validation'
 import { cancelCampaign, extendCampaign, launchCampaign } from './actions'
 
 /**
@@ -82,10 +83,11 @@ export function CampaignLifecycle(props: {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={2}
-            placeholder="Alasan perpanjangan (min. 10 karakter)"
+            placeholder="Alasan perpanjangan"
             className="min-h-11 w-full rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-2 text-sm text-sg-neutral-900 placeholder:text-sg-neutral-400 focus:border-sg-accent-600 focus:outline focus:outline-2 focus:outline-sg-accent-600"
           />
-          <Btn tone="muted" type="submit" disabled={pending || reason.trim().length < 10}>
+          <ReasonHint value={reason} label="Alasan perpanjangan" />
+          <Btn tone="muted" type="submit" disabled={pending || !isReasonComplete(reason)}>
             {pending ? 'Menyimpan…' : 'Perpanjang'}
           </Btn>
         </form>
@@ -106,10 +108,11 @@ export function CampaignLifecycle(props: {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={2}
-            placeholder="Alasan pembatalan (min. 10 karakter)"
+            placeholder="Alasan pembatalan"
             className="min-h-11 w-full rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-2 text-sm text-sg-neutral-900 placeholder:text-sg-neutral-400 focus:border-sg-danger-500 focus:outline focus:outline-2 focus:outline-sg-danger-500"
           />
-          <Btn tone="danger" type="submit" disabled={pending || reason.trim().length < 10}>
+          <ReasonHint value={reason} label="Alasan pembatalan" />
+          <Btn tone="danger" type="submit" disabled={pending || !isReasonComplete(reason)}>
             {pending ? 'Membatalkan…' : 'Konfirmasi pembatalan'}
           </Btn>
         </form>

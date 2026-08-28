@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { isReasonComplete, ReasonHint } from '@/components/validation'
 import { claimTicket, completeTicket, exceptTicket, verifyTicketNow } from './actions'
 
 /**
@@ -78,10 +79,13 @@ export function TicketActions(props: { ticketId: string; status: string; canExec
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={2}
-            placeholder="Keterangan pelaksanaan (min. 10 karakter)"
+            placeholder="Keterangan pelaksanaan"
             className="min-h-11 w-full rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-2 text-sm text-sg-neutral-900 placeholder:text-sg-neutral-400 focus:border-sg-accent-600 focus:outline focus:outline-2 focus:outline-sg-accent-600"
           />
-          <ActionButton type="submit" disabled={pending || note.trim().length < 10}>
+          {/* Says what is missing instead of leaving a dead button to explain
+              itself. */}
+          <ReasonHint value={note} label="Keterangan pelaksanaan" />
+          <ActionButton type="submit" disabled={pending || !isReasonComplete(note)}>
             {pending ? 'Menyimpan…' : 'Kirim'}
           </ActionButton>
         </form>
@@ -99,10 +103,11 @@ export function TicketActions(props: { ticketId: string; status: string; canExec
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={2}
-            placeholder="Alasan pengecualian (min. 10 karakter)"
+            placeholder="Alasan pengecualian"
             className="min-h-11 w-full rounded-md border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-2 text-sm text-sg-neutral-900 placeholder:text-sg-neutral-400 focus:border-sg-accent-600 focus:outline focus:outline-2 focus:outline-sg-accent-600"
           />
-          <ActionButton tone="muted" type="submit" disabled={pending || reason.trim().length < 10}>
+          <ReasonHint value={reason} label="Alasan pengecualian" />
+          <ActionButton tone="muted" type="submit" disabled={pending || !isReasonComplete(reason)}>
             {pending ? 'Menyimpan…' : 'Kecualikan'}
           </ActionButton>
         </form>

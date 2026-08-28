@@ -205,7 +205,10 @@ function StatTile(props: Stat) {
   return (
     <Link
       href={props.href}
-      className={`group relative overflow-hidden rounded-xl border bg-sg-neutral-0 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sg-accent-600 ${
+      // No lift on hover: 06-DESIGN §1.1 asks for a calm tool, and a card that
+      // jumps under the cursor is a marketing gesture. A border and shadow
+      // change says "interactive" without the motion.
+      className={`group relative overflow-hidden rounded-xl border bg-sg-neutral-0 p-4 shadow-sm transition-colors hover:border-sg-accent-600 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sg-accent-600 ${
         props.emphasis ? 'border-sg-accent-300' : 'border-sg-neutral-200'
       }`}
     >

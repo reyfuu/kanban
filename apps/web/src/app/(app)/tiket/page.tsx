@@ -2,7 +2,16 @@ import { notFound } from 'next/navigation'
 import { apiFetch } from '@/lib/api'
 import { formatDate } from '@/lib/format'
 import { hasPermission, requireUser } from '@/lib/session'
-import { Code, EmptyState, PageHeader, StatusBadge, TableFrame, Th, type BadgeTone } from '@/components/ui'
+import {
+  Code,
+  EmptyState,
+  PageHeader,
+  RecordCard,
+  StatusBadge,
+  TableFrame,
+  Th,
+  type BadgeTone,
+} from '@/components/ui'
 import { TicketActions } from './ticket-actions'
 
 interface Ticket {
@@ -68,7 +77,52 @@ export default async function TiketPage() {
         </div>
       ) : (
         <div className="mt-6">
-          <TableFrame caption="Daftar tiket pencabutan" minWidth="min-w-[64rem]">
+          <TableFrame
+            caption="Daftar tiket pencabutan"
+            minWidth="min-w-[64rem]"
+            cards={tickets.map((t) => (
+              <RecordCard
+                key={t.id}
+                title={<Code className="text-sg-neutral-900">{t.ticket_no}</Code>}
+                badges={
+                  <StatusBadge tone={STATUS_TONE[t.status] ?? 'neutral'}>
+                    {STATUS_LABEL[t.status] ?? t.status}
+                  </StatusBadge>
+                }
+                fields={[
+                  { label: 'Aplikasi', value: t.application.name },
+                  { label: 'Hak akses', value: t.entitlement.display_name },
+                  { label: 'Akun', value: <Code className="text-xs">{t.account_id}</Code> },
+                  { label: 'Tenggat SLA', value: formatDate(t.sla_due_date) },
+                  {
+                    label: 'Pelaksana',
+                    value: t.assignee.full_name,
+                  },
+                  {
+                    // K-1 made visible, on a phone too: a closed ticket names
+                    // the snapshot that closed it. Dropping this column on
+                    // narrow screens would hide the one thing that makes the
+                    // status trustworthy.
+                    label: 'Bukti',
+                    value: t.verified_by_snapshot_id ? (
+                      <Code className="text-xs">{t.verified_by_snapshot_id.slice(0, 8)}…</Code>
+                    ) : (
+                      '—'
+                    ),
+                  },
+                ]}
+                action={
+                  canExecute ? (
+                    <TicketActions
+                      ticketId={t.id}
+                      status={t.status}
+                      canExecute={canExecute}
+                    />
+                  ) : undefined
+                }
+              />
+            ))}
+          >
             <thead className="border-b border-sg-neutral-200 bg-sg-neutral-50 text-left">
               <tr>
                 <Th>Nomor</Th>

@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import { apiFetch } from '@/lib/api'
 import { formatDateTimePrecise } from '@/lib/format'
 import { hasPermission, requireUser } from '@/lib/session'
-import { Code, PageHeader, TableFrame, Th } from '@/components/ui'
+import { Code, PageHeader, RecordCard, TableFrame, Th } from '@/components/ui'
 import { VerifyChainButton } from './verify-button'
 
 interface AuditRow {
@@ -36,7 +36,26 @@ export default async function JejakAuditPage() {
       />
 
       <div className="mt-6">
-        <TableFrame caption="50 catatan jejak audit terakhir">
+        <TableFrame
+          caption="50 catatan jejak audit terakhir"
+          cards={rows.map((row) => (
+            <RecordCard
+              key={row.id}
+              title={row.action}
+              fields={[
+                { label: 'Waktu', value: formatDateTimePrecise(row.occurred_at) },
+                { label: 'Aktor', value: row.actor.full_name },
+                { label: 'Peran', value: row.actor_role_at_action.join(' · ') },
+                { label: 'Objek', value: row.object_type },
+                {
+                  label: 'Alamat IP',
+                  value: row.ip_address ? <Code className="text-xs">{row.ip_address}</Code> : '—',
+                },
+                { label: 'Sidik jari', value: <Code className="text-xs">{row.hash.slice(0, 12)}…</Code> },
+              ]}
+            />
+          ))}
+        >
           <thead className="border-b border-sg-neutral-200 bg-sg-neutral-50 text-left">
             <tr>
               <Th>Waktu</Th>

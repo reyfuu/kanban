@@ -84,12 +84,29 @@ export function ReviewBoard(props: { initialItems: ReviewItem[]; canSignoff: boo
 
   return (
     <div>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight text-sg-neutral-900">{REVIEW_TEXT.title}</h1>
+      {/*
+       * The header is deliberately compact.
+       *
+       * This screen's reason for existing is the decision cards, and the
+       * earlier layout put four blocks above them -- title, campaign line,
+       * an intro paragraph, and a full-width progress bar -- so on a laptop
+       * the first item needing a decision sat below the fold. A reviewer with
+       * 400 items should not have to scroll past an explanation they have read
+       * forty times to reach their work.
+       *
+       * The intro survives as a <details>: still available for someone seeing
+       * the screen for the first time, and costing one line for everyone else.
+       * The progress figure moves inline next to the title, where it is read
+       * as a status rather than occupying a band of its own.
+       */}
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 border-b border-sg-neutral-200 pb-4">
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold tracking-tight text-sg-neutral-900">
+            {REVIEW_TEXT.title}
+          </h1>
           <span className="mt-2 block h-0.5 w-8 rounded-full bg-tri-navy" aria-hidden />
           {campaign && (
-            <p className="mt-1 text-sm text-sg-neutral-700">
+            <p className="mt-2 text-sm text-sg-neutral-700">
               {campaign.name}
               <span className="ml-2 text-sg-neutral-500">
                 Tenggat {formatDate(campaign.due_date)}
@@ -97,39 +114,49 @@ export function ReviewBoard(props: { initialItems: ReviewItem[]; canSignoff: boo
               </span>
             </p>
           )}
-          <p className="mt-1 max-w-2xl text-sm text-sg-neutral-600">{REVIEW_TEXT.intro}</p>
         </div>
 
-        {props.canSignoff && signedAt === null && counts.pending === 0 && campaign && (
-          <SignoffDialog campaignId={campaign.id} items={items} onSigned={setSignoff} />
-        )}
+        <div className="flex shrink-0 flex-wrap items-center gap-3">
+          {/* Progress as a compact figure plus a short bar, read at a glance
+              rather than spanning the viewport. */}
+          <div className="min-w-[10rem]">
+            <p className="text-sm font-medium tabular-nums text-sg-neutral-900">
+              {REVIEW_TEXT.progress(decided, total)} ·{' '}
+              {formatPercent(total === 0 ? 0 : Math.round((decided / total) * 100))}
+            </p>
+            <div
+              className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-sg-neutral-200"
+              role="progressbar"
+              aria-valuenow={decided}
+              aria-valuemin={0}
+              aria-valuemax={total}
+              aria-label={REVIEW_TEXT.progress(decided, total)}
+            >
+              <div
+                className="h-full bg-sg-accent-600"
+                style={{ width: `${total === 0 ? 0 : (decided / total) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          {props.canSignoff && signedAt === null && counts.pending === 0 && campaign && (
+            <SignoffDialog campaignId={campaign.id} items={items} onSigned={setSignoff} />
+          )}
+        </div>
       </div>
+
+      <details className="mt-3 text-sm text-sg-neutral-600">
+        <summary className="inline-flex min-h-11 cursor-pointer items-center text-sg-accent-700">
+          Tentang layar ini
+        </summary>
+        <p className="mt-1 max-w-2xl">{REVIEW_TEXT.intro}</p>
+      </details>
 
       {signedAt !== null && (
         <div className="mt-4">
           <SignedNotice signedAt={signedAt} />
         </div>
       )}
-
-      <div className="mt-4">
-        <div
-          className="h-2 w-full overflow-hidden rounded-full bg-sg-neutral-200"
-          role="progressbar"
-          aria-valuenow={decided}
-          aria-valuemin={0}
-          aria-valuemax={total}
-          aria-label={REVIEW_TEXT.progress(decided, total)}
-        >
-          <div
-            className="h-full bg-sg-accent-600"
-            style={{ width: `${total === 0 ? 0 : (decided / total) * 100}%` }}
-          />
-        </div>
-        <p className="mt-1 text-sm text-sg-neutral-600">
-          {REVIEW_TEXT.progress(decided, total)} ·{' '}
-          {formatPercent(total === 0 ? 0 : Math.round((decided / total) * 100))}
-        </p>
-      </div>
 
       {/*
        * A filter group, not tabs. The earlier role="tablist" promised a

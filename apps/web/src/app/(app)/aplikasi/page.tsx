@@ -2,7 +2,16 @@ import { notFound } from 'next/navigation'
 import { apiFetch } from '@/lib/api'
 import { formatDate, formatDaysAgo, formatNumber } from '@/lib/format'
 import { hasPermission, requireUser } from '@/lib/session'
-import { Code, EmptyState, PageHeader, StatusBadge, TableFrame, Th, type BadgeTone } from '@/components/ui'
+import {
+  Code,
+  EmptyState,
+  PageHeader,
+  RecordCard,
+  StatusBadge,
+  TableFrame,
+  Th,
+  type BadgeTone,
+} from '@/components/ui'
 import { ApplicationForm, ApplicationRowActions, type Employee } from './application-form'
 
 export interface ApplicationRow {
@@ -57,7 +66,64 @@ export default async function AplikasiPage() {
         </div>
       ) : (
         <div className="mt-6">
-          <TableFrame caption="Daftar aplikasi terdaftar" minWidth="min-w-[60rem]">
+          <TableFrame
+            caption="Daftar aplikasi terdaftar"
+            minWidth="min-w-[60rem]"
+            cards={applications.map((a) => (
+              <RecordCard
+                key={a.id}
+                title={
+                  <>
+                    <Code className="text-sg-neutral-900">{a.code}</Code>
+                    <span className="ml-2">{a.name}</span>
+                  </>
+                }
+                badges={
+                  <StatusBadge tone={CRITICALITY_TONE[a.criticality] ?? 'neutral'}>
+                    {a.criticality}
+                  </StatusBadge>
+                }
+                fields={[
+                  { label: 'Pemilik', value: a.owner.full_name },
+                  { label: 'Hak akses', value: formatNumber(a.entitlement_count) },
+                  { label: 'Frekuensi', value: a.review_frequency },
+                  {
+                    label: 'Snapshot',
+                    // The stale-snapshot warning is the reason this screen
+                    // exists (FR-B-008 aturan 3), so it survives the narrow
+                    // layout rather than being one of the columns dropped.
+                    value:
+                      a.latest_snapshot === null ? (
+                        <span className="text-sg-danger-700">Belum ada</span>
+                      ) : (
+                        <span
+                          className={a.snapshot_is_stale ? 'text-sg-danger-700' : undefined}
+                        >
+                          {formatDaysAgo(a.latest_snapshot.age_days)}
+                        </span>
+                      ),
+                  },
+                ]}
+                action={
+                  canWrite ? (
+                    <ApplicationRowActions
+                      app={{
+                        id: a.id,
+                        code: a.code,
+                        name: a.name,
+                        criticality: a.criticality,
+                        hosting_type: a.hosting_type,
+                        review_frequency: a.review_frequency,
+                        owner: a.owner,
+                        tech_owner: a.tech_owner,
+                      }}
+                      employees={employees}
+                    />
+                  ) : undefined
+                }
+              />
+            ))}
+          >
             <thead className="border-b border-sg-neutral-200 bg-sg-neutral-50 text-left">
               <tr>
                 <Th>Kode</Th>

@@ -69,14 +69,70 @@ export function EmptyState(props: { children: ReactNode }) {
  * A framed, horizontally-scrollable table shell (§3.1). Callers supply the
  * <thead>/<tbody>; this owns the border, the overflow behaviour and the min
  * width so every table in the app has the same frame.
+ *
+ * Below `sm` the table is hidden entirely and `cards` is rendered instead.
+ * A nine-column table with a 60rem minimum forces scrolling in two directions
+ * on a phone, which means reading one row requires losing sight of the column
+ * it belongs to -- the worst possible failure for data whose whole purpose is
+ * being compared. Callers that pass no `cards` keep the old horizontal-scroll
+ * behaviour, so this is additive rather than a breaking change to every table
+ * at once.
  */
-export function TableFrame(props: { children: ReactNode; minWidth?: string; caption: string }) {
+export function TableFrame(props: {
+  children: ReactNode
+  minWidth?: string
+  caption: string
+  /** Narrow-screen rendering. Omit to keep horizontal scrolling everywhere. */
+  cards?: ReactNode
+}) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-sg-neutral-200 bg-sg-neutral-0">
-      <table className={`w-full ${props.minWidth ?? 'min-w-[56rem]'} text-sm`}>
-        <caption className="sr-only">{props.caption}</caption>
-        {props.children}
-      </table>
+    <>
+      <div
+        className={`overflow-x-auto rounded-lg border border-sg-neutral-200 bg-sg-neutral-0 ${
+          props.cards ? 'hidden sm:block' : ''
+        }`}
+      >
+        <table className={`w-full ${props.minWidth ?? 'min-w-[56rem]'} text-sm`}>
+          <caption className="sr-only">{props.caption}</caption>
+          {props.children}
+        </table>
+      </div>
+      {props.cards && <div className="space-y-2 sm:hidden">{props.cards}</div>}
+    </>
+  )
+}
+
+/**
+ * One record as a card, for the narrow-screen half of TableFrame.
+ *
+ * Label-value pairs rather than a condensed row: on a phone the column header
+ * is off-screen by the time the value is read, so each value carries its own
+ * label. `title` is the line someone scans for, and `badges` the status they
+ * scan for second.
+ */
+export function RecordCard(props: {
+  title: ReactNode
+  badges?: ReactNode
+  fields: readonly { label: string; value: ReactNode }[]
+  action?: ReactNode
+}) {
+  return (
+    <div className="rounded-lg border border-sg-neutral-200 bg-sg-neutral-0 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0 text-sm font-medium text-sg-neutral-900">{props.title}</div>
+        {props.badges && <div className="flex flex-wrap gap-1.5">{props.badges}</div>}
+      </div>
+      <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2">
+        {props.fields.map((f) => (
+          <div key={f.label} className="min-w-0">
+            <dt className="text-2xs font-semibold uppercase tracking-wide text-sg-neutral-500">
+              {f.label}
+            </dt>
+            <dd className="mt-0.5 truncate text-sm text-sg-neutral-700">{f.value}</dd>
+          </div>
+        ))}
+      </dl>
+      {props.action && <div className="mt-3">{props.action}</div>}
     </div>
   )
 }
