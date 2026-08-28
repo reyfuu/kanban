@@ -159,7 +159,10 @@ beforeAll(async () => {
     data: {
       id: ids.campaign,
       code: `PKT-${suffix}`,
-      name: 'Kampanye Uji Paket Bukti',
+      // Suffixed because afterAll deletes the generated pack by title, and the
+      // pack's title is derived from this name. An unsuffixed name matched
+      // nothing, so every run left one orphan evidence row behind for good.
+      name: `Kampanye Uji Paket Bukti ${suffix}`,
       campaignType: 'AD_HOC',
       startDate: new Date('2026-06-01'),
       dueDate: new Date('2026-06-30'),
@@ -222,9 +225,20 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
+  // Collected before the join rows go, and matched by relation rather than by
+  // title: a title-shaped filter silently matches nothing the moment the title
+  // is built from something other than what the filter expects, and a cleanup
+  // that quietly deletes zero rows looks exactly like one that worked.
+  const packIds = (
+    await prisma.evidence.findMany({
+      where: { campaignPackage: { some: { campaignId: ids.campaign } } },
+      select: { id: true },
+    })
+  ).map((e) => e.id)
+
   await prisma.evidenceLink.deleteMany({ where: { evidence: { campaignPackage: { some: { campaignId: ids.campaign } } } } })
   await prisma.campaignEvidencePackage.deleteMany({ where: { campaignId: ids.campaign } })
-  await prisma.evidence.deleteMany({ where: { evidenceType: 'PAKET_BUKTI_KAMPANYE', title: { contains: suffix } } })
+  await prisma.evidence.deleteMany({ where: { id: { in: packIds } } })
   await prisma.revocationTicket.deleteMany({ where: { applicationId: ids.application } })
   await prisma.reviewDecision.deleteMany({ where: { reviewItem: { campaignId: ids.campaign } } })
   await prisma.reviewItem.deleteMany({ where: { campaignId: ids.campaign } })

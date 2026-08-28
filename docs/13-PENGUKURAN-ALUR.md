@@ -18,6 +18,22 @@ bash scripts/alur-modul-b.sh   # rantai review akses penuh
 
 Setiap skrip mencetak status tiap panggilan dan menjumlahkan langkahnya. Panggilan yang **sengaja ditolak** ikut ditampilkan sebagai `NO`, karena penolakan itu bagian dari perilaku yang diuji.
 
+### Keterulangan
+
+Ketiganya dapat dijalankan berkali-kali tanpa menyeed ulang. Ini bukan sifat yang datang gratis, dan versi pertama skrip tidak memilikinya: alur karyawan menumpang pada kampanye attestation dari data benih, dan karena satu pernyataan hanya dapat dibuat sekali seumur tugas, jalan kedua melaporkan `404` seolah-olah fiturnya rusak. Skrip yang melaporkan kerusakan palsu pada jalan kedua lebih buruk daripada tidak ada skrip sama sekali.
+
+Sekarang setiap skrip menyiapkan datanya sendiri: alur karyawan membuat kampanye attestation baru, Modul A membuat penugasan baru, Modul B membuat kampanye review baru.
+
+Hasil verifikasi tiga jalan berturut-turut tanpa seed ulang:
+
+| Skrip | Sukses | Penolakan yang diharapkan |
+|---|---|---|
+| `alur-e2e.sh` | 13 | 1 · attestation tanpa membaca sampai akhir |
+| `alur-modul-a.sh` | 13 | 0 |
+| `alur-modul-b.sh` | 21 | 1 · sign-off tanpa autentikasi ulang |
+
+Angkanya identik pada tiap jalan.
+
 ---
 
 ## 2. Hasil pengukuran
@@ -47,7 +63,9 @@ Setiap skrip mencetak status tiap panggilan dan menjumlahkan langkahnya. Panggil
 
 **Sebelum.** PIC memanggil `POST /evidence` untuk mendaftarkan bukti, lalu `POST /evidence/{id}/links` untuk menautkannya ke permintaan.
 
-**Masalahnya bukan jumlah langkah.** Celah di antara dua panggilan itu adalah asal **40 bukti yatim** pada basis data demo: bukti yang ada, tidak memenuhi permintaan apa pun, dan terus muncul sebagai saran penggunaan ulang selamanya.
+**Masalahnya bukan jumlah langkah, melainkan keadaan yang mungkin terjadi di antaranya.** Bila panggilan kedua tidak pernah datang — halaman ditutup, sesi berakhir, permintaan gagal — buktinya tetap tersimpan tanpa memenuhi apa pun, dan terus muncul sebagai saran penggunaan ulang selamanya.
+
+> **Catatan koreksi.** Versi pertama dokumen ini menyebut 40 bukti yatim pada basis data demo sebagai akibat celah tersebut. Itu keliru. Setelah ditelusuri, seluruhnya bertanda `system_generated` dan berasal dari kebocoran fixture uji paket bukti, bukan dari alur PIC. Kebocoran itu diperbaiki terpisah, dan hitungan bukti yatim setelah seluruh rangkaian uji dijalankan kini nol. Penyederhanaan ini tetap dilakukan, tetapi atas dasar keadaan yang dapat terjadi, bukan atas dasar angka yang ternyata bercerita tentang hal lain.
 
 **Sesudah.** Tautan menyertai pendaftaran, keduanya ditulis dalam satu transaksi:
 

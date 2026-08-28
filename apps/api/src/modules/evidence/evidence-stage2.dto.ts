@@ -140,11 +140,12 @@ export class NotApplicableDto {
 /**
  * FR-A-012 · optional link supplied while registering evidence.
  *
- * Registering and linking were two calls, and the gap between them is where 40
- * pieces of orphan evidence in the demo database came from: evidence that
- * exists, satisfies nothing, and shows up in reuse suggestions forever. A PIC
- * filling a request has no reason to want the first without the second, so the
- * link travels with the registration and both succeed or neither does.
+ * Registering and linking were two calls, and evidence stranded in the gap --
+ * when the second call never comes because the page closed, the session
+ * expired, or the request failed -- exists, satisfies nothing, and shows up in
+ * reuse suggestions forever. A PIC filling a request has no reason to want the
+ * first without the second, so the link travels with the registration and both
+ * succeed or neither does.
  *
  * Still optional, because an auditor building the library ahead of a request
  * genuinely does want evidence with no target yet.

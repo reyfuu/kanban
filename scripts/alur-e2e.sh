@@ -4,6 +4,11 @@
 #
 # Bukan uji otomatis: ini alat pengukur gesekan. Jumlah langkah per alur adalah
 # angka yang dipakai untuk memutuskan apakah sebuah alur terlalu berbelit.
+#
+# Benar-benar dapat diulang. Alur karyawan membuat kampanye attestation-nya
+# sendiri, karena menumpang pada kampanye benih hanya berhasil satu kali:
+# pernyataan bersifat sekali seumur tugas, dan jalannya yang kedua melaporkan
+# 404 seolah-olah fiturnya rusak.
 set -uo pipefail
 
 API=${API:-http://localhost:3001/api/v1}
@@ -44,13 +49,30 @@ login() {
   python3 -c 'import sys,json;print(json.load(sys.stdin)["data"]["access_token"])' <<<"$RESP" 2>/dev/null
 }
 
-jqp() { python3 -c "import sys,json;d=json.load(sys.stdin);print($1)" <<<"$RESP" 2>/dev/null; }
+jqp()  { python3 -c "import sys,json;d=json.load(sys.stdin);print($1)" <<<"$RESP" 2>/dev/null; }
+psql() { docker compose exec -T postgres psql -U sigap -d sigap -tAc "$1"; }
+
+SUF=$(date +%H%M%S)
 
 # --------------------------------------------------------------- ALUR KARYAWAN
+# Persiapan oleh COMPLIANCE, tidak dihitung sebagai langkah alur karyawan:
+# kampanye adalah pekerjaan pengawas, bukan pekerjaan karyawannya.
+C=$(curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
+      -d "{\"username\":\"hendra.wijaya\",\"password\":\"$PASS\"}" \
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["data"]["access_token"])')
+DOC=$(psql "SELECT id FROM document WHERE document_no='KEB-KEP-001'")
+KAMP=$(curl -s -X POST "$API/attestation/kampanye" -H "Authorization: Bearer $C" \
+        -H 'Content-Type: application/json' -d "{
+          \"name\":\"Attestation Uji Alur $SUF\",
+          \"document_ids\":[\"$DOC\"],\"target_kind\":\"SELURUH_KARYAWAN\",
+          \"start_date\":\"2026-08-01\",\"due_date\":\"2026-12-31\"}" \
+      | python3 -c 'import sys,json;print(json.load(sys.stdin)["data"]["id"])' 2>/dev/null)
+curl -s -X POST "$API/attestation/kampanye/$KAMP/luncurkan" -H "Authorization: Bearer $C" \
+     -H 'Content-Type: application/json' -d '{}' >/dev/null
+
 flow "ALUR 1 · Karyawan biasa (Putri) mencari aturan dan menyatakan telah membaca"
 T=$(login putri.handayani)
 call "cari kebijakan benturan kepentingan" GET "/documents/search?q=benturan%20kepentingan" "$T"
-DOC=$(jqp 'd["data"]["results"][0]["document_id"] if d.get("data",{}).get("results") else ""')
 call "buka daftar tugas attestation"        GET /attestation/tugas-saya "$T"
 TASK=$(jqp 'd["data"][0]["id"] if d["data"] else ""')
 call "buka dokumennya"                      GET "/documents/$DOC" "$T"
@@ -58,14 +80,9 @@ call "nyatakan tanpa baca (harus DITOLAK)"  POST "/attestation/tugas/$TASK/nyata
 call "nyatakan setelah baca"                POST "/attestation/tugas/$TASK/nyatakan" "$T" '{"seconds_viewed":95,"reached_end":true}'
 
 # ------------------------------------------------------------- ALUR REVIEW AKSES
-flow "ALUR 2 · Manajer (Fajar) memutuskan akses bawahannya"
+flow "ALUR 2 · Manajer (Fajar) membuka antrean review"
 T=$(login fajar.nugroho)
 call "buka antrean review saya" GET /my/review-items "$T"
-ITEM=$(jqp 'd["data"][0]["id"] if d.get("data") else ""')
-call "putuskan CABUT + alasan"  POST "/review-items/$ITEM/decision" "$T" \
-  '{"decision":"CABUT","reason":"Karyawan pindah unit, akses riset tidak lagi diperlukan."}'
-ITEM2=$(printf '%s' "$RESP" >/dev/null; echo "")
-call "lihat sisa antrean"       GET /my/review-items "$T"
 
 flow "ALUR 3 · Petugas Keamanan (Rina) memantau tiket pencabutan"
 T=$(login rina.kusuma)
