@@ -34,6 +34,8 @@ const ids = {
   termEmp: randomUUID(),
   crossEmp: randomUUID(),
   user: randomUUID(),
+  director: randomUUID(),
+  directorEmp: randomUUID(),
   appA: randomUUID(),
   appB: randomUUID(),
   entOrder: randomUUID(), // app A, group A
@@ -125,6 +127,34 @@ beforeAll(async () => {
     data: { id: ids.user, employeeId: ids.activeEmp, externalId: `sec-${suffix}`, userType: 'INTERNAL' },
   })
 
+  // A director-level approver for FR-B-025 aturan 2. The EXECUTIVE role is
+  // seeded globally (catalogue.ts); here we create a user and grant it, so an
+  // exception on a KRITIS conflict has someone with the authority to approve it.
+  await prisma.employee.create({
+    data: {
+      id: ids.directorEmp,
+      employeeNumber: `ED-${suffix}`,
+      fullName: 'Direktur Uji',
+      email: `dir-${suffix}@contoh.internal`,
+      jobTitle: 'Direktur',
+      orgUnitId: ids.orgUnit,
+      employmentStatus: 'AKTIF',
+      joinedAt: new Date('2020-01-01'),
+    },
+  })
+  await prisma.appUser.create({
+    data: { id: ids.director, employeeId: ids.directorEmp, externalId: `dir-${suffix}`, userType: 'INTERNAL' },
+  })
+  const executiveRole = await prisma.role.findFirstOrThrow({ where: { code: 'EXECUTIVE' } })
+  await prisma.userRole.create({
+    data: {
+      id: randomUUID(),
+      userId: ids.director,
+      roleId: executiveRole.id,
+      validFrom: new Date('2020-01-01'),
+    },
+  })
+
   await prisma.application.createMany({
     data: [
       {
@@ -207,6 +237,7 @@ afterAll(async () => {
   await prisma.sodException.deleteMany({ where: { violation: { ruleId: ids.sodRule } } })
   await prisma.sodViolation.deleteMany({ where: { ruleId: ids.sodRule } })
   await prisma.sodRule.deleteMany({ where: { id: ids.sodRule } })
+  await prisma.userRole.deleteMany({ where: { userId: ids.director } })
   await prisma.accessAnomaly.deleteMany({ where: { applicationId: { in: [ids.appA, ids.appB] } } })
   for (const id of createdSnapshots) {
     await prisma.$executeRaw`DELETE FROM public.snapshot_line WHERE snapshot_id = ${id}::uuid`
@@ -215,8 +246,10 @@ afterAll(async () => {
   await prisma.entitlementCatalog.deleteMany({ where: { applicationId: { in: [ids.appA, ids.appB] } } })
   await prisma.application.deleteMany({ where: { id: { in: [ids.appA, ids.appB] } } })
   try {
-    await prisma.appUser.deleteMany({ where: { id: ids.user } })
-    await prisma.employee.deleteMany({ where: { id: { in: [ids.activeEmp, ids.termEmp, ids.crossEmp] } } })
+    await prisma.appUser.deleteMany({ where: { id: { in: [ids.user, ids.director] } } })
+    await prisma.employee.deleteMany({
+      where: { id: { in: [ids.activeEmp, ids.termEmp, ids.crossEmp, ids.directorEmp] } },
+    })
     await prisma.organizationUnit.deleteMany({ where: { id: ids.orgUnit } })
   } catch {
     // Referenced by the audit trail; stays, correctly (K-7).
@@ -312,7 +345,32 @@ describe('FR-B-024 · cross-application SoD', () => {
     expect(result.affected_employees.length).toBe(result.would_violate_count)
   })
 
-  it('TC-IN-B-122 · an exception moves the violation out of TERBUKA', async () => {
+  it('TC-IN-B-122 · FR-B-025 aturan 2 · a KRITIS exception is refused without a director approver', async () => {
+    const open = await sodService.listViolations(principal, { status: 'TERBUKA', take: 100 })
+    const target = open.find((v) => v.rule.code === `SOD-UJI-${suffix}`)
+    expect(target).toBeDefined()
+
+    const reviewDate = new Date()
+    reviewDate.setMonth(reviewDate.getMonth() + 6)
+    // The approver here is the SEC_OFFICER fixture user, who does not hold
+    // EXECUTIVE. The rule is KRITIS, so the exception must be refused.
+    await expect(
+      asUser(() =>
+        sodService.grantException(principal, target!.id, {
+          businessReason: 'Peran rangkap sementara selama transisi tim.',
+          compensatingControl: 'Rekonsiliasi harian oleh akuntansi.',
+          approvedBy: ids.user,
+          reviewDate: reviewDate.toISOString().slice(0, 10),
+        }),
+      ),
+    ).rejects.toThrow(/direksi/i)
+
+    // Still open: the refusal wrote nothing.
+    const stillOpen = await sodService.listViolations(principal, { status: 'TERBUKA', take: 100 })
+    expect(stillOpen.find((v) => v.id === target!.id)).toBeDefined()
+  })
+
+  it('TC-IN-B-123 · a KRITIS exception approved by a director moves it out of TERBUKA', async () => {
     const open = await sodService.listViolations(principal, { status: 'TERBUKA', take: 100 })
     const target = open.find((v) => v.rule.code === `SOD-UJI-${suffix}`)
     expect(target).toBeDefined()
@@ -323,7 +381,7 @@ describe('FR-B-024 · cross-application SoD', () => {
       sodService.grantException(principal, target!.id, {
         businessReason: 'Peran rangkap sementara selama transisi tim.',
         compensatingControl: 'Rekonsiliasi harian oleh akuntansi.',
-        approvedBy: ids.user,
+        approvedBy: ids.director,
         reviewDate: reviewDate.toISOString().slice(0, 10),
       }),
     )

@@ -223,7 +223,7 @@ export class SodService {
 
     const violation = await this.prisma.sodViolation.findUnique({
       where: { id: violationId },
-      select: { id: true, status: true },
+      select: { id: true, status: true, rule: { select: { riskLevel: true } } },
     })
     if (!violation) throw new NotFoundException('Pelanggaran SoD tidak ditemukan.')
     if (violation.status !== 'TERBUKA') {
@@ -237,6 +237,20 @@ export class SodService {
       select: { id: true },
     })
     if (!approver) throw new BadRequestException('Pejabat penyetuju tidak dikenal.')
+
+    // FR-B-025 aturan 2: a critical-risk conflict requires director-level
+    // approval. EXECUTIVE is the director role (FRD Sec 2, held by Direksi), so
+    // an exception on a KRITIS violation is refused unless its named approver
+    // actually holds that authority — checked against active role grants, not
+    // asserted by the caller.
+    if (violation.rule.riskLevel === 'KRITIS') {
+      const isDirector = await this.hasActiveRole(input.approvedBy, 'EXECUTIVE')
+      if (!isDirector) {
+        throw new BadRequestException(
+          'Konflik berisiko kritis memerlukan persetujuan setingkat direksi (peran EXECUTIVE).',
+        )
+      }
+    }
 
     await this.uow.write(async (tx, audit) => {
       await tx.sodException.create({
@@ -268,6 +282,21 @@ export class SodService {
         },
       })
     })
+  }
+
+  /** True when the user holds an active grant of `roleCode` right now. */
+  private async hasActiveRole(userId: string, roleCode: string): Promise<boolean> {
+    const now = new Date()
+    const grant = await this.prisma.userRole.findFirst({
+      where: {
+        userId,
+        role: { code: roleCode },
+        validFrom: { lte: now },
+        OR: [{ validUntil: null }, { validUntil: { gte: now } }],
+      },
+      select: { id: true },
+    })
+    return grant !== null
   }
 
   /** Holdings per employee from the latest completed snapshot of each application. */
