@@ -30,6 +30,7 @@ Platform tata kelola internal untuk Trimegah Sekuritas, terdiri atas tiga modul 
 | 10 | [Test Plan](10-TEST-PLAN.md) | Piramida uji, 10 kontrol kritis, uji keamanan & penetrasi, 20 dimensi eval AI, 36 kasus uji guardrail, kinerja, UAT | QA Lead, Tim Pengembang, SKAI |
 | 11 | [Alur Sistem](11-ALUR-SISTEM.md) | Perjalanan data end-to-end: asal pengguna dan data akses, alur tiap modul, titik temu ketiganya, posisi agent AI, tabel rujukan cepat | Seluruh audiens |
 | 12 | [Panduan Sederhana](12-PANDUAN-SEDERHANA.md) | Penjelasan tanpa istilah teknis: SIGAP itu apa, 13 peran dan tugasnya, panduan langkah per peran, tiket pencabutan dijelaskan pelan-pelan | **Titik masuk bagi pembaca baru** — pengguna akhir, calon pengguna, orientasi tim |
+| 13 | [Pengukuran Alur](13-PENGUKURAN-ALUR.md) | Hasil menempuh tiap alur lewat API berjalan: jumlah langkah per peran, gesekan yang disederhanakan, gesekan yang sengaja dipertahankan, bug yang ditemukan | Product Owner, QA Lead, Tim Pengembang |
 
 ### Urutan membaca yang disarankan
 
