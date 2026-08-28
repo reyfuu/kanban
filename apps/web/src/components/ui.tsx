@@ -12,11 +12,12 @@ import type { ReactNode } from 'react'
 /** Page title + optional lead paragraph and right-aligned action (§4.1). */
 export function PageHeader(props: { title: string; description?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="flex flex-wrap items-start justify-between gap-4 border-b border-sg-neutral-200 pb-5">
       <div>
         <h1 className="text-xl font-semibold tracking-tight text-sg-neutral-900">{props.title}</h1>
+        <span className="mt-2 block h-0.5 w-8 rounded-full bg-tri-navy" aria-hidden />
         {props.description && (
-          <p className="mt-1 max-w-2xl text-sm text-sg-neutral-600">{props.description}</p>
+          <p className="mt-2 max-w-2xl text-sm text-sg-neutral-600">{props.description}</p>
         )}
       </div>
       {props.action}

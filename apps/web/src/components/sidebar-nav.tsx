@@ -10,11 +10,19 @@ import { NavIcon } from './nav-icons'
  * path and mark the active route -- the permission filtering that decides which
  * items exist happens on the server in the layout, where it belongs.
  *
- * The active state is a left accent rail plus a tinted surface, not the brand
- * colour: 06-DESIGN §2.0 reserves brand for chrome once --tri-* lands, and the
- * accent already carries "this is where you are" everywhere else in the app.
+ * The rail lives inside brand chrome (Trimegah navy), so the active state is a
+ * white/gold treatment on a translucent surface rather than the app accent: the
+ * brand guideline reserves brand colour for chrome, and the gold rail carries
+ * "this is where you are" against the navy. `variant="rail"` renders the flat,
+ * horizontal list used inside the condensed mobile top bar.
  */
-export function SidebarNav({ items }: { items: NavItem[] }) {
+export function SidebarNav({
+  items,
+  variant = 'stack',
+}: {
+  items: NavItem[]
+  variant?: 'stack' | 'rail'
+}) {
   const pathname = usePathname()
 
   // Preserve declaration order of both sections and items within them.
@@ -28,17 +36,45 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
     group.items.push(item)
   }
 
+  const isActive = (item: NavItem) =>
+    item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
+
+  if (variant === 'rail') {
+    return (
+      <ul className="flex items-center gap-1">
+        {items.map((item) => {
+          const active = isActive(item)
+          return (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                aria-current={active ? 'page' : undefined}
+                className={
+                  active
+                    ? 'flex items-center gap-2 whitespace-nowrap rounded-md bg-white/15 px-3 py-1.5 text-sm font-medium text-tri-on-primary'
+                    : 'flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-sg-neutral-300 transition-colors hover:bg-white/10 hover:text-tri-on-primary'
+                }
+              >
+                <NavIcon name={item.icon} className={active ? 'text-tri-gold' : 'text-sg-neutral-400'} />
+                {item.label}
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {sections.map((section) => (
         <div key={section.name}>
-          <p className="px-3 pb-1.5 text-2xs font-semibold uppercase tracking-wider text-sg-neutral-400">
+          <p className="px-3 pb-2 text-2xs font-semibold uppercase tracking-widest text-sg-neutral-400">
             {section.name}
           </p>
           <ul className="space-y-0.5">
             {section.items.map((item) => {
-              const active =
-                item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
+              const active = isActive(item)
               return (
                 <li key={item.href}>
                   <Link
@@ -46,13 +82,19 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
                     aria-current={active ? 'page' : undefined}
                     className={
                       active
-                        ? 'flex items-center gap-2.5 rounded-md border-l-2 border-sg-accent-600 bg-sg-accent-50 py-2 pl-3 pr-3 text-sm font-medium text-sg-accent-700'
-                        : 'flex items-center gap-2.5 rounded-md border-l-2 border-transparent py-2 pl-3 pr-3 text-sm text-sg-neutral-600 transition-colors hover:bg-sg-neutral-100 hover:text-sg-neutral-900'
+                        ? 'relative flex items-center gap-3 rounded-lg bg-white/10 py-2 pl-3 pr-3 text-sm font-medium text-tri-on-primary'
+                        : 'relative flex items-center gap-3 rounded-lg py-2 pl-3 pr-3 text-sm text-sg-neutral-300 transition-colors hover:bg-white/5 hover:text-tri-on-primary'
                     }
                   >
+                    {active && (
+                      <span
+                        aria-hidden
+                        className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-tri-gold"
+                      />
+                    )}
                     <NavIcon
                       name={item.icon}
-                      className={active ? 'text-sg-accent-600' : 'text-sg-neutral-400'}
+                      className={active ? 'text-tri-gold' : 'text-sg-neutral-400'}
                     />
                     {item.label}
                   </Link>

@@ -25,9 +25,12 @@ export default async function BerandaPage() {
 
   return (
     <div>
-      <header>
-        <h1 className="text-xl font-semibold text-sg-neutral-900">Selamat datang, {firstName}.</h1>
-        <p className="mt-1 text-sm text-sg-neutral-600">
+      <header className="border-b border-sg-neutral-200 pb-5">
+        <h1 className="text-xl font-semibold tracking-tight text-sg-neutral-900">
+          Selamat datang, {firstName}.
+        </h1>
+        <span className="mt-2 block h-0.5 w-8 rounded-full bg-tri-navy" aria-hidden />
+        <p className="mt-2 text-sm text-sg-neutral-600">
           Ringkasan tugas yang menunggu tindakan Anda. Angka diperbarui setiap kali halaman dibuka.
         </p>
       </header>
@@ -137,24 +140,30 @@ function SummaryCard(props: Card) {
   return (
     <Link
       href={props.href}
-      className={`group block rounded-lg border bg-sg-neutral-0 p-4 shadow-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sg-accent-600 ${
+      className={`group relative block overflow-hidden rounded-xl border bg-sg-neutral-0 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sg-accent-600 ${
         props.emphasis
           ? 'border-sg-accent-300 hover:border-sg-accent-500'
           : 'border-sg-neutral-200 hover:border-sg-neutral-300'
       }`}
     >
+      <span
+        aria-hidden
+        className={`absolute inset-x-0 top-0 h-0.5 ${
+          props.emphasis ? 'bg-sg-accent-600' : 'bg-tri-navy'
+        }`}
+      />
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-md font-semibold text-sg-neutral-900">{props.label}</h2>
         <span
-          className={`text-2xl font-semibold tabular-nums ${
+          className={`text-3xl font-semibold tabular-nums ${
             props.emphasis ? 'text-sg-accent-700' : 'text-sg-neutral-900'
           }`}
         >
           {props.count === null ? '—' : formatNumber(props.count)}
         </span>
       </div>
-      <p className="mt-1 text-sm text-sg-neutral-600">{props.description}</p>
-      <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-sg-accent-700">
+      <p className="mt-1.5 text-sm text-sg-neutral-600">{props.description}</p>
+      <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-sg-accent-700">
         {props.cta}
         <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
           →

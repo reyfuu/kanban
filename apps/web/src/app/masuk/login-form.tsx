@@ -20,7 +20,7 @@ export function LoginForm() {
           autoComplete="username"
           autoFocus
           required
-          className="mt-1 w-full rounded-md border border-sg-neutral-300 px-3 py-2 text-sm outline-none focus:border-sg-accent-600 focus:ring-2 focus:ring-sg-accent-100"
+          className="mt-1.5 w-full rounded-lg border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-2.5 text-sm outline-none transition-colors focus:border-tri-navy focus:ring-2 focus:ring-tri-navy/15"
         />
       </div>
 
@@ -34,7 +34,7 @@ export function LoginForm() {
           type="password"
           autoComplete="current-password"
           required
-          className="mt-1 w-full rounded-md border border-sg-neutral-300 px-3 py-2 text-sm outline-none focus:border-sg-accent-600 focus:ring-2 focus:ring-sg-accent-100"
+          className="mt-1.5 w-full rounded-lg border border-sg-neutral-300 bg-sg-neutral-0 px-3 py-2.5 text-sm outline-none transition-colors focus:border-tri-navy focus:ring-2 focus:ring-tri-navy/15"
         />
       </div>
 
@@ -52,7 +52,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-md bg-sg-accent-600 px-3 py-2 text-sm font-medium text-sg-neutral-0 hover:bg-sg-accent-700 disabled:opacity-60"
+        className="w-full rounded-lg bg-tri-navy px-3 py-2.5 text-sm font-semibold text-tri-on-primary shadow-sm transition-colors hover:bg-tri-navy-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tri-navy disabled:opacity-60"
       >
         {pending ? 'Memeriksa…' : 'Masuk'}
       </button>
