@@ -176,28 +176,28 @@ bisa terlewat oleh satu jalur kueri; penyaring ini tidak bisa.
 
 ## Menjalankan
 
-Prasyarat: Node 22, pnpm 10, Docker.
+Prasyarat: Bun 1.3, Docker.
 
 ```bash
-pnpm install
+bun install
 cp .env.example .env      # nilai bawaannya sudah cocok untuk pengembangan lokal
-pnpm infra:up             # PostgreSQL 16, Redis 7, MinIO
-pnpm db:setup             # terapkan migrasi + kata sandi peran aplikasi (dev)
-pnpm db:generate          # bangkitkan Prisma Client
-pnpm db:seed              # data benih: peran, hak akses, sembilan pengguna
+bun run infra:up             # PostgreSQL 16, Redis 7, MinIO
+bun run db:setup             # terapkan migrasi + kata sandi peran aplikasi (dev)
+bun run db:generate          # bangkitkan Prisma Client
+bun run db:seed              # data benih: peran, hak akses, sembilan pengguna
 ```
 
 Lalu nyalakan aplikasinya. Cara yang disarankan adalah lewat pengelola proses,
-yang menjaga tepat satu instance tiap layanan dan membatasi memori Node — mesin
+yang menjaga tepat satu instance tiap layanan dan menekan pemakaian memori — mesin
 pengembangan dengan RAM terbatas gampang kehabisan memori bila tiga proses
 `--watch` berjalan berlipat:
 
 ```bash
-pnpm dev                  # nyalakan api + worker + web sekaligus
-pnpm dev:status           # tabel status: hidup/mati, porta, dan pemakaian RAM
-pnpm dev:logs web         # ikuti log satu layanan
-pnpm dev:restart api      # restart satu layanan
-pnpm dev:down             # matikan semuanya
+bun run dev                  # nyalakan api + worker + web sekaligus
+bun run dev:status           # tabel status: hidup/mati, porta, dan pemakaian RAM
+bun run dev:logs web         # ikuti log satu layanan
+bun run dev:restart api      # restart satu layanan
+bun run dev:down             # matikan semuanya
 ```
 
 Buka <http://localhost:3000>, masuk sebagai salah satu pengguna di tabel di
@@ -206,29 +206,40 @@ bawah dengan kata sandi `demo`.
 Bila lebih suka satu terminal per layanan, tiga perintah ini setara:
 
 ```bash
-pnpm dev:api              # http://localhost:3001
-pnpm dev:web              # http://localhost:3000
-pnpm dev:worker           # proses pekerja; belum mengonsumsi antrean apa pun
+bun run dev:api              # http://localhost:3001
+bun run dev:web              # http://localhost:3000
+bun run dev:worker           # proses pekerja; belum mengonsumsi antrean apa pun
 ```
 
-Kompilasi pengembangan memakai **SWC**, bukan `tsc`. Mode watch `tsc` menahan
-seluruh program TypeScript di memori dan sendirian memakai sekitar 486MB; SWC
-mengompilasi per berkas, sehingga total proses API turun dari ~712MB ke ~320MB
-tanpa satu baris kode aplikasi berubah. Build produksi (`pnpm build`) tetap
-memakai `tsc`, sehingga pemeriksaan tipe pada artefak yang dikirim tidak
-berkurang.
+Runtime-nya **Bun**, bukan Node. Bun menjalankan TypeScript secara langsung,
+jadi jalur pengembangan tidak punya langkah kompilasi sama sekali: tidak ada
+`tsc` mode watch yang menahan seluruh program di memori (~486MB sendirian), dan
+tidak ada SWC yang harus menulis `dist/` lebih dulu. Proses API terukur ~148MB,
+turun dari ~320MB dengan SWC dan ~712MB dengan `tsc`. Build produksi
+(`bun run build`) tetap memakai `tsc`, sehingga pemeriksaan tipe pada artefak
+yang dikirim tidak berkurang.
 
-Runtime yang lebih ringan (Bun, atau `tsx`/esbuild) **tidak bisa dipakai** di
-sini, dan itu sudah diuji, bukan diasumsikan: NestJS bergantung pada
-`emitDecoratorMetadata` untuk injeksi dependensinya, sedangkan esbuild — mesin
-di balik tsx maupun Bun — tidak memancarkannya. Aplikasinya memang menyala dan
-seluruh 192 rutenya termuat di Bun, tetapi setiap controller melempar
-`Cannot read properties of undefined` begitu dipanggil, karena
-`design:paramtypes` tidak pernah ada. SWC memancarkannya, jadi ia satu-satunya
-jalur cepat yang benar untuk basis kode berdekorator.
+Dokumen ini sebelumnya menyatakan sebaliknya — bahwa Bun **tidak bisa** dipakai,
+karena NestJS bergantung pada `emitDecoratorMetadata` sementara esbuild tidak
+memancarkannya, sehingga `design:paramtypes` hilang dan setiap controller
+melempar `Cannot read properties of undefined`. Alasan itu benar pada masanya
+dan **sudah tidak berlaku**: Bun 1.3 memancarkan metadata dekorator. Itu diuji
+ulang sebelum perpindahan, bukan disimpulkan dari catatan rilis — sebuah probe
+`Reflect.getMetadata('design:paramtypes', ...)` mengembalikan konstruktor yang
+benar, dan seluruh AppModule bangkit lalu melayani permintaan login sungguhan
+yang menyentuh Prisma.
 
-Menghentikan: `pnpm dev:down` (atau `Ctrl-C` di tiap terminal), lalu
-`pnpm infra:down` (tambahkan `-v` lewat `docker compose down -v` bila ingin
+Satu jebakan yang perlu diketahui bila mengubah skrip: **Bun membaca
+`tsconfig.json` dari direktori kerja**, bukan dari lokasi berkas masuknya. Itu
+sebabnya `scripts/dev.sh` melakukan `cd apps/api` sebelum menjalankan API dan
+worker. Dijalankan dari akar repositori, dekorator diproses tanpa
+`experimentalDecorators` dan prosesnya mati saat impor dengan
+`TypeError: undefined is not an object (evaluating 'descriptor.value')` — galat
+yang menunjuk ke dalam `node_modules` dan terbaca seperti masalah versi NestJS,
+bukan seperti masalah direktori kerja.
+
+Menghentikan: `bun run dev:down` (atau `Ctrl-C` di tiap terminal), lalu
+`bun run infra:down` (tambahkan `-v` lewat `docker compose down -v` bila ingin
 membuang datanya).
 
 ### Masuk
@@ -267,8 +278,8 @@ menunjuk basis data lain dan migrasi berjalan di tempat yang keliru.
 
 ### Migrasi
 
-`pnpm db:deploy` bersifat non-interaktif dan dipakai di skrip maupun CI.
-`pnpm db:migrate` (`prisma migrate dev`) **menggantung tanpa TTY** — pakai hanya
+`bun run db:deploy` bersifat non-interaktif dan dipakai di skrip maupun CI.
+`bun run db:migrate` (`prisma migrate dev`) **menggantung tanpa TTY** — pakai hanya
 di terminal sungguhan, saat memang perlu membuat migrasi baru.
 
 Keduanya memakai dua peran basis data yang berbeda, dan perbedaan itu adalah
@@ -279,16 +290,16 @@ kontrol kritis K-7, bukan kerapian: `DATABASE_URL` untuk runtime, dan
 ## Gerbang mutu
 
 ```bash
-pnpm lint                 # termasuk batas modul ADR-01 dan larangan egress ADR-03
-pnpm typecheck
-pnpm test
-pnpm verify:docs          # keterlacakan ID lintas dokumen — wajib lulus
+bun run lint                 # termasuk batas modul ADR-01 dan larangan egress ADR-03
+bun run typecheck
+bun run test
+bun run verify:docs          # keterlacakan ID lintas dokumen — wajib lulus
 ```
 
 ### Verifikasi antarmuka di peramban
 
 ```bash
-pnpm dev                          # api + web harus hidup
+bun run dev                          # api + web harus hidup
 python3 scripts/verify-ui.py      # butuh google-chrome + websocket-client
 ```
 
@@ -298,7 +309,7 @@ tabel di desktop, hint validasi dihitung ulang saat mengetik, kartu keputusan
 berada di atas lipatan, skip-link benar-benar terlihat saat difokus, Escape
 menutup navigasi, dan gerbang baca attestation membuka setelah dokumen dibaca.
 
-Terpisah dari `pnpm test` karena butuh kedua layanan hidup. Ada karena
+Terpisah dari `bun run test` karena butuh kedua layanan hidup. Ada karena
 pemeriksaan tingkat markup pernah meloloskan dua cacat nyata: tiga tombol di
 bawah 44px, dan skip-link yang memakai kelas Tailwind yang ternyata tidak
 menghasilkan CSS apa pun sehingga tetap 1×1 piksel meski difokus — benar di

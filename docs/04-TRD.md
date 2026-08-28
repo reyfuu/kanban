@@ -90,7 +90,7 @@ flowchart TB
 |---|---|---|---|
 | Antarmuka web | Next.js (App Router), React, TypeScript | Next 15, React 19 | Perenderan di peladen memberi waktu muat awal yang baik pada jaringan internal; satu bahasa dengan peladen |
 | Komponen UI | Tailwind CSS + Radix UI + TanStack Table | — | Tabel padat data dan aksesibilitas bawaan; lihat [06-DESIGN.md](06-DESIGN.md) |
-| API | NestJS, TypeScript | NestJS 11, Node 22 LTS | Struktur modul tegas, dukungan pustaka matang, mudah mencari SDM |
+| API | NestJS, TypeScript | NestJS 11, Bun 1.3 | Struktur modul tegas, dukungan pustaka matang, mudah mencari SDM. Bun menjalankan TypeScript langsung sehingga tidak ada langkah kompilasi di jalur pengembangan |
 | ORM | Prisma | 6.x | Migrasi terversi, tipe data aman, skema mudah dibaca |
 | Basis data | PostgreSQL | 16 | Transaksi kuat, teks penuh, JSON, dan vektor dalam satu mesin |
 | Ekstensi basis data | `pgvector`, `pg_trgm`, `pgcrypto`, `btree_gin` | — | Pencarian makna, kemiripan teks, dan fungsi kriptografis |

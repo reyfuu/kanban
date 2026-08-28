@@ -37,13 +37,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: '22'
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm db:generate
-      - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm test
+          bun-version: '1.3.14'
+      # --frozen-lockfile: CI tidak boleh diam-diam menyelesaikan versi yang
+      # berbeda dari yang diuji di mesin pengembang. Kegagalan di sini berarti
+      # bun.lock tertinggal, dan itu memang harus menghentikan build.
+      - run: bun install --frozen-lockfile
+      # Klien Prisma dihasilkan, bukan disimpan di repo. Tanpa langkah ini
+      # typecheck melaporkan ratusan galat "implicitly has an 'any' type" yang
+      # menunjuk ke kode aplikasi, bukan ke penyebab sebenarnya.
+      - run: bun run db:generate
+      - run: bun run lint
+      - run: bun run typecheck
+      - run: bun run test

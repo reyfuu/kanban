@@ -15,7 +15,7 @@ demo
 Dapat diubah via environment variable sebelum menjalankan seed:
 
 ```bash
-SEED_IDENTITY_PASSWORD=passwordbaru pnpm db:seed
+SEED_IDENTITY_PASSWORD=passwordbaru bun run db:seed
 ```
 
 ---
@@ -49,8 +49,8 @@ SEED_IDENTITY_PASSWORD=passwordbaru pnpm db:seed
 Pastikan infra sudah jalan dan migrasi sudah diapply:
 
 ```bash
-pnpm infra:up        # jalankan Docker (postgres, redis, minio)
-pnpm db:setup        # deploy migrasi + setup role DB
-pnpm db:generate     # generate Prisma client
-pnpm db:seed         # insert data benih (idempotent, aman diulang)
+bun run infra:up        # jalankan Docker (postgres, redis, minio)
+bun run db:setup        # deploy migrasi + setup role DB
+bun run db:generate     # generate Prisma client
+bun run db:seed         # insert data benih (idempotent, aman diulang)
 ```

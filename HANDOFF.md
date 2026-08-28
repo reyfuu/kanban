@@ -24,10 +24,10 @@ packages/db/   Prisma 6 — 2 migrasi, 42 tabel
 ### Yang bisa dijalankan hari ini
 
 ```bash
-pnpm install && cp .env.example .env
-pnpm infra:up && pnpm db:setup && pnpm db:generate && pnpm db:seed
-pnpm dev:api    # 3001
-pnpm dev:web    # 3000
+bun install && cp .env.example .env
+bun run infra:up && bun run db:setup && bun run db:generate && bun run db:seed
+bun run dev:api    # 3001
+bun run dev:web    # 3000
 ```
 
 Alur demonya ada di [README](README.md#alur-demo-modul-b). Ringkasnya: masuk sebagai
@@ -42,7 +42,7 @@ akan tampil terkunci. Benihnya idempoten dan **tidak** mengulang kampanye yang
 sudah ada, jadi untuk mengulang demo dari awal, buang basis datanya:
 
 ```bash
-docker compose down -v && pnpm infra:up && pnpm db:setup && pnpm db:seed
+docker compose down -v && bun run infra:up && bun run db:setup && bun run db:seed
 ```
 
 Kedua, benihnya **peka tanggal**. Snapshot demo diberi tanggal 27 Agustus 2026,
@@ -275,8 +275,8 @@ requirement lebih dulu lewat skill `add-requirement` (aturan paling penting di
 CLAUDE.md). Bukan lupa, melainkan menunggu requirement-nya ada.
 
 **Cara menjalankannya sekarang** ada di [README §Menjalankan](README.md#menjalankan);
-ringkasnya `pnpm dev` menyalakan ketiga layanan lewat pengelola proses, dan
-`pnpm dev:status` menunjukkan porta serta pemakaian RAM.
+ringkasnya `bun run dev` menyalakan ketiga layanan lewat pengelola proses, dan
+`bun run dev:status` menunjukkan porta serta pemakaian RAM.
 
 ---
 
@@ -500,14 +500,14 @@ Ketiganya menunjuk ke tempat yang sangat berbeda:
 
 - "Nama pengguna atau kata sandi salah" → API menolak; periksa `SEED_IDENTITY_PASSWORD`
   di `.env` dan apakah benihnya sudah dijalankan.
-- "Sistem tidak dapat dihubungi" → `pnpm dev:api` tidak berjalan, atau `API_BASE_URL`
+- "Sistem tidak dapat dihubungi" → `bun run dev:api` tidak berjalan, atau `API_BASE_URL`
   tidak menunjuk ke porta 3001.
 - Berhasil masuk tetapi layarnya kosong atau salah → bukan masalah login sama sekali,
   melainkan hak akses per layar. `admin.sigap` dan `direktur.utama` memang **seharusnya**
   melihat sedikit sekali layar (lihat tabel pengguna di README), dan itu ditegakkan
   lewat hak akses, bukan lewat menu.
 
-Sebelum menelusuri lebih jauh, jalankan `pnpm db:seed` — sesi ini menambahkan garis
+Sebelum menelusuri lebih jauh, jalankan `bun run db:seed` — sesi ini menambahkan garis
 pelaporan atasan yang dibutuhkan RA-01, dan basis data yang belum diperbarui akan
 berperilaku berbeda dari yang dijelaskan di sini.
 
@@ -535,7 +535,7 @@ Ini yang tidak terlihat dari membaca kode saja. Yang baru ada di bagian bawah.
 
 **Navigasi yang disaring hak akses bukan kontrol.** FR-X-005 aturan 3 menyatakannya tegas.
 
-**`prisma migrate dev` menggantung tanpa TTY.** Pakai `pnpm db:deploy` di skrip dan CI.
+**`prisma migrate dev` menggantung tanpa TTY.** Pakai `bun run db:deploy` di skrip dan CI.
 
 **Aturan lint `consistent-type-imports` dimatikan untuk `apps/api`.** `import type` menghapus metadata `design:paramtypes` yang dipakai NestJS untuk injeksi dependensi.
 
@@ -631,7 +631,7 @@ Setelah menyentuh kontrol kritis mana pun: jalankan skill `critical-controls`, l
 ## 9. Verifikasi keadaan sehat
 
 ```bash
-pnpm lint && pnpm typecheck && pnpm test && pnpm verify:docs
+bun run lint && bun run typecheck && bun run test && bun run verify:docs
 ```
 
 Keempatnya harus lulus. `verify:docs` menggagalkan build bila keterlacakan ID lintas

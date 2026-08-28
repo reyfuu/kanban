@@ -5,10 +5,10 @@
   "description": "SIGAP API dan proses pekerja latar belakang (ADR-08)",
   "scripts": {
     "build": "nest build",
-    "start": "node dist/main.js",
-    "start:dev": "nest start --watch --builder swc",
-    "start:worker": "nest start --entryFile worker --watch --builder swc",
-    "start:worker:prod": "node dist/worker.js",
+    "start": "bun dist/main.js",
+    "start:dev": "bun --watch src/main.ts",
+    "start:worker": "bun --watch src/worker.ts",
+    "start:worker:prod": "bun dist/worker.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -28,7 +28,6 @@
     "@nestjs/cli": "^11.0.13",
     "@nestjs/schematics": "^11.0.9",
     "@types/express": "^5.0.3",
-    "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   }
 }

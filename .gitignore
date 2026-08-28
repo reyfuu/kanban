@@ -1,6 +1,6 @@
 # Dependensi
 node_modules/
-.pnpm-store/
+.bun-cache/
 
 # Build
 dist/

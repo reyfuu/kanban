@@ -6,7 +6,7 @@ import type { Principal } from '../authz/principal.js'
  *
  * An explicit type rather than a `declare module` augmentation: augmentation
  * silently depends on every consumer resolving the same copy of the Express
- * types, which under pnpm's isolated layout is not guaranteed. This is also
+ * types, which a hoisted node_modules layout does not guarantee. This is also
  * plainer to read -- the extra fields are visible where they are used instead
  * of appearing by magic.
  *

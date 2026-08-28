@@ -1,14 +1,16 @@
 import { defineConfig } from 'vitest/config'
+import { loadWorkspaceEnv } from './apps/api/src/load-env.js'
 
 // Integration tests talk to the dev database and need the same .env the
-// application uses. `process.loadEnvFile` is built into Node 22, so this costs
-// no dependency and no config plugin.
-try {
-  process.loadEnvFile('.env')
-} catch {
-  // Absent .env is fine for unit tests; integration tests fail loudly on their
-  // own when DATABASE_URL is missing, with a clearer message than this could give.
-}
+// application uses.
+//
+// This called `process.loadEnvFile` directly until the repo moved to Bun, which
+// does not implement it. Reusing the application's own loader is better than
+// re-fixing the same problem twice: the test run and the running API now read
+// `.env` through one code path, so they cannot disagree about what a given file
+// means. An absent `.env` is fine for unit tests, and integration tests fail
+// loudly on their own when DATABASE_URL is missing.
+loadWorkspaceEnv()
 
 export default defineConfig({
   test: {

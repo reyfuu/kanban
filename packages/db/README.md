@@ -7,8 +7,8 @@ Skema Prisma, migrasi SQL, dan klien PostgreSQL terkonfigurasi untuk SIGAP. Sumb
 > **Migrasi tidak pernah dijalankan sebagai `sigap_app`.** Peran yang menjalankan migrasi memiliki objek yang dibuatnya, dan di PostgreSQL pemilik memegang seluruh *grant option* atas objeknya secara permanen. Bila `sigap_app` memiliki `audit_log`, ia dapat memberikan `DELETE` kembali kepada dirinya sendiri, membuang pemicu, lalu mengosongkan tabel — tiga pernyataan, tanpa hak tambahan apa pun. Seluruh lapisan K-7 di bawah mengandaikan hal itu tidak terjadi.
 
 ```bash
-# Instal dependensi dari root monorepo (pnpm workspace)
-pnpm install
+# Instal dependensi dari root monorepo (Bun workspace)
+bun install
 
 # Dua peran, dua URL. Bedanya adalah kontrol K-7, bukan kerapian.
 #   DATABASE_URL          -> peran runtime: sigap_app (INSERT+SELECT di audit_log)
@@ -17,16 +17,16 @@ export DATABASE_URL="postgresql://sigap_app:<password>@localhost:5442/sigap?sche
 export MIGRATE_DATABASE_URL="postgresql://sigap_migrator:<password>@localhost:5442/sigap?schema=public"
 
 # Terapkan migrasi ke basis data pengembangan
-pnpm --filter @sigap/db migrate:dev
+bun run --filter @sigap/db migrate:dev
 
 # Terapkan migrasi ke basis data staging/produksi (tanpa prompt interaktif)
-pnpm --filter @sigap/db migrate:deploy
+bun run --filter @sigap/db migrate:deploy
 
 # Hasilkan ulang Prisma Client setelah perubahan skema
-pnpm --filter @sigap/db generate
+bun run --filter @sigap/db generate
 
 # Validasi skema tanpa koneksi basis data
-pnpm --filter @sigap/db validate
+bun run --filter @sigap/db validate
 ```
 
 Migrasi pertama (`20260827190000_foundation`) **ditulis tangan**, bukan hasil `prisma migrate dev`. Alasannya tercatat di kepala berkas `migration.sql`: tidak ada peladen PostgreSQL yang hidup di lingkungan penulisan, dan sebagian isinya (pembuatan peran `sigap_app`, pemicu penolakan `audit_log`, fungsi rantai sidik jari) tidak dapat dihasilkan otomatis oleh Prisma sama sekali.

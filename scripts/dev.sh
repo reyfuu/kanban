@@ -16,22 +16,28 @@
 #   ./scripts/dev.sh logs web      # ikuti log satu service (tail -f)
 #
 # Catatan hemat RAM:
-#   - Kompilasi memakai SWC (`nest start --builder swc`), bukan tsc. Mode watch
-#     tsc menahan seluruh program TypeScript di memori dan sendirian memakai
-#     ~486MB; SWC mengompilasi per berkas dan tidak menyimpannya. Total proses
-#     api turun dari ~712MB ke ~320MB tanpa mengubah kode aplikasi.
+#   - Runtime-nya Bun, bukan Node. Bun menjalankan TypeScript secara langsung,
+#     jadi tidak ada langkah kompilasi terpisah sama sekali: tidak ada tsc yang
+#     menahan seluruh program di memori (~486MB sendirian), dan tidak ada SWC
+#     yang menulis dist/ lebih dulu. Proses api terukur ~148MB, turun dari
+#     ~320MB dengan SWC dan ~712MB dengan tsc.
 #
-#     Kenapa bukan tsx/esbuild yang lebih ringan lagi: esbuild tidak memancarkan
-#     `emitDecoratorMetadata`, sehingga `design:paramtypes` hilang dan injeksi
-#     dependensi NestJS gagal saat runtime — dicoba, dan setiap controller
-#     langsung melempar "Cannot read properties of undefined". Alasan yang sama
-#     berlaku untuk Bun. SWC memancarkannya, jadi ia satu-satunya jalur cepat
-#     yang benar untuk basis kode berdekorator.
+#     Catatan sejarah: berkas ini sebelumnya menyatakan Bun TIDAK BISA dipakai,
+#     karena esbuild tidak memancarkan `emitDecoratorMetadata` sehingga
+#     `design:paramtypes` hilang dan injeksi dependensi NestJS gagal. Alasan itu
+#     benar pada masanya dan sudah tidak berlaku: Bun 1.3 memancarkan metadata
+#     dekorator. Diuji ulang sebelum perpindahan ini, bukan diasumsikan — probe
+#     `Reflect.getMetadata('design:paramtypes', ...)` mengembalikan konstruktor
+#     yang benar, dan seluruh AppModule (4 modul, 192 rute) bangkit serta
+#     melayani permintaan login sungguhan yang menyentuh Prisma.
 #
-#   - Worker default TANPA watch (jarang diubah): build sekali lalu jalan dari
-#     dist. Set WORKER_WATCH=1 untuk mode watch.
-#   - Tiap proses Node dibatasi lewat NODE_OPTIONS=--max-old-space-size.
-#     Override dengan API_MEM / WORKER_MEM / WEB_MEM (satuan MB).
+#   - Worker default TANPA watch (jarang diubah): jalan langsung dari sumber.
+#     Set WORKER_WATCH=1 untuk mode watch.
+#   - Batas heap: Bun memakai --smol (mode hemat memori), Node memakai
+#     NODE_OPTIONS=--max-old-space-size. Web masih Node-nya Next, jadi
+#     WEB_MEM tetap berlaku; API_MEM/WORKER_MEM kini tidak dipakai karena
+#     --smol tidak menerima angka. Keduanya dipertahankan sebagai variabel
+#     agar perintah lama tidak gagal.
 
 # Sengaja tanpa `set -e`: ini process manager interaktif, banyak perintah
 # (grep tanpa match, kill proses mati, ps proses hilang) yang "gagal" secara
@@ -76,20 +82,33 @@ port_owner() {
 
 start_cmd() {
   # Perintah shell untuk tiap service, dijalankan dari ROOT.
+  #
+  # `cd apps/api` di depan perintah api/worker WAJIB, jangan disederhanakan
+  # menjadi `bun apps/api/src/main.ts`. Bun membaca tsconfig.json dari direktori
+  # kerja, bukan dari lokasi berkas masuknya. tsconfig akar tidak menyalakan
+  # `experimentalDecorators`/`emitDecoratorMetadata` (ia hanya melayani berkas
+  # uji), jadi dijalankan dari ROOT seluruh dekorator NestJS diproses dengan
+  # semantik dekorator standar dan gagal saat impor:
+  #     TypeError: undefined is not an object (evaluating 'descriptor.value')
+  # Galat itu menunjuk ke request-mapping.decorator.js di dalam node_modules,
+  # sehingga terbaca seperti masalah versi NestJS, bukan seperti masalah
+  # direktori kerja. Ditemukan justru karena worker mati sementara api hidup.
   case "$1" in
     api)
-      echo "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=$API_MEM pnpm --filter @sigap/api start:dev"
+      echo "cd apps/api && NODE_ENV=development bun --smol --watch src/main.ts"
       ;;
     worker)
       if [[ "$WORKER_WATCH" == "1" ]]; then
-        echo "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=$WORKER_MEM pnpm --filter @sigap/api start:worker"
+        echo "cd apps/api && NODE_ENV=development bun --smol --watch src/worker.ts"
       else
-        # Hemat RAM: build sekali (jika belum ada), lalu jalan dari dist tanpa watcher.
-        echo "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=$WORKER_MEM sh -c 'test -f apps/api/dist/worker.js || pnpm --filter @sigap/api build; node apps/api/dist/worker.js'"
+        # Tanpa watcher. Tidak perlu build lebih dulu seperti dulu: Bun
+        # menjalankan sumber TypeScript langsung, jadi langkah "test -f dist ||
+        # build" yang lama hanya menambah kebingungan saat dist basi.
+        echo "cd apps/api && NODE_ENV=development bun --smol src/worker.ts"
       fi
       ;;
     web)
-      echo "NODE_OPTIONS=--max-old-space-size=$WEB_MEM WEB_PORT=$WEB_PORT pnpm --filter @sigap/web dev"
+      echo "cd apps/web && NODE_OPTIONS=--max-old-space-size=$WEB_MEM WEB_PORT=$WEB_PORT bun run dev"
       ;;
     *) return 1 ;;
   esac

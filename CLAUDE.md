@@ -48,7 +48,7 @@ Rinciannya di [04-TRD §2](docs/04-TRD.md). Yang sering dilanggar tanpa sadar:
 
 ## Tumpukan teknologi
 
-Node 22 · NestJS 11 · Prisma 6 · PostgreSQL 16 (+pgvector, pg_trgm, pgcrypto) · Next.js 15 · React 19 · Tailwind + Radix + TanStack Table · Redis + BullMQ · MinIO · Vitest · Playwright · k6
+Bun 1.3 · NestJS 11 · Prisma 6 · PostgreSQL 16 (+pgvector, pg_trgm, pgcrypto) · Next.js 15 · React 19 · Tailwind + Radix + TanStack Table · Redis + BullMQ · MinIO · Vitest · Playwright · k6
 
 Seluruhnya berjalan on-premise. Tidak ada layanan awan kecuali penyedia LLM lewat gateway.
 
