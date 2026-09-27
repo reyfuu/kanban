@@ -36,7 +36,7 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
     if (!stored || !verifyPassword(password, stored)) return fail('Username atau kata sandi salah.');
     await redis('DEL', `rl:${username}`);
     await startSession(username);
-  } catch (reason) { console.error(reason); return fail(OFFLINE); }
+  } catch (reason) { console.error(reason); return fail(reason instanceof Error && reason.cause === 'config' ? reason.message : OFFLINE); }
   redirect('/');
 }
 
@@ -47,7 +47,7 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
   try {
     if (await redis('SET', `user:${username}`, hashPassword(password), 'NX') !== 'OK') return fail('Username sudah dipakai.');
     await startSession(username);
-  } catch (reason) { console.error(reason); return fail(OFFLINE); }
+  } catch (reason) { console.error(reason); return fail(reason instanceof Error && reason.cause === 'config' ? reason.message : OFFLINE); }
   redirect('/');
 }
 

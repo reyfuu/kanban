@@ -20,7 +20,7 @@ export function verifyPassword(password: string, stored: string) {
 
 function secret() {
   const value = process.env.SESSION_SECRET;
-  if (!value || value.length < 32) throw new Error('SESSION_SECRET belum diatur (minimal 32 karakter).');
+  if (!value || value.length < 32) throw new Error('SESSION_SECRET belum diatur di server (minimal 32 karakter).', { cause: 'config' });
   return value;
 }
 const sign = (payload: string) => createHmac('sha256', secret()).update(payload).digest('base64url');
