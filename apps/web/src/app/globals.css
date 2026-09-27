@@ -1,125 +1,38 @@
-@import 'tailwindcss';
-@import '../styles/tokens.css';
+@import "tailwindcss";
 
-/*
- * Bind the mandated typefaces (06-DESIGN §2.5) to Tailwind's font namespace so
- * `font-sans` and `font-mono` resolve to Inter and JetBrains Mono. The
- * `--font-inter` / `--font-jetbrains-mono` variables are set on <html> by
- * next/font in layout.tsx; the fallbacks match the document's stack so text
- * still renders sensibly before the font loads (display: swap).
- */
-@theme {
-  --font-sans: var(--font-inter), 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: var(--font-jetbrains-mono), 'JetBrains Mono', 'Consolas', monospace;
-
-  /* 06-DESIGN §2.5 defines an 11px "2xs" step and a 16px "md" step for card
-   * titles. Tailwind ships neither name, so both are declared here rather than
-   * reached for with arbitrary values per site.
-   *
-   * `2xs` is for BADGES ONLY. The scale table in §2.5 assigns metadata,
-   * captions, eyebrows and table headers to `xs` (12px), but the code had drifted
-   * to 2xs at 26 of its 27 sites -- including `Th`, whose own comment said "§2.5:
-   * xs" while it rendered 11px. On a 1366x768 laptop that put 112 text nodes
-   * below 12px, which is what "fontnya kekecilan" actually was. Measured with
-   * scripts/check-typography.py; keep it that way. */
-  --text-2xs: 11px;
-  --text-2xs--line-height: 16px;
-  --text-md: 16px;
-  --text-md--line-height: 24px;
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    background-color: #030712;
+    color: #f3f4f6;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  }
 }
 
-/*
- * 06-DESIGN §1.1 — aplikasi ini sengaja tidak menyenangkan. Warna dicadangkan
- * untuk makna; permukaan dasarnya netral dan tenang.
- */
-body {
-  background-color: var(--color-sg-neutral-50);
-  color: var(--color-sg-neutral-900);
-  font-family: var(--font-sans);
-  font-feature-settings: 'tnum' 1; /* angka lebar tetap agar kolom tabel sejajar */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/*
- * Skip-link (WCAG 2.4.1).
- *
- * Written by hand rather than as `sr-only focus:not-sr-only`. That utility pair
- * emitted no CSS in this build, so the link stayed 1x1 pixels even while
- * focused: announced by a screen reader, but invisible to the sighted keyboard
- * user who is precisely who a skip-link is for. The class name looked correct
- * in the markup, which is why every inspection-level check passed it.
- *
- * `:focus`, not `:focus-visible`: the link is only ever reached by keyboard, so
- * the distinction buys nothing and `:focus-visible` additionally fails when
- * focus is moved programmatically -- which is how a11y tooling drives it.
- */
-.sigap-skip-link {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-.sigap-skip-link:focus {
-  position: fixed;
-  top: 1rem;
-  left: 1rem;
-  z-index: 60;
-  width: auto;
-  height: auto;
-  margin: 0;
-  padding: 0.75rem 1rem;
-  overflow: visible;
-  clip-path: none;
-  border-radius: 0.5rem;
-  background-color: var(--color-tri-navy);
-  color: var(--color-tri-on-primary);
-  font-size: 0.875rem;
-  font-weight: 600;
-  outline: 2px solid var(--color-tri-gold);
-  outline-offset: 2px;
-}
-
-/*
- * Scrollbar sidebar.
- *
- * Daftar navigasi lebih tinggi dari viewport laptop pendek, jadi <nav> memang
- * harus bisa digulir. Yang mengganggu bukan penggulirannya, melainkan
- * scrollbar bawaan OS: lebar ~15px, abu terang, dan menempel di panel navy —
- * satu garis terang yang membelah chrome merek. Dibuat tipis dan sewarna
- * navy: track transparan, thumb baru terlihat saat kursor ada di sidebar.
- */
-.sigap-sidebar-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 150ms ease;
-}
-
-.sigap-sidebar-scroll:hover,
-.sigap-sidebar-scroll:focus-within {
-  scrollbar-color: var(--color-tri-navy-line) transparent;
-}
-
-.sigap-sidebar-scroll::-webkit-scrollbar {
+/* Custom scrollbars */
+::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0b0f19;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f293d;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #374151;
 }
 
-.sigap-sidebar-scroll::-webkit-scrollbar-track {
-  background: transparent;
+/* Dragging visual states */
+.dragging-card {
+  opacity: 0.5;
+  transform: scale(0.98);
 }
-
-.sigap-sidebar-scroll::-webkit-scrollbar-thumb {
-  background-color: transparent;
-  border-radius: 9999px;
-}
-
-.sigap-sidebar-scroll:hover::-webkit-scrollbar-thumb,
-.sigap-sidebar-scroll:focus-within::-webkit-scrollbar-thumb {
-  background-color: var(--color-tri-navy-line);
+.drop-zone-active {
+  background-color: rgba(6, 182, 212, 0.08);
+  border-color: rgba(6, 182, 212, 0.4);
 }

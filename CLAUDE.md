@@ -1,83 +1,51 @@
-# SIGAP — Panduan Kerja untuk Claude Code
+# HoyoKanban — Panduan Asisten AI & Pengembangan Sistem
 
-Sistem Integrasi Governance, Akses, dan Prosedur. Platform tata kelola internal untuk perusahaan efek: manajemen bukti audit, review hak akses lintas aplikasi, dan pencarian SOP.
+Sistem Kanban & Pelacak Progres Karakter untuk **Genshin Impact** dan **Zenless Zone Zero (ZZZ)**.
+Aplikasi web berbasis alur kerja visual untuk mengelola progres build karakter, stamina (Resin/Battery), jadwal rotasi domain harian, dan perencanaan gacha/pity.
 
-## Aturan paling penting
+---
 
-**Dokumen di `docs/` adalah sumber kebenaran.** Kode mengikuti dokumen, bukan sebaliknya. Bila kode dan dokumen berbeda, salah satunya harus diperbaiki secara sadar — bukan dibiarkan.
+## 1. Sumber Kebenaran Dokumen
 
-**Jangan menulis kode tanpa ID requirement.** Setiap perubahan fungsional harus dapat ditunjuk ke `FR-<X|A|B|C>-nnn` di [docs/03-FRD.md](docs/03-FRD.md). Bila belum ada requirement-nya, pakai skill `add-requirement` dulu.
+Dokumen di direktori [`docs/`](docs/) adalah sumber kebenaran arsitektur dan fungsional:
 
-**Sepuluh kontrol kritis tidak boleh dilemahkan.** Lihat [docs/10-TEST-PLAN.md §3.2](docs/10-TEST-PLAN.md). Perubahan yang menyentuhnya wajib lewat `security-reviewer` sebelum dianggap selesai.
-
-## Peta dokumen
-
-| Perlu tahu | Baca |
+| Perlu Tahu | Baca |
 |---|---|
-| Mengapa sistem ini ada, sasaran & KPI | [01-BRD](docs/01-BRD.md) |
-| Untuk siapa, user story | [02-PRD](docs/02-PRD.md) |
-| Apa yang harus dibangun — 85 requirement | [03-FRD](docs/03-FRD.md) |
-| Arsitektur, ADR, model data, NFR | [04-TRD](docs/04-TRD.md) |
-| Alur & layar | [05-UIUX-FLOW](docs/05-UIUX-FLOW.md) |
-| Token desain & komponen | [06-DESIGN](docs/06-DESIGN.md) |
-| Kontrak REST, 189 titik akhir | [07-API-CONTRACT](docs/07-API-CONTRACT.md) |
-| Enam agent AI produk | [08-AGENT-SPEC](docs/08-AGENT-SPEC.md) |
-| 33 guardrail agent | [09-GUARDRAILS](docs/09-GUARDRAILS.md) |
-| Strategi uji & eval | [10-TEST-PLAN](docs/10-TEST-PLAN.md) |
-| Indeks, glosarium, matriks keterlacakan | [00-README](docs/00-README.md) |
+| Mengapa sistem ini ada, sasaran & persona pemain | [01-BRD.md](docs/01-BRD.md) |
+| Spesifikasi modul & kebutuhan fungsional (FR-KB, FR-CH, FR-MC, FR-ST, dll.) | [02-FRD.md](docs/02-FRD.md) |
+| Arsitektur teknis, Next.js Vercel, Go Gin backend, skema data & API | [03-TRD.md](docs/03-TRD.md) |
+| Indeks dokumentasi | [docs/README.md](docs/README.md) |
 
-## Keputusan arsitektur yang mengikat
+---
 
-Rinciannya di [04-TRD §2](docs/04-TRD.md). Yang sering dilanggar tanpa sadar:
+## 2. Skill yang Digunakan Proyek
 
-- **ADR-01** — modular monolith NestJS. Modul tidak boleh saling impor kecuali lewat berkas antarmuka publik tiap modul.
-- **ADR-02** — pencarian hibrida di dalam PostgreSQL. Jangan menambahkan Elasticsearch/OpenSearch.
-- **ADR-03** — seluruh panggilan ke penyedia bahasa eksternal lewat satu LLM Gateway. Tidak ada jalur lain. Embedding selalu lokal.
-- **ADR-04** — `audit_log` hanya-tambah, berantai hash. Akun basis data aplikasi tidak punya hak `UPDATE`/`DELETE` di tabel itu.
-- **ADR-05** — konektor selalu hanya-baca, kredensial di penyimpanan rahasia.
+Proyek ini memanfaatkan skill-skill spesialis berikut:
 
-## Aturan kode yang tidak bisa ditawar
+| Skill | Tipe / Lokasi | Fungsi |
+|---|---|---|
+| ⚡ **`superpower` / `superpowers`** | Skill ([`.claude/skills/superpowers/SKILL.md`](.claude/skills/superpowers/SKILL.md)) | Metodologi rekayasa perangkat lunak disiplin: *Brainstorming* -> *Bite-sized plan* -> *TDD (Red-Green-Refactor)* -> *Two-Stage Review*. Mencegah *vibe coding* dan memastikan kode memiliki unit test. |
+| 🕸️ **`graphify`** | Skill (Global) | Pemetaan graf pengetahuan arsitektur: menganalisis relasi antar komponen Next.js, hooks, store, dan API Go; mendeteksi *god-nodes* dan *circular dependencies*. |
+| 🎀 **`ponytail`** | Skill (Global) | Filosofi anti-*over-engineering* & radikal YAGNI: memilih solusi paling minimalis, mengutamakan library standar, dan memangkas boilerplate yang tidak perlu. |
+| ✂️ **`rtk`** | Tool CLI (`~/.config/rtk`) | Rust Token Killer: menyaring dan meringkas output terminal (test & build) agar hemat token. |
+| 🔥 **`grill-me`** | Command / Interview | Wawancara kritis untuk menantang asumsi, menguji kasus batas (*edge cases*), dan mengonfirmasi rancangan sebelum implementasi. |
 
-1. **Penyaringan hak akses di lapisan repositori**, bukan di controller. Controller yang menyaring akan terlewat pada jalur pemanggilan lain.
-2. **Setiap operasi tulis menulis jejak audit dalam transaksi yang sama.** Gagal menulis jejak audit membatalkan transaksi bisnis.
-3. **`404`, bukan `403`,** untuk objek yang keberadaannya sendiri rahasia. `403` mengonfirmasi objek itu ada.
-4. **Komponen keputusan tidak menerima properti nilai bawaan.** Penegakan U4 di tingkat kode — lihat [06-DESIGN §9.2](docs/06-DESIGN.md).
-5. **Tidak ada tool tulis untuk agent AI.** Lihat [GR-0.1](docs/09-GUARDRAILS.md). Agent menghasilkan `agent_proposal`, manusia yang menulis.
-6. **Warna semantik hanya lewat token**, tidak pernah nilai heksadesimal langsung.
-7. **Format tanggal dan angka hanya lewat `lib/format`.**
+---
 
-## Tumpukan teknologi
+## 3. Subagent Teknis Proyek ([`.claude/agents/`](.claude/agents/))
 
-Bun 1.3 · NestJS 11 · Prisma 6 · PostgreSQL 16 (+pgvector, pg_trgm, pgcrypto) · Next.js 15 · React 19 · Tailwind + Radix + TanStack Table · Redis + BullMQ · MinIO · Vitest · Playwright · k6
+| Subagent | Berkas | Peran |
+|---|---|---|
+| `frontend-impl` | [frontend-impl.md](.claude/agents/frontend-impl.md) | Implementasi UI Next.js 15, React 19, `@dnd-kit`, Zustand di `apps/web`. Vercel-ready. |
+| `backend-impl` | [backend-impl.md](.claude/agents/backend-impl.md) | Implementasi Go 1.22 + Gin Framework di `apps/api-go` (optimizer rute resin & proxy showcase). |
+| `grill-guardian` | [grill-guardian.md](.claude/agents/grill-guardian.md) | Penjaga spesifikasi FRD/TRD dan penantang desain sebelum penulisan kode dimulai. |
+| `graphify-mapper` | [graphify-mapper.md](.claude/agents/graphify-mapper.md) | Audit arsitektur dan pemetaan dependensi kode. |
 
-Seluruhnya berjalan on-premise. Tidak ada layanan awan kecuali penyedia LLM lewat gateway.
+---
 
-## Bahasa
+## 4. Tumpukan Teknologi
 
-Dokumen, antarmuka pengguna, dan pesan kesalahan dalam **Bahasa Indonesia**. Kode, nama variabel, komentar teknis, dan pesan commit dalam **bahasa Inggris**. Istilah baku antarmuka ada di [06-DESIGN §7.2](docs/06-DESIGN.md) — jangan menciptakan sinonim baru.
-
-## Subagent yang tersedia
-
-| Subagent | Kapan dipakai |
-|---|---|
-| `spec-guardian` | Sebelum mulai kerja: pastikan lingkupnya benar dan ID requirement-nya jelas |
-| `backend-impl` | Implementasi modul NestJS |
-| `frontend-impl` | Implementasi layar Next.js |
-| `db-migrator` | Skema Prisma & migrasi |
-| `agent-builder` | Implementasi agent AI produk AG-1..AG-6 |
-| `test-writer` | Penulisan tes terpetakan ke FR/TC |
-| `security-reviewer` | Setelah perubahan menyentuh kontrol kritis |
-| `eval-runner` | Harness eval AI |
-| `doc-sync` | Menjaga dokumen dan kode selaras |
-
-## Skill yang tersedia
-
-`verify-docs` · `add-requirement` · `critical-controls` · `guardrail-audit` · `scaffold-agent` · `run-eval`
-
-## Sebelum menganggap pekerjaan selesai
-
-- [ ] Perubahan dapat ditunjuk ke ID requirement
-- [ ] Tes ada dan lulus
-- [ ] `critical-controls` dijalankan bila menyentuh K-1..K-10
-- [ ] `guardrail-audit` dijalankan bila menyentuh agent AI
-- [ ] `verify-docs` lulus bila dokumen ikut berubah
+- **Frontend**: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, `@dnd-kit/core`, Zustand (Local-First IndexedDB adapter).
+- **Hosting Target**: Vercel (Edge / Serverless).
+- **Backend Eksperimen**: Go 1.22 + Gin Framework (`apps/api-go`).
+- **Penyimpanan**: Browser IndexedDB / LocalStorage dengan ekspor/impor berkas JSON (backup aman).

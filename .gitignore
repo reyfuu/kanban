@@ -1,65 +1,46 @@
-# Dependensi
+# Dependencies
 node_modules/
-.bun-cache/
+.pnp
+.pnp.js
 
-# Build
-dist/
-build/
+# Build outputs
 .next/
 out/
-# Cache inkremental TypeScript — artefak mesin, bukan sumber. Ia berubah pada
-# setiap typecheck dan menghasilkan konflik yang tidak berarti apa-apa.
-*.tsbuildinfo
+dist/
+build/
 
-# Lingkungan & rahasia
+# Go build outputs
+apps/api-go/tmp/
+apps/api-go/bin/
+apps/api-go/*.exe
+
+# Environment variables
 .env
-.env.*
-!.env.example
-*.pem
-*.key
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Basis data & penyimpanan lokal
-*.sqlite
-*.db
-/data/
-/minio-data/
+# Vercel
+.vercel/
 
-# Log & sementara
-*.log
-.tmp/
-coverage/
-playwright-report/
-test-results/
-.vitest/
-
-# Hasil eval — berisi keluaran model atas data yang disamarkan
-/eval/runs/
-/eval/datasets/*.jsonl
-!/eval/datasets/.gitkeep
-
-# Berkas hasil ekspor laporan
-/exports/
-
-# Perkakas
+# Misc
 .DS_Store
+*.pem
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE
 .idea/
-.vscode/*
-!.vscode/extensions.json
+.vscode/settings.json
 
-# Claude Code — setelan lokal per pengembang
-.claude/settings.local.json
+# Test coverage
+coverage/
+*.lcov
 
-# Dev process manager runtime (scripts/dev.sh)
-.dev/
-
-# Cache bytecode dari skrip verifikasi di scripts/.
-__pycache__/
-
-# Keluaran graphify: graf pengetahuan yang dibangkitkan dari kode.
-#
-# Bukan sumber, dan sebagian isinya khusus mesin: .graphify_python dan
-# .graphify_root menyimpan jalur absolut milik satu komputer, sehingga berkas
-# itu salah bagi setiap kloning lain. Ditambah graph.json + graph.html sekitar
-# 6MB yang berubah total setiap kali graf dibangun ulang. Jalankan graphify
-# lagi untuk memperolehnya kembali.
-graphify-out/
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
