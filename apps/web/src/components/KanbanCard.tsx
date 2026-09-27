@@ -3,8 +3,9 @@ import { CHARACTERS_DATABASE } from '../data/characters';
 import { STAGES } from '../lib/board';
 import { Avatar } from './ui';
 
-export function KanbanCard({ card, onOpenDetail, onMoveStage }: {
+export function KanbanCard({ card, openToday, onOpenDetail, onMoveStage }: {
   card: UserCard;
+  openToday: boolean;
   onOpenDetail: (card: UserCard) => void;
   onMoveStage: (id: string, stage: KanbanStage) => void;
 }) {
@@ -15,6 +16,7 @@ export function KanbanCard({ card, onOpenDetail, onMoveStage }: {
       <Avatar name={name} src={meta?.avatarUrl} />
       <span><strong>{name}</strong><span className="character-meta">{card.game === 'GENSHIN_IMPACT' ? 'Genshin' : 'ZZZ'}{meta ? ` / ${meta.element}` : ''}</span></span>
     </button>
+    {openToday && <span className="today-badge">Domain buka hari ini</span>}
     <div className="card-level"><span>Level <strong>{card.currentLevel}</strong><span className="muted"> / {card.targetLevel}</span></span><span className={`priority priority-${card.priority.toLowerCase()}`}><span />{card.priority === 'HIGH' ? 'Prioritas tinggi' : card.priority === 'MEDIUM' ? 'Prioritas sedang' : 'Prioritas rendah'}</span></div>
     <div className="card-bottom"><label className="sr-only" htmlFor={`stage-${card.id}`}>Tahap {name}</label><select id={`stage-${card.id}`} value={card.stage} onChange={event => onMoveStage(card.id, event.target.value as KanbanStage)}>{STAGES.map(stage => <option key={stage.id} value={stage.id}>{stage.label}</option>)}</select><button className="text-button" onClick={() => onOpenDetail(card)}>Detail</button></div>
   </article>;

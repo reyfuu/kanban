@@ -7,6 +7,7 @@ import { CHARACTERS_DATABASE } from '../data/characters';
 import { INITIAL_ROUTINE, INITIAL_STAMINA, loadBoards, saveBoards, loadCards, loadRoutine, loadStamina, restoreBackup, saveCards, saveRoutine, saveStamina } from '../lib/storage';
 import { cardsOnBoard, DEFAULT_BOARDS, type BoardState, moveCard } from '../lib/board';
 import { parseBackup } from '../lib/backup';
+import { openToday, serverDay } from '../lib/farming';
 import { Header } from './Header';
 import { Dialog, Icon } from './ui';
 import { KanbanBoard } from './KanbanBoard';
@@ -87,6 +88,8 @@ export function Workspace({ view = 'board' }: { view?: keyof typeof PAGES }) {
     finally { if (fileInput.current) fileInput.current.value = ''; }
   }
   const boardCards = cardsOnBoard(cards, boards.activeId);
+  const today = loaded ? openToday(boardCards, serverDay(Date.now(), 8)) : [];
+  const todayIds = new Set(today.flatMap(target => target.characters.map(character => character.id)));
   const visible = boardCards.filter(card => (game === 'ALL' || card.game === game) && (CHARACTERS_DATABASE.find(item => item.id === card.characterId)?.name ?? card.characterId).toLowerCase().includes(search.toLowerCase()));
 
   return <div className="app-shell"><Header activePath={page.path} /><div className="workspace"><main id="main-content" tabIndex={-1}>
@@ -98,10 +101,11 @@ export function Workspace({ view = 'board' }: { view?: keyof typeof PAGES }) {
         <div className="board-switcher"><label>Papan aktif<select value={boards.activeId} disabled={!ready} onChange={event => { const next = { ...boards, activeId: event.target.value }; persist(() => { saveBoards(next); setBoards(next); }); }}>{boards.boards.map(board => <option key={board.id} value={board.id}>{board.name}</option>)}</select></label><button className="button secondary" disabled={!ready || boards.boards.length >= 50} onClick={() => { setBoardName(''); setBoardError(''); setCreatingBoard(true); }}><Icon name="plus" size={18} />Tambah papan</button></div>
         <div className="board-toolbar"><div className="filter-tabs" aria-label="Filter game">{([['ALL', 'Semua game'], ['GENSHIN_IMPACT', 'Genshin Impact'], ['ZENLESS_ZONE_ZERO', 'Zenless Zone Zero']] as const).map(([value, label]) => <button key={value} aria-pressed={game === value} className={game === value ? 'active' : ''} onClick={() => setGame(value)}>{label}</button>)}</div><label className="search-field"><Icon name="search" size={18} /><span className="sr-only">Cari di papan</span><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Cari karakter..." /></label></div>
         <div className="board-caption"><span>{visible.length} karakter{game !== 'ALL' || search ? ' ditemukan' : ' di papanmu'}</span><span>Detail build tersedia di setiap kartu</span></div>
+        {!!today.length && <section className="welcome-banner today-banner" aria-label="Domain yang buka hari ini"><div><h2>Hari ini jadwal farming mereka</h2><ul>{today.map(target => <li key={target.id}><strong>{target.name}</strong> ({target.location}): {target.characters.map(character => character.name).join(', ')}</li>)}</ul></div><Link href="/farming" className="text-button">Lihat jadwal</Link></section>}
         {!boardCards.length && ready && <div className="welcome-banner"><div><h2>Mulai dengan satu karakter.</h2><p>Pilih karakter yang ingin kamu build. Sisanya bisa menyusul.</p></div></div>}
         {boardCards.some(card => card.id.startsWith('demo-card-')) && <div className="welcome-banner"><p>Papan ini masih berisi kartu contoh dari versi sebelumnya. Progresnya bukan data akunmu.</p><button className="text-button" onClick={() => { if (window.confirm('Hapus kartu contoh pada papan ini beserta perubahan yang pernah kamu buat pada kartu contoh? Kartu buatanmu tetap disimpan.')) persist(() => updateCards(cards.filter(card => !((card.boardId ?? 'main') === boards.activeId && card.id.startsWith('demo-card-'))))); }}>Hapus kartu contoh</button></div>}
         {!!boardCards.length && !visible.length && <p className="empty-inline">Tidak ada karakter yang cocok. <button className="text-button" onClick={() => { setGame('ALL'); setSearch(''); }}>Hapus filter</button></p>}
-        <KanbanBoard cards={visible} onOpenDetail={setSelected} onMoveCardStage={move} onAdd={() => { if (ready) setAdding(true); }} />
+        <KanbanBoard cards={visible} todayIds={todayIds} onOpenDetail={setSelected} onMoveCardStage={move} onAdd={() => { if (ready) setAdding(true); }} />
       </>}
       {view === 'routine' && ready && <StaminaHub stamina={stamina} routine={routine} onUpdateStamina={value => persist(() => { saveStamina(value); setStamina(value); })} onUpdateRoutine={value => persist(() => { saveRoutine(value); setRoutine(value); })} />}
       {view === 'farming' && <FarmingCalendar cards={boardCards} boardName={boards.boards.find(board => board.id === boards.activeId)?.name ?? 'Papan utama'} />}

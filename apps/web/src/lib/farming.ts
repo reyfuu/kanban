@@ -1,6 +1,7 @@
 import catalog from '../data/catalog.json';
 import { CHARACTERS_DATABASE } from '../data/characters';
 import type { GameType, UserCard } from '../types/kanban';
+import { BOARD_GROUPS } from './board';
 
 export interface FarmingTarget {
   id: string; name: string; game: GameType; category: string; iconUrl: string;
@@ -27,4 +28,12 @@ export function farmingForDay(day: number, game: string, category: string, searc
       && (!characterIds || characterIds.includes(character.id))) }))
     .filter(target => (target.characters.length > 0 || target.weapons.length > 0) && (!query || [target.name, target.location, ...target.weapons, ...target.characters.map(c => c.name)].some(text => text.toLowerCase().includes(query))))
     .sort((a, b) => a.game.localeCompare(b.game) || a.name.localeCompare(b.name));
+}
+
+/** Rotating Genshin talent/weapon domains open today for in-progress cards; ZZZ is open daily. */
+export function openToday(cards: UserCard[], day: number) {
+  const building = cards.filter(card => card.game === 'GENSHIN_IMPACT' && BOARD_GROUPS[1]!.stages.includes(card.stage));
+  if (!building.length) return [];
+  return farmingForDay(day, 'GENSHIN_IMPACT', 'all', '', building)
+    .filter(target => target.days.length < 7 && (target.category === 'talent' || target.category === 'weapon'));
 }

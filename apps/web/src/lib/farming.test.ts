@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { CHARACTERS_DATABASE } from '../data/characters';
-import { FARMING_TARGETS, farmingForDay, serverDay } from './farming';
+import { FARMING_TARGETS, farmingForDay, openToday, serverDay } from './farming';
 import { cardsOnBoard, DEFAULT_BOARDS, isBoardState } from './board';
 import { parseBackup } from './backup';
 import { INITIAL_DEMO_CARDS, INITIAL_ROUTINE, INITIAL_STAMINA } from './storage';
@@ -34,6 +34,15 @@ describe('Katalog sumber dan farming', () => {
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.flatMap(row => row.characters).every(character => character.id === 'raiden-shogun')).toBe(true);
     expect(farmingForDay(0, 'ALL', 'all', '', [])).toEqual([]);
+  });
+
+  it('menandai domain yang buka hari ini hanya untuk kartu Genshin yang sedang di-build', () => {
+    const raiden = { ...INITIAL_DEMO_CARDS[0]!, stage: 'TALENTS' as const };
+    const names = (day: number, cards = [raiden]) => openToday(cards, day).map(target => target.name);
+    expect(names(3)).toContain('Teachings of Light');
+    expect(names(1)).not.toContain('Teachings of Light');
+    expect(openToday([{ ...raiden, stage: 'BACKLOG' }], 3)).toEqual([]);
+    expect(openToday([{ ...raiden, game: 'ZENLESS_ZONE_ZERO', characterId: 'ellen-joe' }], 3)).toEqual([]);
   });
 
   it('mengikuti batas reset server 04:00, bukan tengah malam perangkat', () => {
