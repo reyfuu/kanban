@@ -68,3 +68,11 @@ Dokumentasi lengkap sistem tersedia di direktori [`docs/`](docs/):
 - **Hosting Target**: Vercel (Edge / Serverless)
 - **Backend Eksperimen**: Go 1.22 + Gin Framework (`apps/api-go`)
 - **Penyimpanan**: Local-First (IndexedDB / LocalStorage) dengan cadangan JSON
+
+## Katalog dan papan
+
+- `pnpm dev`: localhost di http://localhost:3000. Login tamu ada di `/login`; Google tidak digunakan.
+- Buat beberapa papan melalui **Tambah papan**. Kartu lama tetap pada **Papan utama**. Backup JSON menyertakan seluruh papan.
+- `/farming`: pilih hari, server, jenis material, game, serta seluruh katalog atau papan aktif. Setiap material memiliki ikon asli dan daftar karakter yang menggunakannya.
+- `pnpm sync:catalog`: unduh snapshot publik Genshin/ZZZ beserta ikon (memerlukan Python 3 dan jaringan; cache 24 jam). Tidak dijalankan pada build Vercel.
+- Lihat [DESIGN.md](DESIGN.md) untuk desain dan [docs/HOYO-API.md](docs/HOYO-API.md) untuk cakupan, sumber, dan batas data. Progres akun tetap dicatat manual.

@@ -1,8 +1,24 @@
 import { DailyRoutine, StaminaState, UserCard } from '../types/kanban';
+import { isCard, isRoutine, isStamina, type Backup } from './backup';
+import { DEFAULT_BOARDS, isBoardState, type BoardState } from './board';
 
 const CARDS_KEY = 'hoyokanban_cards_v1';
 const STAMINA_KEY = 'hoyokanban_stamina_v1';
 const ROUTINE_KEY = 'hoyokanban_routine_v1';
+const BOARDS_KEY = 'hoyokanban_boards_v1';
+
+export function loadBoards(): BoardState {
+  const raw = localStorage.getItem(BOARDS_KEY);
+  if (!raw) return structuredClone(DEFAULT_BOARDS);
+  const state: unknown = JSON.parse(raw);
+  if (!isBoardState(state)) throw new Error('Data papan tidak terbaca.');
+  return state;
+}
+
+export function saveBoards(state: BoardState) {
+  if (!isBoardState(state)) throw new Error('Data papan tidak valid.');
+  localStorage.setItem(BOARDS_KEY, JSON.stringify(state));
+}
 
 export const INITIAL_DEMO_CARDS: UserCard[] = [
   {
@@ -212,102 +228,80 @@ export const INITIAL_DEMO_CARDS: UserCard[] = [
 ];
 
 export const INITIAL_STAMINA: StaminaState = {
-  genshinResin: 156,
-  genshinCondensed: 3,
+  genshinResin: 0,
+  genshinCondensed: 0,
   genshinLastUpdated: Date.now(),
-  zzzBattery: 180,
+  zzzBattery: 0,
   zzzCoffeeUsed: false,
   zzzLastUpdated: Date.now(),
 };
 
 export const INITIAL_ROUTINE: DailyRoutine = {
   lastResetDate: new Date().toISOString().slice(0, 10),
-  genshinCommissions: true,
+  genshinCommissions: false,
   genshinResinSpent: false,
-  zzzErrands: true,
+  zzzErrands: false,
   zzzCoffee: false,
-  zzzScratchCard: true,
-  genshinWeeklyBosses: 2,
-  zzzNotoriousHunts: 1,
+  zzzScratchCard: false,
+  genshinWeeklyBosses: 0,
+  zzzNotoriousHunts: 0,
 };
 
 export function loadCards(): UserCard[] {
-  if (typeof window === 'undefined') return INITIAL_DEMO_CARDS;
-  try {
-    const raw = localStorage.getItem(CARDS_KEY);
-    if (!raw) {
-      saveCards(INITIAL_DEMO_CARDS);
-      return INITIAL_DEMO_CARDS;
-    }
-    return JSON.parse(raw);
-  } catch {
-    return INITIAL_DEMO_CARDS;
-  }
+  if (typeof window === 'undefined') return [];
+  const raw = localStorage.getItem(CARDS_KEY);
+  if (!raw) return [];
+  const cards: unknown = JSON.parse(raw);
+  if (!Array.isArray(cards) || !cards.every(isCard)) throw new Error('Data karakter tidak terbaca. Pulihkan dari backup JSON.');
+  return cards;
 }
 
 export function saveCards(cards: UserCard[]): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(CARDS_KEY, JSON.stringify(cards));
-  } catch (err) {
-    console.error('Failed to save cards to localStorage', err);
-  }
+  localStorage.setItem(CARDS_KEY, JSON.stringify(cards));
 }
 
 export function loadStamina(): StaminaState {
-  if (typeof window === 'undefined') return INITIAL_STAMINA;
-  try {
-    const raw = localStorage.getItem(STAMINA_KEY);
-    if (!raw) {
-      saveStamina(INITIAL_STAMINA);
-      return INITIAL_STAMINA;
-    }
-    return JSON.parse(raw);
-  } catch {
-    return INITIAL_STAMINA;
-  }
+  const initial = { ...INITIAL_STAMINA, genshinLastUpdated: Date.now(), zzzLastUpdated: Date.now() };
+  if (typeof window === 'undefined') return initial;
+  const raw = localStorage.getItem(STAMINA_KEY);
+  if (!raw) return initial;
+  const stamina: unknown = JSON.parse(raw);
+  if (!isStamina(stamina)) throw new Error('Data stamina tidak terbaca. Pulihkan dari backup JSON.');
+  return stamina;
 }
 
 export function saveStamina(stamina: StaminaState): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(STAMINA_KEY, JSON.stringify(stamina));
-  } catch (err) {
-    console.error('Failed to save stamina', err);
-  }
+  localStorage.setItem(STAMINA_KEY, JSON.stringify(stamina));
 }
 
 export function loadRoutine(): DailyRoutine {
-  if (typeof window === 'undefined') return INITIAL_ROUTINE;
-  try {
-    const raw = localStorage.getItem(ROUTINE_KEY);
-    if (!raw) {
-      saveRoutine(INITIAL_ROUTINE);
-      return INITIAL_ROUTINE;
-    }
-    const routine: DailyRoutine = JSON.parse(raw);
-    const today = new Date().toISOString().slice(0, 10);
-    // Reset daily checkboxes if new day
-    if (routine.lastResetDate !== today) {
-      routine.lastResetDate = today;
-      routine.genshinCommissions = false;
-      routine.genshinResinSpent = false;
-      routine.zzzErrands = false;
-      routine.zzzCoffee = false;
-      routine.zzzScratchCard = false;
-      saveRoutine(routine);
-    }
-    return routine;
-  } catch {
-    return INITIAL_ROUTINE;
+  const today = new Date().toISOString().slice(0, 10);
+  const initial = { ...INITIAL_ROUTINE, lastResetDate: today };
+  if (typeof window === 'undefined') return initial;
+  const raw = localStorage.getItem(ROUTINE_KEY);
+  if (!raw) return initial;
+  const routine: unknown = JSON.parse(raw);
+  if (!isRoutine(routine)) throw new Error('Data rutinitas tidak terbaca. Pulihkan dari backup JSON.');
+  if (routine.lastResetDate !== today) {
+    return { ...initial, genshinWeeklyBosses: routine.genshinWeeklyBosses, zzzNotoriousHunts: routine.zzzNotoriousHunts };
   }
+  return routine;
 }
 
 export function saveRoutine(routine: DailyRoutine): void {
-  if (typeof window === 'undefined') return;
+  localStorage.setItem(ROUTINE_KEY, JSON.stringify(routine));
+}
+
+export function restoreBackup(backup: Backup): void {
+  const entries = [[CARDS_KEY, backup.cards], [STAMINA_KEY, backup.stamina], [ROUTINE_KEY, backup.routine], [BOARDS_KEY, backup.boards ?? DEFAULT_BOARDS]] as const;
+  const previous = entries.map(([key]) => [key, localStorage.getItem(key)] as const);
   try {
-    localStorage.setItem(ROUTINE_KEY, JSON.stringify(routine));
-  } catch (err) {
-    console.error('Failed to save routine', err);
+    for (const [key, value] of entries) localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    for (const [key, value] of previous) {
+      if (value === null) localStorage.removeItem(key);
+      else localStorage.setItem(key, value);
+    }
+    throw error;
   }
 }

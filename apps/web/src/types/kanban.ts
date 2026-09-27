@@ -27,6 +27,7 @@ export interface Character {
 
 export interface UserCard {
   id: string; // unique card instance ID
+  boardId?: string;
   characterId: string;
   game: GameType;
   stage: KanbanStage;
