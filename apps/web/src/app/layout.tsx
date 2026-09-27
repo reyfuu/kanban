@@ -1,7 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-// @vercel/analytics is installed at Vercel build time via package.json
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { Analytics } = require('@vercel/analytics/react') as typeof import('@vercel/analytics/react');
+import { Analytics } from '@vercel/analytics/react';
 import './globals.css';
 
 export const metadata: Metadata = {

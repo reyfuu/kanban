@@ -6,6 +6,39 @@ HoyoKanban membantu pemain gacha mengelola progres build karakter dari tahap wis
 
 ---
 
+## Menjalankan dan Deploy
+
+Gunakan Node.js **24.x** dan pnpm **10.33.0** (sesuai `packageManager`). Jalankan dari root repository:
+
+```bash
+corepack enable
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Sebelum deploy, jalankan `pnpm typecheck`, `pnpm test`, dan `pnpm build`.
+Workspace pnpm memakai satu lockfile di root; jangan membuat lockfile terpisah di `apps/web`.
+
+Di Vercel, import repository lalu gunakan pengaturan berikut:
+
+| Pengaturan | Nilai |
+|---|---|
+| Framework Preset | Next.js |
+| Root Directory | `apps/web` |
+| Include source files outside Root Directory | Aktifkan (untuk workspace, lockfile, dan tsconfig root) |
+| Node.js Version | 24.x |
+| Install Command | `pnpm install --frozen-lockfile` |
+| Build Command | `pnpm build` |
+| Output Directory | `.next` |
+
+Konfigurasi build dan header ada di `apps/web/vercel.json`. Mode mandiri tidak membutuhkan environment variable, database, atau server Go. Data tersimpan per browser dan domain: data localhost/preview tidak otomatis berpindah ke domain produksi; gunakan ekspor/impor JSON.
+
+Deployment otomatis cukup menggunakan integrasi Git Vercel. Workflow CLI GitHub bersifat opsional: aktifkan repository variable `VERCEL_CLI_DEPLOY=true` hanya jika menggunakan jalur ini, isi secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID`, dan `VERCEL_PROJECT_ID`, lalu nonaktifkan deployment Git Vercel agar tidak ganda.
+
+Referensi: [Vercel monorepos](https://vercel.com/docs/monorepos) dan [Node.js versions](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions).
+
+---
+
 ## 🚀 Fitur Unggulan
 
 - 📋 **Papan Kanban 7 Tahap**: Drag-and-drop kartu karakter (*Wishlist*, *Acquired*, *Leveling*, *Skills*, *Gear/Relics*, *Tuning*, *Combat Ready*).

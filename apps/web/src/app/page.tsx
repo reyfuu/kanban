@@ -148,7 +148,7 @@ export default function HomePage() {
     : cards.filter((c) => c.game === activeGame);
 
   const todayDayIndex = new Date().getDay();
-  const todaySchedule = DOMAIN_SCHEDULE[todayDayIndex];
+  const todaySchedule = DOMAIN_SCHEDULE[todayDayIndex] || DOMAIN_SCHEDULE[0];
 
   // Gacha calculations
   const genshinPulls = Math.floor(primoAmount / 160) + fatesAmount;

@@ -6,7 +6,7 @@ export interface DomainSchedule {
   zzzFocus: string[];
 }
 
-export const DOMAIN_SCHEDULE: Record<number, DomainSchedule> = {
+export const DOMAIN_SCHEDULE: Record<number, DomainSchedule> & Record<0 | 1 | 2 | 3 | 4 | 5 | 6, DomainSchedule> = {
   1: {
     dayName: 'Senin (Monday)',
     dayIndex: 1,
