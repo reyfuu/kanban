@@ -40,6 +40,7 @@ export function Workspace({ view = 'board' }: { view?: keyof typeof PAGES }) {
   const [search, setSearch] = useState('');
   const [adding, setAdding] = useState(false);
   const [selected, setSelected] = useState<UserCard | null>(null);
+  const [user, setUser] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const page = PAGES[view];
 
@@ -54,7 +55,27 @@ export function Workspace({ view = 'board' }: { view?: keyof typeof PAGES }) {
       setCards(savedCards); setStamina(savedStamina); setRoutine(savedRoutine); setReady(true);
     } catch { setError('Data lokal tidak dapat dibaca. Data aslinya tetap disimpan. Periksa izin penyimpanan browser atau pulihkan backup di Pengaturan.'); }
     setLoaded(true);
+    fetch('/api/data').then(async response => {
+      if (!response.ok) return;
+      if (response.status === 200) {
+        const backup = parseBackup(await response.text());
+        restoreBackup(backup);
+        setBoards(backup.boards ?? DEFAULT_BOARDS); setCards(backup.cards); setStamina(backup.stamina); setRoutine(loadRoutine()); setReady(true); setError('');
+      }
+      setUser(response.headers.get('x-user'));
+    }).catch(() => setNotice('Akun belum dapat dihubungi. Perubahan tetap tersimpan di perangkat ini.'));
   }, []);
+
+  // Signed-in players mirror every saved change to their account; a guest stays local-only.
+  useEffect(() => {
+    if (!user || !ready) return;
+    const timer = setTimeout(() => {
+      fetch('/api/data', { method: 'PUT', body: JSON.stringify(snapshot()) })
+        .then(response => { if (!response.ok) throw new Error(); })
+        .catch(() => setError('Perubahan tersimpan di perangkat ini, tetapi belum tersinkron ke akun. Coba lagi nanti.'));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [user, ready, cards, stamina, routine, boards]);
 
   function updateCards(next: UserCard[]) {
     if (!ready) return;
@@ -66,8 +87,9 @@ export function Workspace({ view = 'board' }: { view?: keyof typeof PAGES }) {
   function move(id: string, stage: KanbanStage) {
     persist(() => updateCards(moveCard(cards, id, stage)));
   }
+  function snapshot() { return { version: '1.0', cards, stamina, routine, boards }; }
   function download() {
-    const blob = new Blob([JSON.stringify({ version: '1.0', exportDate: new Date().toISOString(), cards, stamina, routine, boards }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ ...snapshot(), exportDate: new Date().toISOString() }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url; link.download = `hoyokanban-${new Date().toISOString().slice(0, 10)}.json`;
@@ -92,7 +114,7 @@ export function Workspace({ view = 'board' }: { view?: keyof typeof PAGES }) {
   const todayIds = new Set(today.flatMap(target => target.characters.map(character => character.id)));
   const visible = boardCards.filter(card => (game === 'ALL' || card.game === game) && (CHARACTERS_DATABASE.find(item => item.id === card.characterId)?.name ?? card.characterId).toLowerCase().includes(search.toLowerCase()));
 
-  return <div className="app-shell"><Header activePath={page.path} /><div className="workspace"><main id="main-content" tabIndex={-1}>
+  return <div className="app-shell"><Header activePath={page.path} user={user} /><div className="workspace"><main id="main-content" tabIndex={-1}>
     <div className="page-header"><div><h1>{page.title}</h1><p>{page.description}</p></div>{view === 'board' && <button className="button primary" disabled={!ready} onClick={() => setAdding(true)}><Icon name="plus" size={18} />Tambah karakter</button>}</div>
     {error && <div className="message error" role="alert">{error}{view !== 'settings' && <Link href="/settings">Buka pengaturan</Link>}</div>}
     {notice && <p className="message" role="status">{notice}</p>}

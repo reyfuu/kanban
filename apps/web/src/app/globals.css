@@ -221,10 +221,6 @@ fieldset > label + label { display: block; margin-top: 12px; }
 .login-symbol { width: 56px; height: 56px; display: grid; place-items: center; background: #273226; color: var(--accent); border-radius: 12px; margin-bottom: 28px; }
 .login-form h2 { font-size: 30px; letter-spacing: -.035em; font-weight: 600; }
 .login-form > p { color: var(--muted); font-size: 15px; line-height: 1.8; margin-top: 12px; }
-.login-account-status { display: flex; gap: 12px; padding: 24px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 32px 0 24px; }
-.login-account-status svg { color: var(--muted); margin-top: 2px; }
-.login-account-status strong { font-size: 13px; }
-.login-account-status p { color: var(--muted); font-size: 13px; margin-top: 6px; }
 .login-cta { width: 100%; justify-content: space-between; padding: 12px 20px; min-height: 48px; }
 .login-form .login-note { text-align: center; font-size: 12px; margin: 20px 0 28px; }
 .login-form .text-link { font-size: 12px; display: block; text-align: center; }
@@ -291,8 +287,7 @@ fieldset > label + label { display: block; margin-top: 12px; }
   .login-form { padding: 0 0 36px; max-width: none; }
   .login-symbol { display: none; }
   .login-form h2 { font-size: 26px; }
-  .login-account-status { margin-top: 24px; }
-  .loading-state { grid-template-columns: 1fr; }
+    .loading-state { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
 
@@ -325,3 +320,8 @@ fieldset > label + label { display: block; margin-top: 12px; }
 .farming-help summary { cursor:pointer; min-height:44px; align-content:center; color:var(--muted); font-size:13px; }
 .farming-heading > button { flex-shrink:0; white-space:nowrap; }
 @media (max-width:640px) { .farming-controls:first-child { gap:12px; } .farming-controls:first-child > label { min-width:0; flex-basis:calc(50% - 6px); } .farming-controls:first-child > label:last-child { flex-basis:100%; } }
+.login-account-form { display: grid; gap: 16px; padding: 24px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 32px 0 24px; font-size: 13px; }
+.field-hint { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; }
+.auth-switch { text-align: center; color: var(--muted); }
+.auth-switch a { color: var(--accent); }
+.logout-button { color: var(--muted); font-size: 12px; background: none; border: 0; padding: 4px 0; cursor: pointer; }
