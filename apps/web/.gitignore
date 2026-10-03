@@ -1,0 +1,6 @@
+.vercel
+.env*
+
+# Dokumentasi skill hasil pasang; sumber dan hash-nya tercatat di skills-lock.json
+.agents/
+.claude/skills/
