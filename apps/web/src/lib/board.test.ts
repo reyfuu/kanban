@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { BOARD_GROUPS, STAGES, moveCard } from './board';
+import { BOARD_GROUPS, MAX_COLUMNS, STAGES, columnsFor, isBoardState, moveCard, removeColumn, reorderColumns, setColumnOrder, stageOptions } from './board';
 import { parseBackup } from './backup';
 import { INITIAL_DEMO_CARDS, INITIAL_ROUTINE, INITIAL_STAMINA, loadCards, restoreBackup } from './storage';
 
@@ -47,5 +47,100 @@ describe('Papan sederhana dan kompatibilitas data', () => {
     });
     expect(() => restoreBackup(parseBackup(JSON.stringify(backup)))).toThrow('QuotaExceeded');
     expect([...stored]).toEqual([['hoyokanban_cards_v1', 'old-cards'], ['hoyokanban_stamina_v1', 'old-stamina']]);
+  });
+});
+
+describe('Kolom buatan pemain', () => {
+  const column = { id: 'col-abyss', title: 'Abyss' };
+  const withColumn = { boards: [{ id: 'main', name: 'Papan utama', columns: [column] }], activeId: 'main' };
+
+  it('menempatkan kolom buatan di belakang tiga kolom bawaan', () => {
+    expect(columnsFor(undefined).map(item => item.title)).toEqual(['Rencana', 'Dalam proses', 'Selesai']);
+    const columns = columnsFor(withColumn.boards[0]);
+    expect(columns).toHaveLength(4);
+    expect(columns[3]).toMatchObject({ title: 'Abyss', stage: 'col-abyss', stages: ['col-abyss'], custom: true });
+    expect(columns.slice(0, 3).some(item => item.custom)).toBe(false);
+  });
+
+  it('menawarkan kolom buatan di pilihan tahap kartu', () => {
+    expect(stageOptions(undefined)).toEqual(STAGES);
+    expect(stageOptions(withColumn.boards[0]).at(-1)).toEqual({ id: 'col-abyss', label: 'Abyss' });
+  });
+
+  it('menerima papan lama tanpa kolom dan menolak kolom yang tidak masuk akal', () => {
+    expect(isBoardState(withColumn)).toBe(true);
+    expect(isBoardState({ boards: [{ id: 'main', name: 'Papan utama' }], activeId: 'main' })).toBe(true);
+    const reject = (columns: unknown) => isBoardState({ boards: [{ id: 'main', name: 'Papan utama', columns }], activeId: 'main' });
+    expect(reject([{ id: 'col-1', title: '  ' }])).toBe(false);
+    expect(reject([{ id: 'READY', title: 'Selesai lagi' }])).toBe(false);
+    expect(reject([column, { id: column.id, title: 'Kembar' }])).toBe(false);
+    expect(reject([{ id: 'col-1', title: 'x'.repeat(41) }])).toBe(false);
+    expect(reject(Array.from({ length: MAX_COLUMNS + 1 }, (_, index) => ({ id: `col-${index}`, title: `Kolom ${index}` })))).toBe(false);
+  });
+
+  it('kolom yang dihapus mengembalikan kartunya ke antrean', () => {
+    const cards = [{ ...INITIAL_DEMO_CARDS[0]!, stage: 'col-abyss' }, INITIAL_DEMO_CARDS[1]!];
+    const next = removeColumn(withColumn, cards, 'main', 'col-abyss');
+    expect(next.boards.boards[0]?.columns).toEqual([]);
+    expect(next.cards[0]).toEqual({ ...cards[0], stage: 'BACKLOG', updatedAt: expect.any(Number) });
+    expect(next.cards[1]).toBe(cards[1]);
+    expect(cards[0]?.stage).toBe('col-abyss');
+    expect(withColumn.boards[0]?.columns).toEqual([column]);
+  });
+
+  it('backup menerima tahap kolom buatan, tetap menolak tahap kosong', () => {
+    const cards = [{ ...INITIAL_DEMO_CARDS[0]!, stage: 'col-abyss' }];
+    expect(parseBackup(JSON.stringify({ ...backup, cards, boards: withColumn })).cards[0]?.stage).toBe('col-abyss');
+    expect(() => parseBackup(JSON.stringify({ ...backup, cards: [{ ...INITIAL_DEMO_CARDS[0]!, stage: '' }] }))).toThrow();
+  });
+});
+
+describe('Urutan kolom', () => {
+  const column = { id: 'col-abyss', title: 'Abyss' };
+  const board = { id: 'main', name: 'Papan utama', columns: [column] };
+
+  it('mengikuti urutan pilihan pemain, termasuk kolom bawaan', () => {
+    const ordered = { ...board, columnOrder: ['col-abyss', 'READY', 'BACKLOG', 'LEVELING'] };
+    expect(columnsFor(ordered).map(item => item.title)).toEqual(['Abyss', 'Selesai', 'Rencana', 'Dalam proses']);
+  });
+
+  it('mengabaikan id asing dan menaruh kolom yang belum diurutkan di belakang', () => {
+    const ordered = { ...board, columnOrder: ['col-abyss', 'kolom-hilang'] };
+    expect(columnsFor(ordered).map(item => item.title)).toEqual(['Abyss', 'Rencana', 'Dalam proses', 'Selesai']);
+  });
+
+  it('menyimpan urutan tanpa mengubah papan lama', () => {
+    const boards = { boards: [board], activeId: 'main' };
+    const next = setColumnOrder(boards, 'main', ['READY', 'BACKLOG']);
+    expect(next.boards[0]?.columnOrder).toEqual(['READY', 'BACKLOG']);
+    expect(boards.boards[0]).not.toHaveProperty('columnOrder');
+  });
+
+  it('menolak urutan yang ganda atau terlalu panjang', () => {
+    const reject = (columnOrder: unknown) => isBoardState({ boards: [{ ...board, columnOrder }], activeId: 'main' });
+    expect(reject(['READY', 'BACKLOG'])).toBe(true);
+    expect(reject(undefined)).toBe(true);
+    expect(reject(['READY', 'READY'])).toBe(false);
+    expect(reject([''])).toBe(false);
+    expect(reject(Array.from({ length: BOARD_GROUPS.length + MAX_COLUMNS + 1 }, (_, index) => `stage-${index}`))).toBe(false);
+  });
+
+  it('kolom yang dihapus juga lepas dari urutan', () => {
+    const boards = { boards: [{ ...board, columnOrder: ['col-abyss', 'READY'] }], activeId: 'main' };
+    expect(removeColumn(boards, [], 'main', 'col-abyss').boards.boards[0]?.columnOrder).toEqual(['READY']);
+  });
+
+  it('kolom yang diseret menempati posisi kolom tujuan', () => {
+    const order = ['BACKLOG', 'LEVELING', 'READY', 'col-abyss'];
+    expect(reorderColumns(order, 'col-abyss', 'BACKLOG')).toEqual(['col-abyss', 'BACKLOG', 'LEVELING', 'READY']);
+    expect(reorderColumns(order, 'BACKLOG', 'READY')).toEqual(['LEVELING', 'READY', 'BACKLOG', 'col-abyss']);
+    expect(order).toEqual(['BACKLOG', 'LEVELING', 'READY', 'col-abyss']);
+  });
+
+  it('mengabaikan seretan ke dirinya sendiri atau ke kolom asing', () => {
+    const order = ['BACKLOG', 'LEVELING', 'READY'];
+    expect(reorderColumns(order, 'READY', 'READY')).toBe(order);
+    expect(reorderColumns(order, 'kolom-hilang', 'READY')).toBe(order);
+    expect(reorderColumns(order, 'READY', 'kolom-hilang')).toBe(order);
   });
 });

@@ -1,5 +1,5 @@
 import type { DailyRoutine, StaminaState, UserCard } from '../types/kanban';
-import { STAGES, DEFAULT_BOARDS, isBoardState, type BoardState } from './board';
+import { DEFAULT_BOARDS, isBoardState, type BoardState } from './board';
 
 const object = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 const integer = (value: unknown, min: number, max: number) => typeof value === 'number' && Number.isSafeInteger(value) && value >= min && value <= max;
@@ -13,7 +13,7 @@ export function isCard(value: unknown): value is UserCard {
   if (!genshin && value.game !== 'ZENLESS_ZONE_ZERO') return false;
   return string(value.id, 200) && !!value.id && string(value.characterId, 200) && !!value.characterId
     && (value.boardId === undefined || (string(value.boardId, 200) && !!value.boardId))
-    && STAGES.some(stage => stage.id === value.stage) && ['HIGH', 'MEDIUM', 'LOW'].includes(String(value.priority))
+    && string(value.stage, 200) && !!value.stage && ['HIGH', 'MEDIUM', 'LOW'].includes(String(value.priority))
     && Array.isArray(value.tags) && value.tags.length <= 100 && value.tags.every(tag => string(tag, 200))
     && ['currentLevel', 'targetLevel'].every(key => integer(value[key], 1, level))
     && ['currentAscension', 'targetAscension'].every(key => integer(value[key], 0, genshin ? 6 : 5))

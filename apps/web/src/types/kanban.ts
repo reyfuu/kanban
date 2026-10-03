@@ -30,7 +30,7 @@ export interface UserCard {
   boardId?: string;
   characterId: string;
   game: GameType;
-  stage: KanbanStage;
+  stage: string; // id KanbanStage bawaan atau id kolom buatan pemain
   priority: PriorityLevel;
   tags: string[];
 

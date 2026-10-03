@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import type { KanbanStage, PriorityLevel, UserCard } from '../types/kanban';
+import type { PriorityLevel, UserCard } from '../types/kanban';
 import { CHARACTERS_DATABASE } from '../data/characters';
 import { calculateMaterialDeficit } from '../lib/calculator';
-import { STAGES } from '../lib/board';
 import { FARMING_TARGETS, DAY_NAMES } from '../lib/farming';
 import { Avatar, Dialog } from './ui';
 
-export function CharacterDetailModal({ card, onClose, onSave, onDelete }: { card: UserCard; onClose: () => void; onSave: (card: UserCard) => boolean; onDelete: (id: string) => boolean }) {
+export function CharacterDetailModal({ card, stages, onClose, onSave, onDelete }: { card: UserCard; stages: { id: string; label: string }[]; onClose: () => void; onSave: (card: UserCard) => boolean; onDelete: (id: string) => boolean }) {
   const [error, setError] = useState('');
   const [form, setForm] = useState<UserCard>(() => structuredClone(card));
   const [tab, setTab] = useState<'build' | 'materials' | 'notes'>('build');
@@ -22,7 +21,7 @@ export function CharacterDetailModal({ card, onClose, onSave, onDelete }: { card
     <form onInvalidCapture={event => { setTab('build'); const input = event.target as HTMLInputElement; const details = input.closest('details'); if (details) details.open = true; requestAnimationFrame(() => input.focus()); }} onSubmit={event => { event.preventDefault(); if (onSave({ ...form, updatedAt: Date.now() })) onClose(); else setError('Perubahan belum tersimpan. Periksa penyimpanan browser.'); }}>
       <div className="dialog-body">{error && <p className="message error" role="alert">{error}</p>}
         <div hidden={tab !== 'build'} className="detail-fields">
-          <div className="form-grid"><label>Tahap<select value={form.stage} onChange={event => setForm({ ...form, stage: event.target.value as KanbanStage })}>{STAGES.map(stage => <option key={stage.id} value={stage.id}>{stage.label}</option>)}</select></label><label>Prioritas<select value={form.priority} onChange={event => setForm({ ...form, priority: event.target.value as PriorityLevel })}><option value="HIGH">Tinggi</option><option value="MEDIUM">Sedang</option><option value="LOW">Rendah</option></select></label></div>
+          <div className="form-grid"><label>Tahap<select value={form.stage} onChange={event => setForm({ ...form, stage: event.target.value })}>{stages.map(stage => <option key={stage.id} value={stage.id}>{stage.label}</option>)}</select></label><label>Prioritas<select value={form.priority} onChange={event => setForm({ ...form, priority: event.target.value as PriorityLevel })}><option value="HIGH">Tinggi</option><option value="MEDIUM">Sedang</option><option value="LOW">Rendah</option></select></label></div>
           <fieldset><legend>Level & ascension</legend><div className="form-grid">{([
             ['currentLevel', 'Level saat ini', 1, maxLevel], ['targetLevel', 'Target level', 1, maxLevel],
             ['currentAscension', 'Ascension saat ini', 0, maxAscension], ['targetAscension', 'Target ascension', 0, maxAscension],

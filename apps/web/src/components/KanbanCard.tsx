@@ -1,13 +1,13 @@
-import type { KanbanStage, UserCard } from '../types/kanban';
+import type { UserCard } from '../types/kanban';
 import { CHARACTERS_DATABASE } from '../data/characters';
-import { STAGES } from '../lib/board';
 import { Avatar } from './ui';
 
-export function KanbanCard({ card, openToday, onOpenDetail, onMoveStage }: {
+export function KanbanCard({ card, stages, openToday, onOpenDetail, onMoveStage }: {
   card: UserCard;
+  stages: { id: string; label: string }[];
   openToday: boolean;
   onOpenDetail: (card: UserCard) => void;
-  onMoveStage: (id: string, stage: KanbanStage) => void;
+  onMoveStage: (id: string, stage: string) => void;
 }) {
   const meta = CHARACTERS_DATABASE.find(character => character.id === card.characterId);
   const name = meta?.name ?? card.characterId;
@@ -18,6 +18,6 @@ export function KanbanCard({ card, openToday, onOpenDetail, onMoveStage }: {
     </button>
     {openToday && <span className="today-badge">Domain buka hari ini</span>}
     <div className="card-level"><span>Level <strong>{card.currentLevel}</strong><span className="muted"> / {card.targetLevel}</span></span><span className={`priority priority-${card.priority.toLowerCase()}`}><span />{card.priority === 'HIGH' ? 'Prioritas tinggi' : card.priority === 'MEDIUM' ? 'Prioritas sedang' : 'Prioritas rendah'}</span></div>
-    <div className="card-bottom"><label className="sr-only" htmlFor={`stage-${card.id}`}>Tahap {name}</label><select id={`stage-${card.id}`} value={card.stage} onChange={event => onMoveStage(card.id, event.target.value as KanbanStage)}>{STAGES.map(stage => <option key={stage.id} value={stage.id}>{stage.label}</option>)}</select><button className="text-button" onClick={() => onOpenDetail(card)}>Detail</button></div>
+    <div className="card-bottom"><label className="sr-only" htmlFor={`stage-${card.id}`}>Tahap {name}</label><select id={`stage-${card.id}`} value={card.stage} onChange={event => onMoveStage(card.id, event.target.value)}>{stages.map(stage => <option key={stage.id} value={stage.id}>{stage.label}</option>)}</select><button className="text-button" onClick={() => onOpenDetail(card)}>Detail</button></div>
   </article>;
 }

@@ -82,15 +82,20 @@ svg { flex-shrink: 0; }
 .search-field input { background: transparent; border: 0; min-width: 0; width: 100%; outline: 0; color: var(--foreground); padding: 10px 0; font-size: 13px; }
 .board-toolbar .search-field { max-width: 240px; }
 .board-caption { display: flex; justify-content: space-between; padding: 24px 0; font-size: 12px; color: var(--muted); }
-.kanban-board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.kanban-board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 1fr); gap: 20px; overflow-x: auto; padding-bottom: 4px; }
 .kanban-column { min-width: 0; padding: 0 0 16px; border-radius: 8px; }
 .kanban-column.drop-active { outline: 1px dashed var(--accent); background: #1c291d; }
-.column-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px; }
-.column-heading h2 { display: flex; align-items: center; gap: 9px; font-size: 14px; }
+.kanban-column.dragging { opacity: .45; }
+.column-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px; cursor: grab; }
+.column-heading:active { cursor: grabbing; }
+.column-heading h2 { display: flex; align-items: center; gap: 9px; font-size: 14px; min-width: 0; overflow: hidden; }
 .stage-dot { width: 8px; height: 8px; display: inline-block; border-radius: 50%; background: #9da7a0; flex-shrink: 0; }
 .stage-leveling { background: #d6bf91; }
 .stage-ready { background: var(--accent); }
 .column-count { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.column-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.column-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.column-heading .icon-button { width: 28px; height: 28px; }
 .column-description { color: var(--muted); font-size: 12px; padding: 6px 4px 20px; }
 .column-cards { display: grid; gap: 12px; align-content: start; }
 .character-card { border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 16px 16px 4px; cursor: grab; }
@@ -258,7 +263,7 @@ fieldset > label + label { display: block; margin-top: 12px; }
   .board-toolbar { gap: 16px; padding-bottom: 20px; }
   .board-caption { padding: 20px 0; }
   .board-caption > span:last-child { display: none; }
-  .kanban-board { grid-template-columns: 1fr; gap: 32px; }
+  .kanban-board { grid-auto-flow: row; grid-auto-columns: auto; gap: 32px; }
   .character-card { padding: 18px 18px 4px; }
   .column-description { padding-bottom: 16px; }
   .column-empty { min-height: 96px; }
@@ -322,6 +327,10 @@ fieldset > label + label { display: block; margin-top: 12px; }
 @media (max-width:640px) { .farming-controls:first-child { gap:12px; } .farming-controls:first-child > label { min-width:0; flex-basis:calc(50% - 6px); } .farming-controls:first-child > label:last-child { flex-basis:100%; } }
 .login-account-form { display: grid; gap: 16px; padding: 24px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 32px 0 24px; font-size: 13px; }
 .field-hint { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; }
+.password-field { display: flex; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; margin-top: 6px; min-height: 44px; padding-right: 4px; }
+.password-field:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+label > .password-field > input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; margin-top: 0; padding: 10px 12px; }
+.password-field > .icon-button { width: 36px; height: 36px; flex-shrink: 0; }
 .auth-switch { text-align: center; color: var(--muted); }
 .auth-switch a { color: var(--accent); }
 .logout-button { color: var(--muted); font-size: 12px; background: none; border: 0; padding: 4px 0; cursor: pointer; }

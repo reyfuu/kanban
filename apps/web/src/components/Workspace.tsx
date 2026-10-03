@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import type { DailyRoutine, GameType, KanbanStage, StaminaState, UserCard } from '../types/kanban';
+import type { DailyRoutine, GameType, StaminaState, UserCard } from '../types/kanban';
 import { CHARACTERS_DATABASE } from '../data/characters';
 import { INITIAL_ROUTINE, INITIAL_STAMINA, loadBoards, saveBoards, loadCards, loadRoutine, loadStamina, restoreBackup, saveCards, saveRoutine, saveStamina } from '../lib/storage';
-import { cardsOnBoard, DEFAULT_BOARDS, type BoardState, moveCard } from '../lib/board';
+import { cardsOnBoard, columnsFor, DEFAULT_BOARDS, MAX_COLUMNS, moveCard, removeColumn, reorderColumns, setColumnOrder, setColumns, stageOptions, type BoardState } from '../lib/board';
 import { parseBackup } from '../lib/backup';
 import { openToday, serverDay } from '../lib/farming';
 import { Header } from './Header';
@@ -29,6 +29,9 @@ export function Workspace({ view = 'board' }: { view?: keyof typeof PAGES }) {
   const [creatingBoard, setCreatingBoard] = useState(false);
   const [boardName, setBoardName] = useState('');
   const [boardError, setBoardError] = useState('');
+  const [columnDialog, setColumnDialog] = useState<string | 'new' | null>(null);
+  const [columnName, setColumnName] = useState('');
+  const [columnError, setColumnError] = useState('');
   const [cards, setCards] = useState<UserCard[]>([]);
   const [stamina, setStamina] = useState<StaminaState>(INITIAL_STAMINA);
   const [routine, setRoutine] = useState<DailyRoutine>(INITIAL_ROUTINE);
@@ -84,7 +87,7 @@ export function Workspace({ view = 'board' }: { view?: keyof typeof PAGES }) {
   function persist(action: () => void) {
     try { action(); return true; } catch { setError('Perubahan belum tersimpan. Periksa ruang dan izin penyimpanan browser, lalu coba lagi.'); return false; }
   }
-  function move(id: string, stage: KanbanStage) {
+  function move(id: string, stage: string) {
     persist(() => updateCards(moveCard(cards, id, stage)));
   }
   function snapshot() { return { version: '1.0', cards, stamina, routine, boards }; }
@@ -109,6 +112,37 @@ export function Workspace({ view = 'board' }: { view?: keyof typeof PAGES }) {
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Impor gagal. Data lama tidak diganti.'); }
     finally { if (fileInput.current) fileInput.current.value = ''; }
   }
+  const activeBoard = boards.boards.find(board => board.id === boards.activeId);
+  const columns = columnsFor(activeBoard);
+  const stages = stageOptions(activeBoard);
+  function openColumnDialog(id: string | 'new') {
+    setColumnName(id === 'new' ? '' : activeBoard?.columns?.find(column => column.id === id)?.title ?? '');
+    setColumnError(''); setColumnDialog(id);
+  }
+  function saveColumn() {
+    const title = columnName.trim();
+    if (!title || !columnDialog) return;
+    const editing = columnDialog === 'new' ? null : columnDialog;
+    if (columns.some(column => column.title.toLowerCase() === title.toLowerCase() && column.stage !== editing)) { setColumnError('Nama kolom sudah dipakai. Gunakan nama lain.'); return; }
+    const current = activeBoard?.columns ?? [];
+    const next = setColumns(boards, boards.activeId, editing
+      ? current.map(column => column.id === editing ? { ...column, title } : column)
+      : [...current, { id: crypto.randomUUID(), title }]);
+    if (persist(() => { saveBoards(next); setBoards(next); })) setColumnDialog(null);
+    else setColumnError('Kolom belum tersimpan. Periksa penyimpanan browser.');
+  }
+  function reorderColumn(fromStage: string, toStage: string) {
+    const next = setColumnOrder(boards, boards.activeId, reorderColumns(columns.map(column => column.stage), fromStage, toStage));
+    persist(() => { saveBoards(next); setBoards(next); });
+  }
+  function deleteColumn(id: string) {
+    const column = activeBoard?.columns?.find(item => item.id === id);
+    if (!column) return;
+    const affected = cards.filter(card => card.stage === id).length;
+    if (!window.confirm(`Hapus kolom "${column.title}"?${affected ? ` ${affected} kartu di dalamnya akan dipindah ke Rencana.` : ''}`)) return;
+    const next = removeColumn(boards, cards, boards.activeId, id);
+    persist(() => { saveCards(next.cards); saveBoards(next.boards); setCards(next.cards); setBoards(next.boards); });
+  }
   const boardCards = cardsOnBoard(cards, boards.activeId);
   const today = loaded ? openToday(boardCards, serverDay(Date.now(), 8)) : [];
   const todayIds = new Set(today.flatMap(target => target.characters.map(character => character.id)));
@@ -120,14 +154,14 @@ export function Workspace({ view = 'board' }: { view?: keyof typeof PAGES }) {
     {notice && <p className="message" role="status">{notice}</p>}
     {!loaded ? <div className="loading-state" role="status"><span /><span /><span /><p>Memuat papanmu...</p></div> : <>
       {view === 'board' && <>
-        <div className="board-switcher"><label>Papan aktif<select value={boards.activeId} disabled={!ready} onChange={event => { const next = { ...boards, activeId: event.target.value }; persist(() => { saveBoards(next); setBoards(next); }); }}>{boards.boards.map(board => <option key={board.id} value={board.id}>{board.name}</option>)}</select></label><button className="button secondary" disabled={!ready || boards.boards.length >= 50} onClick={() => { setBoardName(''); setBoardError(''); setCreatingBoard(true); }}><Icon name="plus" size={18} />Tambah papan</button></div>
+        <div className="board-switcher"><label>Papan aktif<select value={boards.activeId} disabled={!ready} onChange={event => { const next = { ...boards, activeId: event.target.value }; persist(() => { saveBoards(next); setBoards(next); }); }}>{boards.boards.map(board => <option key={board.id} value={board.id}>{board.name}</option>)}</select></label><button className="button secondary" disabled={!ready || boards.boards.length >= 50} onClick={() => { setBoardName(''); setBoardError(''); setCreatingBoard(true); }}><Icon name="plus" size={18} />Tambah papan</button><button className="button secondary" disabled={!ready || (activeBoard?.columns?.length ?? 0) >= MAX_COLUMNS} onClick={() => openColumnDialog('new')}><Icon name="plus" size={18} />Tambah kolom</button></div>
         <div className="board-toolbar"><div className="filter-tabs" aria-label="Filter game">{([['ALL', 'Semua game'], ['GENSHIN_IMPACT', 'Genshin Impact'], ['ZENLESS_ZONE_ZERO', 'Zenless Zone Zero']] as const).map(([value, label]) => <button key={value} aria-pressed={game === value} className={game === value ? 'active' : ''} onClick={() => setGame(value)}>{label}</button>)}</div><label className="search-field"><Icon name="search" size={18} /><span className="sr-only">Cari di papan</span><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Cari karakter..." /></label></div>
         <div className="board-caption"><span>{visible.length} karakter{game !== 'ALL' || search ? ' ditemukan' : ' di papanmu'}</span><span>Detail build tersedia di setiap kartu</span></div>
         {!!today.length && <section className="welcome-banner today-banner" aria-label="Domain yang buka hari ini"><div><h2>Hari ini jadwal farming mereka</h2><ul>{today.map(target => <li key={target.id}><strong>{target.name}</strong> ({target.location}): {target.characters.map(character => character.name).join(', ')}</li>)}</ul></div><Link href="/farming" className="text-button">Lihat jadwal</Link></section>}
         {!boardCards.length && ready && <div className="welcome-banner"><div><h2>Mulai dengan satu karakter.</h2><p>Pilih karakter yang ingin kamu build. Sisanya bisa menyusul.</p></div></div>}
         {boardCards.some(card => card.id.startsWith('demo-card-')) && <div className="welcome-banner"><p>Papan ini masih berisi kartu contoh dari versi sebelumnya. Progresnya bukan data akunmu.</p><button className="text-button" onClick={() => { if (window.confirm('Hapus kartu contoh pada papan ini beserta perubahan yang pernah kamu buat pada kartu contoh? Kartu buatanmu tetap disimpan.')) persist(() => updateCards(cards.filter(card => !((card.boardId ?? 'main') === boards.activeId && card.id.startsWith('demo-card-'))))); }}>Hapus kartu contoh</button></div>}
         {!!boardCards.length && !visible.length && <p className="empty-inline">Tidak ada karakter yang cocok. <button className="text-button" onClick={() => { setGame('ALL'); setSearch(''); }}>Hapus filter</button></p>}
-        <KanbanBoard cards={visible} todayIds={todayIds} onOpenDetail={setSelected} onMoveCardStage={move} onAdd={() => { if (ready) setAdding(true); }} />
+        <KanbanBoard columns={columns} stages={stages} cards={visible} todayIds={todayIds} onOpenDetail={setSelected} onMoveCardStage={move} onAdd={() => { if (ready) setAdding(true); }} onRenameColumn={openColumnDialog} onDeleteColumn={deleteColumn} onReorderColumn={reorderColumn} />
       </>}
       {view === 'routine' && ready && <StaminaHub stamina={stamina} routine={routine} onUpdateStamina={value => persist(() => { saveStamina(value); setStamina(value); })} onUpdateRoutine={value => persist(() => { saveRoutine(value); setRoutine(value); })} />}
       {view === 'farming' && <FarmingCalendar cards={boardCards} boardName={boards.boards.find(board => board.id === boards.activeId)?.name ?? 'Papan utama'} />}
@@ -140,7 +174,8 @@ export function Workspace({ view = 'board' }: { view?: keyof typeof PAGES }) {
     <footer className="workspace-footer"><span>Rencanakan build. Nikmati perjalanannya.</span><span>Tidak berafiliasi dengan HoYoverse.</span></footer>
   </main></div>
     {creatingBoard && <Dialog title="Tambah papan" onClose={() => setCreatingBoard(false)}><form onSubmit={event => { event.preventDefault(); const name = boardName.trim(); if (!name) return; if (boards.boards.some(board => board.name.toLowerCase() === name.toLowerCase())) { setBoardError('Nama papan sudah dipakai. Gunakan nama lain.'); return; } const id = crypto.randomUUID(); const next = { boards: [...boards.boards, { id, name }], activeId: id }; if (persist(() => { saveBoards(next); setBoards(next); })) setCreatingBoard(false); else setBoardError('Papan belum tersimpan. Periksa penyimpanan browser.'); }}><div className="dialog-body"><label>Nama papan<input autoFocus required maxLength={60} value={boardName} onChange={event => setBoardName(event.target.value)} placeholder="Contoh: Tim Abyss" /></label>{boardError && <p className="message error" role="alert">{boardError}</p>}<p className="help-text">Setiap papan memiliki kartu sendiri. Data tetap tersimpan di browser ini.</p></div><div className="dialog-footer"><button type="button" className="button secondary" onClick={() => setCreatingBoard(false)}>Batal</button><button className="button primary" disabled={!boardName.trim()}>Buat papan</button></div></form></Dialog>}
-    {adding && <AddCharacterModal onClose={() => setAdding(false)} onAddCard={card => persist(() => updateCards([...cards, { ...card, boardId: boards.activeId }]))} />}
-    {selected && <CharacterDetailModal key={selected.id} card={selected} onClose={() => setSelected(null)} onSave={card => persist(() => updateCards(cards.map(item => item.id === card.id ? card : item)))} onDelete={id => persist(() => updateCards(cards.filter(item => item.id !== id)))} />}
+    {columnDialog && <Dialog title={columnDialog === 'new' ? 'Tambah kolom' : 'Ganti nama kolom'} onClose={() => setColumnDialog(null)}><form onSubmit={event => { event.preventDefault(); saveColumn(); }}><div className="dialog-body"><label>Nama kolom<input autoFocus required maxLength={40} value={columnName} onChange={event => setColumnName(event.target.value)} placeholder="Contoh: Nunggu material" /></label>{columnError && <p className="message error" role="alert">{columnError}</p>}<p className="help-text">Kolom ini hanya muncul di papan yang aktif. Tiga kolom bawaan tidak bisa dihapus.</p></div><div className="dialog-footer"><button type="button" className="button secondary" onClick={() => setColumnDialog(null)}>Batal</button><button className="button primary" disabled={!columnName.trim()}>{columnDialog === 'new' ? 'Buat kolom' : 'Simpan nama'}</button></div></form></Dialog>}
+    {adding && <AddCharacterModal stages={stages} onClose={() => setAdding(false)} onAddCard={card => persist(() => updateCards([...cards, { ...card, boardId: boards.activeId }]))} />}
+    {selected && <CharacterDetailModal key={selected.id} card={selected} stages={stages} onClose={() => setSelected(null)} onSave={card => persist(() => updateCards(cards.map(item => item.id === card.id ? card : item)))} onDelete={id => persist(() => updateCards(cards.filter(item => item.id !== id)))} />}
   </div>;
 }

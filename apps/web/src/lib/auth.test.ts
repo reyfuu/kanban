@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { hashPassword, readSession, signSession, validUsername, verifyPassword } from './auth';
+import { hashPassword, readSession, signSession, validPassword, validUsername, verifyPassword } from './auth';
 
 beforeAll(() => { process.env.SESSION_SECRET = 'x'.repeat(32); });
 
@@ -23,5 +23,11 @@ describe('Akun', () => {
   it('membatasi format username', () => {
     expect(validUsername('aino_fan')).toBe(true);
     expect(['ab', 'Aino', 'a.b', 'x'.repeat(31)].some(validUsername)).toBe(false);
+  });
+
+  it('membatasi panjang kata sandi', () => {
+    expect(validPassword('x'.repeat(8))).toBe(true);
+    expect(validPassword('x'.repeat(200))).toBe(true);
+    expect(['x'.repeat(7), 'x'.repeat(201), ''].some(validPassword)).toBe(false);
   });
 });
