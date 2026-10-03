@@ -19,7 +19,7 @@ export const BOARD_GROUPS: { title: string; description: string; stage: KanbanSt
 export const MAX_COLUMNS = 12;
 
 export interface BoardColumn { id: string; title: string }
-export interface Board { id: string; name: string; columns?: BoardColumn[]; columnOrder?: string[] }
+export interface Board { id: string; name: string; columns?: BoardColumn[]; columnOrder?: string[]; columnTitles?: Record<string, string>; hiddenColumns?: string[] }
 export interface BoardState { boards: Board[]; activeId: string }
 export const DEFAULT_BOARDS: BoardState = { boards: [{ id: 'main', name: 'Papan utama' }], activeId: 'main' };
 
@@ -35,11 +35,22 @@ function validColumns(value: unknown) {
 }
 
 // Urutan kolom pilihan pemain: id yang tidak dikenal diabaikan, yang belum terdaftar tetap di urutan aslinya.
-function validColumnOrder(value: unknown) {
+// Dipakai juga untuk daftar kolom bawaan yang disembunyikan pemain.
+function validStageList(value: unknown, max: number) {
   if (value === undefined) return true;
-  if (!Array.isArray(value) || value.length > BOARD_GROUPS.length + MAX_COLUMNS) return false;
+  if (!Array.isArray(value) || value.length > max) return false;
   return value.every(stage => typeof stage === 'string' && !!stage && stage.length <= 200)
     && new Set(value).size === value.length;
+}
+
+// Nama kolom bawaan yang diganti pemain; kolom buatan menyimpan namanya sendiri di columns.
+function validColumnTitles(value: unknown) {
+  if (value === undefined) return true;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const titles = Object.entries(value as Record<string, unknown>);
+  return titles.length <= BOARD_GROUPS.length
+    && titles.every(([stage, title]) => !!stage && stage.length <= 200
+      && typeof title === 'string' && !!title.trim() && title.length <= 40);
 }
 
 export function isBoardState(value: unknown): value is BoardState {
@@ -48,7 +59,9 @@ export function isBoardState(value: unknown): value is BoardState {
   return Array.isArray(state.boards) && state.boards.length > 0 && state.boards.length <= 50
     && state.boards.every(board => board && typeof board.id === 'string' && !!board.id && board.id.length <= 200
       && typeof board.name === 'string' && !!board.name.trim() && board.name.length <= 60
-      && validColumns(board.columns) && validColumnOrder(board.columnOrder))
+      && validColumns(board.columns) && validColumnTitles(board.columnTitles)
+      && validStageList(board.columnOrder, BOARD_GROUPS.length + MAX_COLUMNS)
+      && validStageList(board.hiddenColumns, BOARD_GROUPS.length))
     && new Set(state.boards.map(board => board.id)).size === state.boards.length
     && state.boards.some(board => board.id === 'main') && state.boards.some(board => board.id === state.activeId);
 }
@@ -60,8 +73,10 @@ export function cardsOnBoard(cards: UserCard[], boardId: string) {
 export interface BoardColumnView { title: string; description: string; stage: string; stages: string[]; custom: boolean }
 
 export function columnsFor(board: Board | undefined): BoardColumnView[] {
+  const hidden = board?.hiddenColumns ?? [];
   const all: BoardColumnView[] = [
-    ...BOARD_GROUPS.map(group => ({ ...group, custom: false })),
+    ...BOARD_GROUPS.filter(group => !hidden.includes(group.stage))
+      .map(group => ({ ...group, title: board?.columnTitles?.[group.stage] ?? group.title, custom: false })),
     ...(board?.columns ?? []).map(column => ({ title: column.title, description: 'Kolom buatanmu', stage: column.id, stages: [column.id], custom: true })),
   ];
   const order = board?.columnOrder ?? [];
@@ -73,8 +88,8 @@ export function stageOptions(board: Board | undefined): { id: string; label: str
   return [...STAGES, ...(board?.columns ?? []).map(column => ({ id: column.id, label: column.title }))];
 }
 
-export function setColumns(boards: BoardState, boardId: string, columns: BoardColumn[]): BoardState {
-  return { ...boards, boards: boards.boards.map(board => board.id === boardId ? { ...board, columns } : board) };
+export function patchBoard(boards: BoardState, boardId: string, patch: Partial<Board>): BoardState {
+  return { ...boards, boards: boards.boards.map(board => board.id === boardId ? { ...board, ...patch } : board) };
 }
 
 // Kolom yang diseret menempati posisi kolom tujuan; sisanya bergeser, bukan ditukar.
@@ -87,18 +102,23 @@ export function reorderColumns(order: string[], fromStage: string, toStage: stri
   return next;
 }
 
-export function setColumnOrder(boards: BoardState, boardId: string, columnOrder: string[]): BoardState {
-  return { ...boards, boards: boards.boards.map(board => board.id === boardId ? { ...board, columnOrder } : board) };
-}
-
-// Kolom yang dihapus mengembalikan kartunya ke antrean, supaya tidak ada kartu yang hilang dari papan.
+// Kolom yang dihapus memindahkan kartunya ke kolom pertama yang tersisa, supaya tidak ada kartu yang hilang.
+// Kolom buatan dibuang dari daftar; kolom bawaan hanya disembunyikan supaya masih bisa dipulihkan.
+// Kolom terakhir tidak boleh dihapus: papan tanpa kolom tidak bisa menampung kartu.
 export function removeColumn(boards: BoardState, cards: UserCard[], boardId: string, columnId: string): { boards: BoardState; cards: UserCard[] } {
   const board = boards.boards.find(item => item.id === boardId);
-  const kept = (board?.columns ?? []).filter(column => column.id !== columnId);
-  const pruned = setColumns(boards, boardId, kept);
+  const columns = columnsFor(board);
+  const gone = columns.find(column => column.stage === columnId);
+  const target = columns.find(column => column.stage !== columnId);
+  if (!gone || !target) return { boards, cards };
   return {
-    boards: board?.columnOrder ? setColumnOrder(pruned, boardId, board.columnOrder.filter(stage => stage !== columnId)) : pruned,
-    cards: cards.map(card => card.stage === columnId ? { ...card, stage: 'BACKLOG', updatedAt: Date.now() } : card),
+    boards: patchBoard(boards, boardId, {
+      ...(gone.custom
+        ? { columns: (board?.columns ?? []).filter(column => column.id !== columnId) }
+        : { hiddenColumns: [...(board?.hiddenColumns ?? []), columnId] }),
+      ...(board?.columnOrder ? { columnOrder: board.columnOrder.filter(stage => stage !== columnId) } : {}),
+    }),
+    cards: cards.map(card => gone.stages.includes(card.stage) ? { ...card, stage: target.stage, updatedAt: Date.now() } : card),
   };
 }
 

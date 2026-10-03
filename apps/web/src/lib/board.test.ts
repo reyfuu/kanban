@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { BOARD_GROUPS, MAX_COLUMNS, STAGES, columnsFor, isBoardState, moveCard, removeColumn, reorderColumns, setColumnOrder, stageOptions } from './board';
+import { BOARD_GROUPS, MAX_COLUMNS, STAGES, columnsFor, isBoardState, moveCard, patchBoard, removeColumn, reorderColumns, stageOptions } from './board';
 import { parseBackup } from './backup';
 import { INITIAL_DEMO_CARDS, INITIAL_ROUTINE, INITIAL_STAMINA, loadCards, restoreBackup } from './storage';
 
@@ -111,7 +111,7 @@ describe('Urutan kolom', () => {
 
   it('menyimpan urutan tanpa mengubah papan lama', () => {
     const boards = { boards: [board], activeId: 'main' };
-    const next = setColumnOrder(boards, 'main', ['READY', 'BACKLOG']);
+    const next = patchBoard(boards, 'main', { columnOrder: ['READY', 'BACKLOG'] });
     expect(next.boards[0]?.columnOrder).toEqual(['READY', 'BACKLOG']);
     expect(boards.boards[0]).not.toHaveProperty('columnOrder');
   });
@@ -142,5 +142,67 @@ describe('Urutan kolom', () => {
     expect(reorderColumns(order, 'READY', 'READY')).toBe(order);
     expect(reorderColumns(order, 'kolom-hilang', 'READY')).toBe(order);
     expect(reorderColumns(order, 'READY', 'kolom-hilang')).toBe(order);
+  });
+});
+
+describe('Nama kolom bawaan', () => {
+  const board = { id: 'main', name: 'Papan utama', columnTitles: { BACKLOG: 'Antre dulu' } };
+
+  it('memakai nama pengganti pemain untuk kolom bawaan', () => {
+    expect(columnsFor(board).map(item => item.title)).toEqual(['Antre dulu', 'Dalam proses', 'Selesai']);
+    expect(columnsFor(board)[0]).toMatchObject({ stage: 'BACKLOG', stages: ['WISHLIST', 'BACKLOG'], custom: false });
+  });
+
+  it('tidak mengubah label tahap di pilihan kartu', () => {
+    expect(stageOptions(board)).toEqual(STAGES);
+  });
+
+  it('menolak nama kosong, terlalu panjang, atau bukan objek', () => {
+    const reject = (columnTitles: unknown) => isBoardState({ boards: [{ ...board, columnTitles }], activeId: 'main' });
+    expect(reject({ BACKLOG: 'Antre dulu' })).toBe(true);
+    expect(reject(undefined)).toBe(true);
+    expect(reject({ BACKLOG: '  ' })).toBe(false);
+    expect(reject({ BACKLOG: 'x'.repeat(41) })).toBe(false);
+    expect(reject({ BACKLOG: 5 })).toBe(false);
+    expect(reject(['BACKLOG'])).toBe(false);
+    expect(reject(Object.fromEntries(Array.from({ length: BOARD_GROUPS.length + 1 }, (_, index) => [`stage-${index}`, 'Nama'])))).toBe(false);
+  });
+
+  it('nama pengganti ikut tersimpan dan terbaca ulang dari backup', () => {
+    const boards = { boards: [board], activeId: 'main' };
+    expect(parseBackup(JSON.stringify({ ...backup, cards: [], boards })).boards?.boards[0]?.columnTitles).toEqual({ BACKLOG: 'Antre dulu' });
+  });
+});
+
+describe('Menghapus kolom bawaan', () => {
+  const boards = { boards: [{ id: 'main', name: 'Papan utama' }], activeId: 'main' };
+  const card = (stage: string) => ({ ...INITIAL_DEMO_CARDS[0]!, id: `kartu-${stage}`, stage });
+
+  it('menyembunyikan kolom bawaan dan memindahkan semua tahapnya ke kolom pertama yang tersisa', () => {
+    const cards = [card('WISHLIST'), card('BACKLOG'), card('READY')];
+    const next = removeColumn(boards, cards, 'main', 'BACKLOG');
+    expect(next.boards.boards[0]?.hiddenColumns).toEqual(['BACKLOG']);
+    expect(columnsFor(next.boards.boards[0]).map(item => item.title)).toEqual(['Dalam proses', 'Selesai']);
+    expect(next.cards.map(item => item.stage)).toEqual(['LEVELING', 'LEVELING', 'READY']);
+    expect(cards.map(item => item.stage)).toEqual(['WISHLIST', 'BACKLOG', 'READY']);
+  });
+
+  it('menolak menghapus kolom terakhir', () => {
+    const only = { boards: [{ id: 'main', name: 'Papan utama', hiddenColumns: ['BACKLOG', 'LEVELING'] }], activeId: 'main' };
+    expect(removeColumn(only, [], 'main', 'READY')).toEqual({ boards: only, cards: [] });
+  });
+
+  it('memulihkan kolom bawaan saat daftar sembunyi dikosongkan', () => {
+    const hidden = { id: 'main', name: 'Papan utama', hiddenColumns: ['READY'] };
+    expect(columnsFor(hidden)).toHaveLength(2);
+    expect(columnsFor(patchBoard({ boards: [hidden], activeId: 'main' }, 'main', { hiddenColumns: [] }).boards[0])).toHaveLength(3);
+  });
+
+  it('menolak daftar sembunyi yang ganda atau terlalu panjang', () => {
+    const reject = (hiddenColumns: unknown) => isBoardState({ boards: [{ id: 'main', name: 'Papan utama', hiddenColumns }], activeId: 'main' });
+    expect(reject(['READY'])).toBe(true);
+    expect(reject(undefined)).toBe(true);
+    expect(reject(['READY', 'READY'])).toBe(false);
+    expect(reject(Array.from({ length: BOARD_GROUPS.length + 1 }, (_, index) => `stage-${index}`))).toBe(false);
   });
 });

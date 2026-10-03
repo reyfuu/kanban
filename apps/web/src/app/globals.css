@@ -82,6 +82,8 @@ svg { flex-shrink: 0; }
 .search-field input { background: transparent; border: 0; min-width: 0; width: 100%; outline: 0; color: var(--foreground); padding: 10px 0; font-size: 13px; }
 .board-toolbar .search-field { max-width: 240px; }
 .board-caption { display: flex; justify-content: space-between; padding: 24px 0; font-size: 12px; color: var(--muted); }
+.board-scroll-top { overflow-x: auto; overflow-y: hidden; margin-bottom: 10px; }
+.board-scroll-top > div { height: 1px; }
 .kanban-board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 1fr); gap: 20px; overflow-x: auto; padding-bottom: 4px; }
 .kanban-column { min-width: 0; padding: 0 0 16px; border-radius: 8px; }
 .kanban-column.drop-active { outline: 1px dashed var(--accent); background: #1c291d; }
