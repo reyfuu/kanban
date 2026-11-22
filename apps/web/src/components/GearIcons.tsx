@@ -1,6 +1,43 @@
 'use client';
 
+import { useState } from 'react';
+import Image from 'next/image';
+import gearIcons from '../data/gearIcons.json';
 import type { GameType } from '../types/kanban';
+
+const ICON_MAP = gearIcons as Record<string, string>;
+
+export function normalizeGearName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[\u2018\u2019`]/g, "'")
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+export function resolveWeaponIcon(name: string): string | undefined {
+  for (const part of name.split(' / ')) {
+    const found = ICON_MAP[normalizeGearName(part)];
+    if (found) return found;
+  }
+  return undefined;
+}
+
+export function resolveArtifactIcons(setName: string): { label: string; src: string }[] {
+  const cleaned = setName.replace(/\([^)]*\)/g, '');
+  const results: { label: string; src: string }[] = [];
+  const seen = new Set<string>();
+  for (const part of cleaned.split(/\s*(?:\+|\/)\s*/)) {
+    const label = part.replace(/^(?:4pc|2pc)\s+/i, '').trim();
+    if (!label) continue;
+    const src = ICON_MAP[normalizeGearName(label)];
+    if (src && !seen.has(src)) {
+      seen.add(src);
+      results.push({ label, src });
+    }
+  }
+  return results;
+}
 
 function rarityClass(rarity: string) {
   const r = rarity.toUpperCase();
@@ -10,85 +47,83 @@ function rarityClass(rarity: string) {
 }
 
 export function WeaponIcon({
+  name,
   game,
   weaponType,
   rarity,
 }: {
+  name: string;
   game: GameType;
   weaponType: string;
   rarity: string;
 }) {
+  const [failed, setFailed] = useState(false);
+  const src = resolveWeaponIcon(name);
   const type = weaponType.toLowerCase();
+
   return (
-    <span className={`gear-icon ${rarityClass(rarity)}`} aria-hidden="true">
-      {game === 'ZENLESS_ZONE_ZERO' ? (
-        // ZZZ W-Engine iconic spherical core + outer ring
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <span className={`gear-icon ${rarityClass(rarity)}`} title={name}>
+      {src && !failed ? (
+        <Image src={src} alt={name} fill sizes="44px" onError={() => setFailed(true)} />
+      ) : game === 'ZENLESS_ZONE_ZERO' ? (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="8.5" />
           <circle cx="12" cy="12" r="3.5" />
           <path d="M12 3.5v2.5 M12 18v2.5 M3.5 12H6 M18 12h2.5" />
-          <path d="M7.5 7.5 9.2 9.2 M14.8 14.8 16.5 16.5" />
         </svg>
       ) : type === 'claymore' ? (
-        // Broadsword / Claymore
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M19.5 4.5 17 11l-6 6-3-3 6-6 5.5-3.5Z" />
-          <path d="M7.5 13.5 10.5 16.5" />
-          <path d="M5 19l3.5-3.5 M4 16.5 7.5 20" />
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M19.5 4.5 17 11l-6 6-3-3 6-6 5.5-3.5Z M7.5 13.5 10.5 16.5 M5 19l3.5-3.5" />
         </svg>
       ) : type === 'polearm' ? (
-        // Spear / Polearm
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 20 16 8" />
-          <path d="M14 6l6-2-2 6-4-4Z" />
-          <path d="M12.5 9.5 14.5 11.5" />
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M4 20 16 8 M14 6l6-2-2 6-4-4Z" />
         </svg>
       ) : type === 'bow' ? (
-        // Bow + Arrow
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 18C5 11 11 5 18 6" />
-          <path d="M6 18 18 6" />
-          <path d="M10 14 19 5 M15 5h4v4" />
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M6 18C5 11 11 5 18 6 M6 18 18 6 M10 14 19 5" />
         </svg>
       ) : type === 'catalyst' ? (
-        // Catalyst Tome / Orb
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v16H7.5A2.5 2.5 0 0 0 5 21V5.5Z" />
-          <path d="M5 18.5A2.5 2.5 0 0 1 7.5 16H19" />
           <circle cx="12.5" cy="9.5" r="2" />
         </svg>
       ) : (
-        // Sword (default Genshin)
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M19.5 4.5 18 9l-8 8-3-3 8-8 4.5-1.5Z" />
-          <path d="M6.5 13.5 10.5 17.5" />
-          <path d="M4.5 19.5 8 16" />
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M19.5 4.5 18 9l-8 8-3-3 8-8 4.5-1.5Z M6.5 13.5 10.5 17.5 M4.5 19.5 8 16" />
         </svg>
       )}
     </span>
   );
 }
 
-export function ArtifactSetIcon({ game }: { game: GameType }) {
+export function ArtifactSetIcon({ setName, game, maxIcons = 2 }: { setName: string; game: GameType; maxIcons?: number }) {
+  const icons = resolveArtifactIcons(setName).slice(0, maxIcons);
+  if (icons.length === 0) {
+    return (
+      <span className="gear-icon rarity-gold" aria-hidden="true">
+        {game === 'ZENLESS_ZONE_ZERO' ? (
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="9" />
+            <circle cx="12" cy="12" r="2.5" />
+          </svg>
+        ) : (
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="2.5" />
+            <path d="M12 3.5c2 2.2 2 4.3 0 6-2-1.7-2-3.8 0-6Z M12 20.5c2-2.2 2-4.3 0-6-2 1.7-2 3.8 0 6Z" />
+          </svg>
+        )}
+      </span>
+    );
+  }
+
   return (
-    <span className="gear-icon rarity-gold" aria-hidden="true">
-      {game === 'ZENLESS_ZONE_ZERO' ? (
-        // ZZZ Drive Disc (vinyl disc with grooves & center hole)
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="9" />
-          <circle cx="12" cy="12" r="2.5" />
-          <path d="M7.8 7.8a6 6 0 0 1 6.4-1.3 M16.2 16.2a6 6 0 0 1-6.4 1.3" />
-        </svg>
-      ) : (
-        // Genshin Artifact Relic Flower
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="2.5" />
-          <path d="M12 3.5c2 2.2 2 4.3 0 6-2-1.7-2-3.8 0-6Z" />
-          <path d="M12 20.5c2-2.2 2-4.3 0-6-2 1.7-2 3.8 0 6Z" />
-          <path d="M3.5 12c2.2-2 4.3-2 6 0-1.7 2-3.8 2-6 0Z" />
-          <path d="M20.5 12c-2.2-2-4.3-2-6 0 1.7 2 3.8 2 6 0Z" />
-        </svg>
-      )}
+    <span className="gear-icon-stack">
+      {icons.map(item => (
+        <span key={item.src} className="gear-icon rarity-gold" title={item.label}>
+          <Image src={item.src} alt={item.label} fill sizes="44px" />
+        </span>
+      ))}
     </span>
   );
 }
@@ -116,7 +151,6 @@ export function SlotIcon({ label }: { label: string }) {
       </svg>
     );
   }
-  // ZZZ Disc 4 / 5 / 6
   return (
     <svg className="slot-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="8" />

@@ -69,7 +69,7 @@ export function CharacterDetailModal({ card, stages, onClose, onSave, onDelete }
               {guide.weapons.map(weapon => {
                 const selected = form.equipment.name.trim().toLowerCase() === weapon.name.toLowerCase();
                 return <li key={weapon.name} className={`guide-weapon-item ${weapon.tier === 'F2P' ? 'is-f2p' : ''}`}>
-                  <WeaponIcon game={card.game} weaponType={meta.weaponOrSpecialty} rarity={weapon.rarity} />
+                  <WeaponIcon name={weapon.name} game={card.game} weaponType={meta.weaponOrSpecialty} rarity={weapon.rarity} />
                   <div className="guide-weapon-body">
                     <div className="guide-weapon-top">
                       <span className="guide-weapon-name">
@@ -91,10 +91,10 @@ export function CharacterDetailModal({ card, stages, onClose, onSave, onDelete }
             <h3>{genshin ? 'Build Artifact' : 'Build Drive Disc'}</h3>
             <div className="guide-gear-box">
               <div className="guide-gear-head">
-                <ArtifactSetIcon game={card.game} />
+                <ArtifactSetIcon setName={guide.gearSet} game={card.game} />
                 <div>
                   <p><strong>Set utama:</strong> {guide.gearSet}</p>
-                  {guide.gearAlt && <p className="muted"><strong>Alternatif:</strong> {guide.gearAlt}</p>}
+                  {guide.gearAlt && <div className="guide-gear-alt"><ArtifactSetIcon setName={guide.gearAlt} game={card.game} maxIcons={1} /><p className="muted"><strong>Alternatif:</strong> {guide.gearAlt}</p></div>}
                 </div>
               </div>
               <div className="guide-stat-grid">

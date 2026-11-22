@@ -40,8 +40,8 @@ export function AddCharacterModal({ stages, onClose, onAddCard }: { stages: { id
         {!characters.length && <p className="empty-inline">Karakter tidak ditemukan. Coba nama lain.</p>}
         {guide && f2pWeapon && character && <div className="picker-preview">
           <div className="picker-preview-head"><span className="guide-badge tier-f2p">Rekomendasi F2P</span><strong>{guide.role}</strong></div>
-          <div className="picker-preview-row"><WeaponIcon game={character.game} weaponType={character.weaponOrSpecialty} rarity={f2pWeapon.rarity} /><span><span className="muted">{character.game === 'GENSHIN_IMPACT' ? 'Senjata:' : 'W-Engine:'}</span> <strong>{f2pWeapon.name}</strong> <span className="muted">({f2pWeapon.source})</span></span></div>
-          <div className="picker-preview-row"><ArtifactSetIcon game={character.game} /><span><span className="muted">Build:</span> {guide.gearSet}</span></div>
+          <div className="picker-preview-row"><WeaponIcon name={f2pWeapon.name} game={character.game} weaponType={character.weaponOrSpecialty} rarity={f2pWeapon.rarity} /><span><span className="muted">{character.game === 'GENSHIN_IMPACT' ? 'Senjata:' : 'W-Engine:'}</span> <strong>{f2pWeapon.name}</strong> <span className="muted">({f2pWeapon.source})</span></span></div>
+          <div className="picker-preview-row"><ArtifactSetIcon setName={guide.gearSet} game={character.game} maxIcons={1} /><span><span className="muted">Build:</span> {guide.gearSet}</span></div>
           {f2pTeam && <p><span className="muted">Tim F2P:</span> {f2pTeam.members.join(' · ')}</p>}
           <label className="checkbox-row"><input type="checkbox" checked={applyF2P} onChange={event => setApplyF2P(event.target.checked)} />Isi otomatis target senjata &amp; gear dengan rekomendasi F2P</label>
         </div>}
