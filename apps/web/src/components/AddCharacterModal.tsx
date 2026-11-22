@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { GameType, PriorityLevel, UserCard } from '../types/kanban';
 import { CHARACTERS_DATABASE } from '../data/characters';
 import { formatSubStatsSummary, getCharacterBuildGuide, getPrimaryF2PWeapon } from '../data/buildGuides';
+import { ArtifactSetIcon, WeaponIcon } from './GearIcons';
 import { Avatar, Dialog, Icon } from './ui';
 
 export function AddCharacterModal({ stages, onClose, onAddCard }: { stages: { id: string; label: string }[]; onClose: () => void; onAddCard: (card: UserCard) => boolean }) {
@@ -37,10 +38,10 @@ export function AddCharacterModal({ stages, onClose, onAddCard }: { stages: { id
         <div className="picker-toolbar"><label className="search-field"><Icon name="search" /><span className="sr-only">Cari karakter</span><input autoFocus value={search} onChange={event => setSearch(event.target.value)} placeholder="Cari karakter..." /></label><label><span className="sr-only">Filter game</span><select value={game} onChange={event => { setGame(event.target.value as GameType | 'ALL'); setSelected(''); }}><option value="ALL">Semua game</option><option value="GENSHIN_IMPACT">Genshin Impact</option><option value="ZENLESS_ZONE_ZERO">Zenless Zone Zero</option></select></label></div>
         <div className="character-picker" role="group" aria-label="Pilih karakter">{characters.map(item => <button type="button" key={item.id} className={`picker-item ${selected === item.id ? 'selected' : ''}`} aria-pressed={selected === item.id} onClick={() => setSelected(item.id)}><Avatar name={item.name} src={item.avatarUrl} /><span><strong>{item.name}</strong><small>{item.element} / {item.game === 'GENSHIN_IMPACT' ? 'Genshin' : 'ZZZ'}</small></span>{selected === item.id && <Icon name="check" size={16} />}</button>)}</div>
         {!characters.length && <p className="empty-inline">Karakter tidak ditemukan. Coba nama lain.</p>}
-        {guide && f2pWeapon && <div className="picker-preview">
+        {guide && f2pWeapon && character && <div className="picker-preview">
           <div className="picker-preview-head"><span className="guide-badge tier-f2p">Rekomendasi F2P</span><strong>{guide.role}</strong></div>
-          <p><span className="muted">{character?.game === 'GENSHIN_IMPACT' ? 'Senjata' : 'W-Engine'}:</span> <strong>{f2pWeapon.name}</strong> ({f2pWeapon.source})</p>
-          <p><span className="muted">Build:</span> {guide.gearSet}</p>
+          <div className="picker-preview-row"><WeaponIcon game={character.game} weaponType={character.weaponOrSpecialty} rarity={f2pWeapon.rarity} /><span><span className="muted">{character.game === 'GENSHIN_IMPACT' ? 'Senjata:' : 'W-Engine:'}</span> <strong>{f2pWeapon.name}</strong> <span className="muted">({f2pWeapon.source})</span></span></div>
+          <div className="picker-preview-row"><ArtifactSetIcon game={character.game} /><span><span className="muted">Build:</span> {guide.gearSet}</span></div>
           {f2pTeam && <p><span className="muted">Tim F2P:</span> {f2pTeam.members.join(' · ')}</p>}
           <label className="checkbox-row"><input type="checkbox" checked={applyF2P} onChange={event => setApplyF2P(event.target.checked)} />Isi otomatis target senjata &amp; gear dengan rekomendasi F2P</label>
         </div>}

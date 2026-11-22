@@ -60,7 +60,8 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Raiden National (F2P)', 'F2P', ['Raiden Shogun', 'Xiangling', 'Xingqiu', 'Bennett'], 'Tim paling konsisten, semua rekan 4★ mudah dibangun.'],
-      ['Raiden Overload', 'META', ['Raiden Shogun', 'Chevreuse', 'Xiangling', 'Bennett'], 'Resonansi Pyro + shred Chevreuse untuk burst tinggi.'],
+      ['Raiden Chevreuse Overload', 'META', ['Raiden Shogun', 'Kujou Sara', 'Chevreuse', 'Bennett'], 'Meta Overload modern: C6 Sara + 40% shred Chevreuse untuk burst tertinggi.'],
+      ['Raiden Double Hydro Taser', 'META', ['Raiden Shogun', 'Furina', 'Yelan', 'Xilonen'], 'Alternatif meta DPS stabil tanpa terikat lingkaran Bennett.'],
     ],
   },
   furina: {
@@ -94,7 +95,8 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Neuvillette F2P', 'F2P', ['Neuvillette', 'Fischl', 'Sucrose', 'Layla'], '3 reaksi Hydro berbeda untuk pasif + perisai nyaman.'],
-      ['Neuvillette Premium', 'META', ['Neuvillette', 'Furina', 'Kaedehara Kazuha', 'Xilonen'], 'Double Hydro + double shred untuk DPS konsisten.'],
+      ['Neuvillette Hypercarry', 'META', ['Neuvillette', 'Furina', 'Kaedehara Kazuha', 'Xilonen'], 'Tim meta #1 Neuvillette: Double Hydro + double shred VV & Xilonen.'],
+      ['Neuvillette Escoffier Freeze', 'META', ['Neuvillette', 'Furina', 'Escoffier', 'Citlali'], 'Varian meta Freeze modern dengan 55% shred Cryo/Hydro Escoffier.'],
     ],
   },
   arlecchino: {
@@ -111,7 +113,8 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Arlecchino Vape F2P', 'F2P', ['Arlecchino', 'Xingqiu', 'Sucrose', 'Bennett'], 'Xingqiu memberi Hydro + damage reduction saat tidak bisa di-heal.'],
-      ['Arlecchino Melt', 'META', ['Arlecchino', 'Citlali', 'Xilonen', 'Bennett'], 'Forward Melt + perisai Cryo untuk damage puncak.'],
+      ['Arlecchino Forward Melt', 'META', ['Arlecchino', 'Citlali', 'Xilonen', 'Bennett'], 'Ceiling DPS tertinggi di TC: Forward Melt + perisai Cryo Citlali.'],
+      ['Arlecchino Chevreuse Overload', 'META', ['Arlecchino', 'Fischl', 'Chevreuse', 'Bennett'], 'Varian meta paling mudah dimainkan tanpa perlu setup aura Melt.'],
     ],
   },
   mavuika: {
@@ -128,7 +131,8 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Mavuika Overload F2P', 'F2P', ['Mavuika', 'Ororon', 'Chevreuse', 'Bennett'], 'Ororon mengisi Fighting Spirit dengan cepat + buff Chevreuse.'],
-      ['Mavuika Melt Meta', 'META', ['Mavuika', 'Citlali', 'Xilonen', 'Bennett'], 'Nuke Melt tertinggi & pengisian Fighting Spirit instan.'],
+      ['Mavuika Premium Melt', 'META', ['Mavuika', 'Citlali', 'Xilonen', 'Bennett'], 'Tim meta #1 Mavuika: Nuke Forward Melt + Fighting Spirit instan.'],
+      ['Mavuika Double Hydro / Vape', 'META', ['Mavuika', 'Furina', 'Xilonen', 'Bennett'], 'Alternatif meta Vaporize konsisten bila Citlali dipakai tim lain.'],
     ],
   },
   xilonen: {
@@ -312,7 +316,8 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Hu Tao Vape F2P', 'F2P', ['Hu Tao', 'Xingqiu', 'Sucrose', 'Layla'], 'Vaporize konsisten dengan perisai Cryo untuk sesekali Melt.'],
-      ['Hu Tao Furina Plunge', 'META', ['Hu Tao', 'Furina', 'Yelan', 'Xianyun'], 'Double Hydro + Plunge + 4pc Marechaussee Hunter.'],
+      ['Hu Tao Furina Xilonen', 'META', ['Hu Tao', 'Furina', 'Yelan', 'Xilonen'], 'Tim meta #1 Hu Tao modern: Double Hydro + shred Xilonen & Fanfare cepat.'],
+      ['Hu Tao Furina Plunge', 'META', ['Hu Tao', 'Furina', 'Yelan', 'Xianyun'], 'Alternatif meta Plunge sangat nyaman untuk Hu Tao C0.'],
     ],
   },
   yelan: {
@@ -379,7 +384,8 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Clorinde Aggravate F2P', 'F2P', ['Clorinde', 'Fischl', 'Kirara', 'Sucrose'], 'Aplikasi Electro sangat cepat memicu pasif Fischl.'],
-      ['Clorinde Overload Meta', 'META', ['Clorinde', 'Mavuika', 'Chevreuse', 'Fischl'], 'Buff Chevreuse + burst Mavuika tanpa perlu Dendro.'],
+      ['Clorinde Mavuika Overload', 'META', ['Clorinde', 'Mavuika', 'Chevreuse', 'Iansan'], 'Meta ceiling tertinggi Clorinde di TC: Overload + buff ATK Iansan & shred Chevreuse.'],
+      ['Clorinde Aggravate Premium', 'META', ['Clorinde', 'Fischl', 'Nahida', 'Kaedehara Kazuha'], 'Alternatif meta Aggravate terbaik untuk AoE & multi-wave.'],
     ],
   },
   navia: {
@@ -396,7 +402,8 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Navia Double Pyro F2P', 'F2P', ['Navia', 'Kachina', 'Xiangling', 'Bennett'], 'Kachina memakai Cinder City + menghasilkan shard Crystallize.'],
-      ['Navia Xilonen Meta', 'META', ['Navia', 'Xilonen', 'Furina', 'Bennett'], 'Shred Geo + buff DMG maksimal untuk tembakan Skill.'],
+      ['Navia Mavuika Xilonen', 'META', ['Navia', 'Xilonen', 'Mavuika', 'Bennett'], 'Meta #1 Navia: Mavuika off-field + shred Geo Xilonen + double Pyro.'],
+      ['Navia Furina Xilonen', 'META', ['Navia', 'Xilonen', 'Furina', 'Bennett'], 'Varian meta Hydro Crystallize + Fanfare Furina.'],
     ],
   },
   'kamisato-ayaka': {
@@ -428,7 +435,7 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Mualani Vape F2P', 'F2P', ['Mualani', 'Xiangling', 'Sucrose', 'Kachina'], 'Kachina Cinder City + Xiangling Pyro untuk gigitan Vape besar.'],
-      ['Mualani Burnvape Meta', 'META', ['Mualani', 'Mavuika', 'Xilonen', 'Nahida'], 'Buff EM Nahida + shred Xilonen + Pyro cepat Mavuika.'],
+      ['Mualani Mavuika Xilonen', 'META', ['Mualani', 'Mavuika', 'Xilonen', 'Sucrose'], 'Tim meta #1 Mualani (speedrun/TC): share EM + VV Sucrose + Cinder City Xilonen.'],
     ],
   },
   kinich: {
@@ -477,7 +484,8 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Varesa Overload F2P', 'F2P', ['Varesa', 'Iansan', 'Chevreuse', 'Xiangling'], 'Iansan & Chevreuse memberi buff ATK + Electro/Pyro shred besar.'],
-      ['Varesa Hypercarry', 'META', ['Varesa', 'Iansan', 'Xianyun', 'Furina'], 'Buff Plunge Xianyun + Fanfare Furina.'],
+      ['Varesa Mavuika Overload', 'META', ['Varesa', 'Iansan', 'Chevreuse', 'Mavuika'], 'Tim meta #1 Varesa di TC: rotasi super cepat + burst sub-DPS Mavuika.'],
+      ['Varesa Furina Xianyun', 'META', ['Varesa', 'Iansan', 'Xianyun', 'Furina'], 'Alternatif meta Hypercarry Plunge dengan buff Xianyun & Fanfare Furina.'],
     ],
   },
   escoffier: {
@@ -595,7 +603,8 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Ganyu Melt F2P', 'F2P', ['Ganyu', 'Xiangling', 'Bennett', 'Layla'], 'Perisai Layla melindungi Charged Shot tanpa terputus.'],
-      ['Ganyu Burnmelt', 'META', ['Ganyu', 'Nahida', 'Bennett', 'Zhongli'], 'Burning menjaga aura Pyro konsisten dari jarak jauh.'],
+      ['Ganyu Burnmelt', 'META', ['Ganyu', 'Emilie', 'Mavuika', 'Bennett'], 'Meta Burnmelt modern: aura Burning stabil + damage off-field Emilie & Mavuika.'],
+      ['Ganyu Escoffier Freeze', 'META', ['Ganyu', 'Escoffier', 'Furina', 'Shenhe'], 'Varian meta Freeze modern melawan musuh AoE.'],
     ],
   },
   xiao: {
@@ -645,7 +654,8 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Wriothesley Melt F2P', 'F2P', ['Wriothesley', 'Xiangling', 'Bennett', 'Sucrose'], 'Reverse Melt klasik dengan semua pendukung 4★.'],
-      ['Wriothesley Freeze Meta', 'META', ['Wriothesley', 'Escoffier', 'Furina', 'Shenhe'], 'Freeze modern dengan damage konstan.'],
+      ['Wriothesley Escoffier Freeze', 'META', ['Wriothesley', 'Escoffier', 'Furina', 'Shenhe'], 'Tim meta Freeze modern dengan 55% RES shred Cryo/Hydro.'],
+      ['Wriothesley Burnmelt', 'META', ['Wriothesley', 'Emilie', 'Mavuika', 'Bennett'], 'Alternatif meta Reverse Melt dengan ceiling single-target tinggi.'],
     ],
   },
   lyney: {
@@ -677,7 +687,8 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Itto Triple Geo F2P', 'F2P', ['Arataki Itto', 'Gorou', 'Kachina', 'Kuki Shinobu'], 'Gorou wajib untuk buff DEF & Geo DMG.'],
-      ['Itto Furina', 'META', ['Arataki Itto', 'Gorou', 'Furina', 'Xilonen'], 'Versi modern (Xilonen C2 atau healer tim).'],
+      ['Itto Mono Geo', 'META', ['Arataki Itto', 'Gorou', 'Chiori', 'Zhongli'], 'Meta klasik Mono Geo: 2 boneka Chiori + shred Zhongli + buff C6 Gorou.'],
+      ['Itto Double Geo Furina', 'META', ['Arataki Itto', 'Xilonen', 'Furina', 'Yelan'], 'Varian meta Double Geo agar shred Xilonen C0 tetap aktif penuh.'],
     ],
   },
   'kamisato-ayato': {
@@ -1388,7 +1399,8 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Miyabi Mono Ice F2P', 'F2P', ['Miyabi', 'Lycaon', 'Soukaku'], 'Lycaon + Soukaku memberi Ice shred & buff +1000 ATK gratis.'],
-      ['Miyabi Disorder Meta', 'META', ['Miyabi', 'Yanagi', 'Astra Yao'], 'Yanagi memicu Polarity Disorder instan untuk tumpukan Fallen Frost.'],
+      ['Miyabi Yanagi Disorder', 'META', ['Miyabi', 'Yanagi', 'Astra Yao'], 'Tim meta #1 Miyabi di Prydwen/YT: Polarity Disorder instan isi penuh Fallen Frost.'],
+      ['Miyabi Vivian Abloom', 'META', ['Miyabi', 'Vivian', 'Astra Yao'], 'Varian meta Disorder off-field dengan bonus damage Abloom Vivian.'],
     ],
   },
   'astra-yao': {
@@ -1439,7 +1451,8 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Ellen Ice F2P', 'F2P', ['Ellen Joe', 'Anby Demara', 'Soukaku'], 'Soukaku mudah didapat & memberi buff Ice + ATK besar.'],
-      ['Ellen Victoria Meta', 'META', ['Ellen Joe', 'Lycaon', 'Astra Yao'], 'Ice RES shred Lycaon + Quick Assist Astra.'],
+      ['Ellen Lighter Astra', 'META', ['Ellen Joe', 'Lighter', 'Astra Yao'], 'Tim meta #1 Ellen modern: +75% Ice DMG Lighter + Quick Assist Astra.'],
+      ['Ellen Lycaon Astra', 'META', ['Ellen Joe', 'Lycaon', 'Astra Yao'], 'Alternatif meta Ice RES shred bila Lighter dipakai tim Evelyn.'],
     ],
   },
   'zhu-yuan': {
@@ -1456,7 +1469,8 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Zhu Yuan PubSec F2P', 'F2P', ['Zhu Yuan', 'Anby Demara', 'Nicole Demara'], 'Salah satu tim F2P terkuat sejak rilis: DEF shred Nicole + burst stun.'],
-      ['Zhu Yuan Qingyi Meta', 'META', ['Zhu Yuan', 'Qingyi', 'Nicole Demara'], 'Stun DMG Multiplier Qingyi melipatgandakan burst Zhu Yuan.'],
+      ['Zhu Yuan Qingyi Astra', 'META', ['Zhu Yuan', 'Qingyi', 'Astra Yao'], 'Tim meta #1 Zhu Yuan: Stun Multiplier Qingyi + buff ATK/CRIT Astra.'],
+      ['Zhu Yuan Double Support', 'META', ['Zhu Yuan', 'Nicole Demara', 'Astra Yao'], 'Varian meta quickswap populer di YouTube TC tanpa butuh Stunner.'],
     ],
   },
   yanagi: {
@@ -1473,7 +1487,8 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Yanagi Shock F2P', 'F2P', ['Yanagi', 'Seth', 'Piper'], 'Seth memberi shield & +100 Anomaly Proficiency, Piper picu Disorder.'],
-      ['Miyabi / Burnice Disorder', 'META', ['Miyabi', 'Yanagi', 'Astra Yao'], 'Polarity Disorder instan untuk DPS tertinggi.'],
+      ['Miyabi Yanagi Disorder', 'META', ['Miyabi', 'Yanagi', 'Astra Yao'], 'Tim meta #1 Disorder: Polarity Disorder instan memicu Frostburn.'],
+      ['Yanagi Vivian Abloom', 'META', ['Yanagi', 'Vivian', 'Astra Yao'], 'Varian meta On-Field Yanagi dengan bonus Abloom Vivian.'],
     ],
   },
   'burnice-white': {
@@ -1505,7 +1520,8 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Jane Hypercarry F2P', 'F2P', ['Jane Doe', 'Seth', 'Lucy'], 'Seth (+100 AP & shield) + Lucy (+600 ATK) sangat murah dibangun.'],
-      ['Jane Burnice Disorder', 'META', ['Jane Doe', 'Burnice White', 'Astra Yao'], 'Assault CRIT + Burn Disorder tanpa henti.'],
+      ['Jane Vivian Abloom', 'META', ['Jane Doe', 'Vivian', 'Astra Yao'], 'Tim meta #1 Jane Doe: Abloom Vivian ikut scale dari CRIT Assault Jane!'],
+      ['Jane Burnice Disorder', 'META', ['Jane Doe', 'Burnice White', 'Astra Yao'], 'Alternatif meta Disorder klasik melawan musuh lemah Fire/Physical.'],
     ],
   },
   'caesar-king': {
@@ -1636,7 +1652,8 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Yixuan Rupture F2P', 'F2P', ['Yixuan', 'Pan Yinhu', 'Pulchra'], 'Pan Yinhu memberi buff Sheer Force khusus Rupture + heal.'],
-      ['Yixuan Ju Fufu Meta', 'META', ['Yixuan', 'Ju Fufu', 'Astra Yao'], 'Off-field stun + buff Ultimate & CRIT DMG.'],
+      ['Yixuan Ju Fufu Pan Yinhu', 'META', ['Yixuan', 'Ju Fufu', 'Pan Yinhu'], 'Tim meta #1 Yixuan di TC: buff Sheer Force Pan Yinhu + off-field stun & CRIT DMG Ju Fufu.'],
+      ['Yixuan Ju Fufu Astra', 'META', ['Yixuan', 'Ju Fufu', 'Astra Yao'], 'Varian meta Quick Assist dengan heal & buff CRIT DMG Astra.'],
     ],
   },
   'ju-fufu': {
@@ -1669,7 +1686,8 @@ const CURATED_GUIDES: Record<string, CompactGuide> = {
     ],
     teams: [
       ['Harumasa Stun F2P', 'F2P', ['Harumasa', 'Anby Demara', 'Nicole Demara'], '100% tim gratis (Harumasa + starter Cunning Hares)!'],
-      ['Harumasa Qingyi Meta', 'META', ['Harumasa', 'Qingyi', 'Astra Yao'], 'Burst window stun yang sangat besar.'],
+      ['Harumasa Qingyi Astra', 'META', ['Harumasa', 'Qingyi', 'Astra Yao'], 'Tim meta #1 Harumasa: Stun Multiplier Qingyi + buff ATK/CRIT Astra.'],
+      ['Harumasa Trigger Astra', 'META', ['Harumasa', 'Trigger', 'Astra Yao'], 'Varian meta On-Field Harumasa dengan off-field stun Trigger.'],
     ],
   },
   lycaon: {

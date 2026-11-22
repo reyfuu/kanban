@@ -350,30 +350,42 @@ label > .password-field > input { flex: 1; min-width: 0; background: transparent
 .guide-badge.tier-bis, .guide-badge.tier-meta { background: #2d291f; color: #e4cc9a; border: 1px solid #4e4532; }
 .guide-badge.tier-alt { background: #232829; color: var(--muted); border: 1px solid var(--border); }
 .guide-weapon-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
-.guide-weapon-item { padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; display: grid; gap: 4px; }
+.guide-weapon-item { padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; display: flex; align-items: flex-start; gap: 12px; }
 .guide-weapon-item.is-f2p { border-color: #3a4f38; }
+.guide-weapon-body { flex: 1; min-width: 0; display: grid; gap: 4px; }
 .guide-weapon-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .guide-weapon-name { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
 .guide-use-btn { min-height: 30px; padding: 4px 8px; font-size: 12px; flex-shrink: 0; }
 .guide-source { font-size: 12px; color: var(--foreground); opacity: .85; }
 .guide-weapon-item p.muted { font-size: 12px; }
-.guide-gear-box { padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; display: grid; gap: 10px; font-size: 13px; }
+.gear-icon { width: 40px; height: 40px; flex-shrink: 0; border-radius: 8px; display: grid; place-items: center; border: 1px solid var(--border); background: var(--background); }
+.gear-icon.rarity-gold { color: #e4cc9a; border-color: #5a4c2f; background: #262116; }
+.gear-icon.rarity-purple { color: #c7b4f5; border-color: #463a66; background: #1e1a2b; }
+.gear-icon.rarity-blue { color: #9bc8f0; border-color: #324a61; background: #16212b; }
+.guide-gear-box { padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; display: grid; gap: 12px; font-size: 13px; }
+.guide-gear-head { display: flex; align-items: center; gap: 12px; }
+.guide-gear-head > div { display: grid; gap: 2px; min-width: 0; }
 .guide-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.guide-stat-grid > div { background: var(--background); border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; display: grid; gap: 2px; }
-.guide-stat-grid small { color: var(--muted); font-size: 11px; }
+.guide-stat-grid > div { background: var(--background); border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; display: grid; gap: 4px; }
+.slot-label { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 11px; }
+.slot-svg { color: var(--accent); }
 .guide-stat-grid strong { font-size: 12px; }
 .guide-substats { font-size: 12px; border-top: 1px solid var(--border); padding-top: 8px; }
 .guide-team-list { display: grid; gap: 10px; }
 .guide-team-card { padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; display: grid; gap: 10px; }
 .guide-team-card.is-f2p { border-color: #3a4f38; }
+.guide-team-card.is-meta { border-color: #4e4532; }
 .guide-team-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .guide-team-members { display: flex; flex-wrap: wrap; gap: 6px; }
 .guide-member-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; background: var(--background); border: 1px solid var(--border); border-radius: 7px; font-size: 12px; }
 .guide-member-chip .avatar { width: 24px; height: 24px; border-radius: 5px; font-size: 10px; }
 .guide-team-card p.muted { font-size: 12px; }
-.picker-preview { margin-top: 16px; padding: 14px; background: var(--surface); border: 1px solid #3a4f38; border-radius: 9px; display: grid; gap: 6px; font-size: 12px; }
-.picker-preview-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 2px; }
-.picker-preview .checkbox-row { min-height: 32px; margin-top: 4px; color: var(--foreground); }
+.picker-preview { margin-top: 16px; padding: 14px; background: var(--surface); border: 1px solid #3a4f38; border-radius: 9px; display: grid; gap: 8px; font-size: 12px; }
+.picker-preview-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.picker-preview-row { display: flex; align-items: center; gap: 10px; }
+.picker-preview-row .gear-icon { width: 32px; height: 32px; }
+.picker-preview-row .gear-icon svg { width: 17px; height: 17px; }
+.picker-preview .checkbox-row { min-height: 32px; margin-top: 2px; color: var(--foreground); }
 @media (max-width: 640px) {
   .guide-stat-grid { grid-template-columns: 1fr; }
   .dialog-tabs { gap: 16px; overflow-x: auto; }

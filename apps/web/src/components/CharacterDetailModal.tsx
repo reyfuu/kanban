@@ -4,6 +4,7 @@ import { CHARACTERS_DATABASE } from '../data/characters';
 import { formatSubStatsSummary, getCharacterBuildGuide, getPrimaryF2PWeapon } from '../data/buildGuides';
 import { calculateMaterialDeficit } from '../lib/calculator';
 import { FARMING_TARGETS, DAY_NAMES } from '../lib/farming';
+import { ArtifactSetIcon, SlotIcon, WeaponIcon } from './GearIcons';
 import { Avatar, Dialog } from './ui';
 
 export function CharacterDetailModal({ card, stages, onClose, onSave, onDelete }: { card: UserCard; stages: { id: string; label: string }[]; onClose: () => void; onSave: (card: UserCard) => boolean; onDelete: (id: string) => boolean }) {
@@ -14,6 +15,8 @@ export function CharacterDetailModal({ card, stages, onClose, onSave, onDelete }
   const [confirmDelete, setConfirmDelete] = useState(false);
   const meta = CHARACTERS_DATABASE.find(item => item.id === card.characterId);
   const guide = meta ? getCharacterBuildGuide(meta) : undefined;
+  const f2pTeams = guide?.teams.filter(team => team.tier === 'F2P') ?? [];
+  const metaTeams = guide?.teams.filter(team => team.tier === 'META') ?? [];
   const genshin = card.game === 'GENSHIN_IMPACT';
   const maxLevel = genshin ? 90 : 60;
   const maxAscension = genshin ? 6 : 5;
@@ -50,7 +53,7 @@ export function CharacterDetailModal({ card, stages, onClose, onSave, onDelete }
           {!genshin && (['coreSkillCurrent', 'coreSkillTarget'] as const).map(key => <label key={key}>{key === 'coreSkillCurrent' ? 'Core skill saat ini' : 'Target core skill'}<select value={form.talents[key] ?? 'A'} onChange={event => setForm({ ...form, talents: { ...form.talents, [key]: event.target.value } })}>{['A', 'B', 'C', 'D', 'E', 'F'].map(value => <option key={value}>{value}</option>)}</select></label>)}</div></details>
           <details className="optional-fields"><summary>Senjata & gear</summary><div className="detail-fields"><label>{genshin ? 'Senjata' : 'W-Engine'}<input value={form.equipment.name} maxLength={200} onChange={event => setForm({ ...form, equipment: { ...form.equipment, name: event.target.value } })} /></label><div className="form-grid">{(['currentLevel', 'targetLevel', 'refinement'] as const).map(key => <label key={key}>{key === 'currentLevel' ? 'Level senjata' : key === 'targetLevel' ? 'Target level senjata' : 'Refinement / overclock'}<input type="number" min={1} max={key === 'refinement' ? 5 : maxLevel} required value={form.equipment[key]} onChange={event => setForm({ ...form, equipment: { ...form.equipment, [key]: +event.target.value } })} /></label>)}</div><label>Set gear<input value={form.gearTarget.setName} maxLength={200} onChange={event => setForm({ ...form, gearTarget: { ...form.gearTarget, setName: event.target.value } })} /></label><label>Target stat<input value={form.gearTarget.subStatsGoal} maxLength={500} onChange={event => setForm({ ...form, gearTarget: { ...form.gearTarget, subStatsGoal: event.target.value } })} /></label><label className="checkbox-row"><input type="checkbox" checked={form.gearTarget.completed} onChange={event => setForm({ ...form, gearTarget: { ...form.gearTarget, completed: event.target.checked } })} />Gear sudah sesuai target</label></div></details>
         </div>
-        {tab === 'guide' && guide && <div className="guide-panel">
+        {tab === 'guide' && guide && meta && <div className="guide-panel">
           <div className="guide-header">
             <div>
               <strong>{guide.role}</strong>
@@ -66,16 +69,19 @@ export function CharacterDetailModal({ card, stages, onClose, onSave, onDelete }
               {guide.weapons.map(weapon => {
                 const selected = form.equipment.name.trim().toLowerCase() === weapon.name.toLowerCase();
                 return <li key={weapon.name} className={`guide-weapon-item ${weapon.tier === 'F2P' ? 'is-f2p' : ''}`}>
-                  <div className="guide-weapon-top">
-                    <span className="guide-weapon-name">
-                      <span className={`guide-badge tier-${weapon.tier.toLowerCase()}`}>{weapon.tier === 'F2P' ? 'F2P' : weapon.tier === 'BIS' ? 'BiS' : 'Alt'}</span>
-                      <strong>{weapon.name}</strong>
-                      <small className="muted">{weapon.rarity}</small>
-                    </span>
-                    <button type="button" className="text-button guide-use-btn" disabled={selected} onClick={() => applyWeapon(weapon.name)}>{selected ? 'Dipakai' : 'Pakai'}</button>
+                  <WeaponIcon game={card.game} weaponType={meta.weaponOrSpecialty} rarity={weapon.rarity} />
+                  <div className="guide-weapon-body">
+                    <div className="guide-weapon-top">
+                      <span className="guide-weapon-name">
+                        <span className={`guide-badge tier-${weapon.tier.toLowerCase()}`}>{weapon.tier === 'F2P' ? 'F2P' : weapon.tier === 'BIS' ? 'BiS' : 'Alt'}</span>
+                        <strong>{weapon.name}</strong>
+                        <small className="muted">{weapon.rarity}</small>
+                      </span>
+                      <button type="button" className="text-button guide-use-btn" disabled={selected} onClick={() => applyWeapon(weapon.name)}>{selected ? 'Dipakai' : 'Pakai'}</button>
+                    </div>
+                    <p className="guide-source">{weapon.source}</p>
+                    <p className="muted">{weapon.note}</p>
                   </div>
-                  <p className="guide-source">{weapon.source}</p>
-                  <p className="muted">{weapon.note}</p>
                 </li>;
               })}
             </ul>
@@ -84,23 +90,28 @@ export function CharacterDetailModal({ card, stages, onClose, onSave, onDelete }
           <section className="guide-section">
             <h3>{genshin ? 'Build Artifact' : 'Build Drive Disc'}</h3>
             <div className="guide-gear-box">
-              <p><strong>Set utama:</strong> {guide.gearSet}</p>
-              {guide.gearAlt && <p className="muted"><strong>Alternatif:</strong> {guide.gearAlt}</p>}
+              <div className="guide-gear-head">
+                <ArtifactSetIcon game={card.game} />
+                <div>
+                  <p><strong>Set utama:</strong> {guide.gearSet}</p>
+                  {guide.gearAlt && <p className="muted"><strong>Alternatif:</strong> {guide.gearAlt}</p>}
+                </div>
+              </div>
               <div className="guide-stat-grid">
-                <div><small>{guide.mainStats.slot1Label}</small><strong>{guide.mainStats.slot1}</strong></div>
-                <div><small>{guide.mainStats.slot2Label}</small><strong>{guide.mainStats.slot2}</strong></div>
-                <div><small>{guide.mainStats.slot3Label}</small><strong>{guide.mainStats.slot3}</strong></div>
+                <div><small className="slot-label"><SlotIcon label={guide.mainStats.slot1Label} />{guide.mainStats.slot1Label}</small><strong>{guide.mainStats.slot1}</strong></div>
+                <div><small className="slot-label"><SlotIcon label={guide.mainStats.slot2Label} />{guide.mainStats.slot2Label}</small><strong>{guide.mainStats.slot2}</strong></div>
+                <div><small className="slot-label"><SlotIcon label={guide.mainStats.slot3Label} />{guide.mainStats.slot3Label}</small><strong>{guide.mainStats.slot3}</strong></div>
               </div>
               <p className="guide-substats"><small className="muted">Substat:</small> {guide.subStats}</p>
             </div>
           </section>
 
-          <section className="guide-section">
-            <h3>Rekomendasi Tim</h3>
+          {f2pTeams.length > 0 && <section className="guide-section">
+            <h3>Rekomendasi Tim F2P (Ramah Budget)</h3>
             <div className="guide-team-list">
-              {guide.teams.map(team => <div key={team.name} className={`guide-team-card ${team.tier === 'F2P' ? 'is-f2p' : ''}`}>
+              {f2pTeams.map(team => <div key={team.name} className="guide-team-card is-f2p">
                 <div className="guide-team-head">
-                  <span className={`guide-badge tier-${team.tier.toLowerCase()}`}>{team.tier === 'F2P' ? 'Tim F2P' : 'Tim Meta'}</span>
+                  <span className="guide-badge tier-f2p">Tim F2P</span>
                   <strong>{team.name}</strong>
                 </div>
                 <div className="guide-team-members">
@@ -115,7 +126,29 @@ export function CharacterDetailModal({ card, stages, onClose, onSave, onDelete }
                 <p className="muted">{team.note}</p>
               </div>)}
             </div>
-          </section>
+          </section>}
+
+          {metaTeams.length > 0 && <section className="guide-section">
+            <h3>Rekomendasi Tim Meta (Referensi TC / Komunitas)</h3>
+            <div className="guide-team-list">
+              {metaTeams.map(team => <div key={team.name} className="guide-team-card is-meta">
+                <div className="guide-team-head">
+                  <span className="guide-badge tier-meta">Tim Meta</span>
+                  <strong>{team.name}</strong>
+                </div>
+                <div className="guide-team-members">
+                  {team.members.map(memberName => {
+                    const member = CHARACTERS_DATABASE.find(c => c.game === card.game && c.name.toLowerCase() === memberName.toLowerCase());
+                    return <span key={memberName} className="guide-member-chip">
+                      <Avatar name={memberName} src={member?.avatarUrl} />
+                      <span>{memberName}</span>
+                    </span>;
+                  })}
+                </div>
+                <p className="muted">{team.note}</p>
+              </div>)}
+            </div>
+          </section>}
         </div>}
         {tab === 'materials' && <div><h3>Material karakter</h3><div className="detail-materials">{FARMING_TARGETS.filter(target => target.characterIds.includes(card.characterId)).map(target => <div className="material-heading" key={target.id}><Avatar name={target.name} src={target.iconUrl} /><div><strong>{target.name}</strong><p>{target.location}</p><p>{target.days.length === 7 ? 'Setiap hari' : target.days.map(day => DAY_NAMES[day]).join(' · ')}</p></div></div>)}</div><p className="muted">Estimasi kebutuhan dari level saat ini. Angka bersifat perkiraan dan belum dikurangi inventori akun.</p><dl className="data-list">{[
           [genshin ? 'Mora' : 'Denny', deficit.moraOrDenny], [genshin ? 'Buku EXP' : 'Investigator Log', deficit.expBooksOrLogs], ['Material boss', deficit.bossMaterials], [genshin ? 'Buku talenta' : 'Tactical Chip', deficit.talentBooksOrChips], ['Material boss mingguan', deficit.weeklyBossMaterials], [genshin ? 'Crown' : 'Hamster Cage Pass', deficit.crownsOrHamsterPass], [genshin ? 'Estimasi resin' : 'Estimasi battery', deficit.estimatedResinOrBattery],
