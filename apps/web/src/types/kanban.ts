@@ -101,3 +101,37 @@ export interface MaterialDeficit {
   estimatedResinOrBattery: number;
   estimatedDays: number;
 }
+
+export interface WeaponRecommendation {
+  name: string;
+  rarity: string;
+  tier: 'F2P' | 'BIS' | 'ALT';
+  source: string;
+  note: string;
+}
+
+export interface TeamRecommendation {
+  name: string;
+  tier: 'F2P' | 'META';
+  members: string[];
+  note: string;
+}
+
+export interface CharacterBuildGuide {
+  role: string;
+  talentPriority: string;
+  gearSet: string;
+  gearAlt?: string;
+  mainStats: {
+    slot1Label: string;
+    slot1: string;
+    slot2Label: string;
+    slot2: string;
+    slot3Label: string;
+    slot3: string;
+  };
+  subStats: string;
+  weapons: WeaponRecommendation[];
+  teams: TeamRecommendation[];
+  isGenericFallback?: boolean;
+}
