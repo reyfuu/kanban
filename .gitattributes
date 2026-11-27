@@ -1,0 +1,8 @@
+# Exclude generated/vendored artifacts from GitHub Linguist language statistics
+graphify-out/** linguist-vendored
+*.html linguist-vendored
+apps/web/public/** linguist-vendored
+apps/web/src/data/catalog.json linguist-generated=true
+apps/web/src/data/gearIcons.json linguist-generated=true
+pnpm-lock.yaml linguist-generated=true
+apps/web/pnpm-lock.yaml linguist-generated=true
