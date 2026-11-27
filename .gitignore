@@ -45,3 +45,4 @@ coverage/
 *.tsbuildinfo
 next-env.d.ts
 .gstack/
+graphify-out/
